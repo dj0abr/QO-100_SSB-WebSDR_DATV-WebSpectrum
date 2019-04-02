@@ -1,5 +1,7 @@
-# PlaySDR-Webclient
+# WebSDR Client specially for the es'hail-2 Satellite
 a web based SDR program made for the SDRplay RSP1a
+
+# made for LINUX ONLY ! There is a "Windows free zone" around my shack :-)
 
 a PC runs the SDR software:
 * capturing samples from the SDR receiver (SDRplay)
@@ -17,22 +19,15 @@ the GUI runs in a browser
 * creating the GUI
 * sending user command via WebSocket to above SDR program
 
-currently I am working with the SDRplay Hardware only.
-But I use 2.4Msamples, so later on this can be compatible for
-i.e. RTL sticks and others.
-
 # this is WORK in PROGRESS
 actual Status: 
-working with the playSDR and the RTLsdr stick (and compatibles)
-1) Setup: playSDRweb.h
-2) compile and start
-3) copy the html file to your web server directory (i.e. /var/www/html)
+working with the playSDR (maybe later also with the RTLsdr stick and compatibles)
+1) compile "make" and start "./playSDReshail2". The hardware is detected automatically if the original SDRplay driver is installed
+2) copy the files from the html directory to your web server directory (i.e. /var/www/html)
    the web server must be running
 3) open a web browser and open the html web site
-4) the waterfall muss be running. Click into the big waterfall the select the listening frequency. The base frequency is set in playSDRweb.h
+4) the waterfall muss be running. Click into the waterfall the select the listening frequency.
 5) click the "Audio ON" button
-
-Today Mar,17 2019, this program was used for the first time the listen to es'hail-2
 
 
 Prerequisites:
@@ -53,4 +48,4 @@ make
 Run the software:
 =================
 
-./playSDRweb
+./playSDReshail2
