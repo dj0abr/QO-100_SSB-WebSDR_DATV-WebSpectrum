@@ -24,6 +24,8 @@
 * 
 */
 
+#ifdef SDR_PLAY
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -208,3 +210,4 @@ void gainCallback(unsigned int gRdB, unsigned int lnaGRdB, void *cbContext)
     return;
 }
 
+#endif // SDR_PLAY

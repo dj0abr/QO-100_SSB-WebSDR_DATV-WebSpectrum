@@ -68,7 +68,9 @@ void set_frequency()
     {
         if(hwtype == 1)
         {
+            #ifdef SDRPLAY
             setTunedQrgOffset(newrf);
+            #endif
         }
         
         if(hwtype == 2)

@@ -132,7 +132,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             
             memset(cpssb,0,sizeof(fftw_complex) * FSSB_FFT_LENGTH);
             
-            for (i = 0; i < (13600/FSSB_RESOLUTION); i++)
+            for (i = 0; i < (3600/FSSB_RESOLUTION); i++)
             {
                 cpssb[i][0] = cpout[idx][0];
                 cpssb[i][1] = cpout[idx][1];
@@ -148,8 +148,17 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             for (i = 0; i < FSSB_FFT_LENGTH; i++)
             {
                 ssbsamples[i] = din[i][0];	                 // use real part only
-                //ssbsamples[i] /= (double)FSSB_FFT_LENGTH;    // scale down to match the value of the input signal
-                ssbsamples[i] /= 5000;
+                if(hwtype == 1)
+                {
+                    // SDRplay
+                    ssbsamples[i] /= 5000;
+                }
+                if(hwtype == 2)
+                {
+                    // RTL_SDR
+                    ssbsamples[i] /= 40000;
+                }
+                
                 if(ssbsamples[i] > 32767 || ssbsamples[i] < -32767)
                     printf("ssbsamples too loud: %.0f\n",ssbsamples[i]);
 
@@ -169,8 +178,12 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     {
                         audio_idx = 0;
                         // we have AUDIO_RATE (8000) samples, this is one second
+                        #ifdef SOUNDLOCAL
+                        write_pipe(FIFO_AUDIO, (unsigned char *)b16samples, AUDIO_RATE*2);
+                        #else
                         // lets pipe it to the browser through the web socket
                         write_pipe(FIFO_AUDIOWEBSOCKET, (unsigned char *)b16samples, AUDIO_RATE*2);
+                        #endif
                     }
                 }
                 else

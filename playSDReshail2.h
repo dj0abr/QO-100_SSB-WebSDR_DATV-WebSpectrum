@@ -25,6 +25,8 @@
 * 
 */
 
+//#define SOUNDLOCAL
+
 #include <stdint.h>
 
 // sample rate of the SDRplay hardware
@@ -62,7 +64,7 @@
 // this is similar to the left margin of the big waterfall picture
 // and therefore should be the lowest frequency of interest (i.e. beginning of a band)
 // for the Sat es'hail 2 this should be: 10489250000 Hz (= 10.48925 GHz)
-#define TUNED_FREQUENCY     (739525000 - 45000)    // 200000 is the correction for my LNB
+#define TUNED_FREQUENCY     (739525000 - 90000)    // 200000 is the correction for my LNB
 #define DISPLAYED_FREQUENCY_KHZ  10489525
 
 // Websocket Port

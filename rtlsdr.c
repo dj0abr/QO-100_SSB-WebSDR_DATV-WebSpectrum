@@ -39,6 +39,7 @@
 #include <pthread.h>
 #include "playSDReshail2.h"
 #include "fifo.h"
+#include "ssbfft.h"
 
 void *rtldevproc(void *pdata);
 void *rtlproc(void *pdata);
@@ -62,8 +63,9 @@ int init_rtlsdr()
     printf("open returned: %d\n",retval);
     
     // configure the device
-    retval = rtlsdr_set_sample_rate(dev, SDR_SAMPLE_RATE);
-    if(retval != 0) printf("Sample rate %d set= %d\n",SDR_SAMPLE_RATE,retval);
+    int samprate = 1200000;
+    retval = rtlsdr_set_sample_rate(dev, samprate);
+    if(retval != 0) printf("Sample rate %d set= %d\n",samprate,retval);
     
     retval = rtlsdr_set_center_freq(dev, TUNED_FREQUENCY);
     if(retval != 0) printf("freqset= %d\n",retval);
@@ -168,7 +170,8 @@ int ret;
         if(ret)
         {
             int dstlen = 0;
-            for(int i=0; i<SAMPLES_PER_PASS; i+=2)
+            // incr by 4: 2 because MSB and LSB, and 2 for decimation from 1M2 to 600k
+            for(int i=0; i<SAMPLES_PER_PASS; i+=4)
             {
                 double fi = buf[i];
                 fi -= 127.4;
@@ -184,6 +187,7 @@ int ret;
             }
             
             //sample_processing(ibuf, qbuf, dstlen);
+            fssb_sample_processing(ibuf, qbuf, dstlen);
         }
     }
        

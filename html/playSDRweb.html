@@ -756,24 +756,19 @@ canvas {
             var midarr = new Array(200);
             var arrfirst = 1;
             var showpeak = 0;
-            var speclevel = 50;
-            var specgain = 60;
-            var audiolevel = 50;
+            var speclevel = 80;
+            var specgain = 70;
+            var audiogain = 50;
             var wflevel = 50;
-            var wfgain = 50;
+            var wfgain = 80;
             
             function draw_spec()
             {
                 if(arrfirst == 1)
                 {
-                    arrfirst = 0;
                     for(var i=0; i<200; i++)
                     {
                         midarr[i] = new Array(width);
-                        for(var j=0; j<width; j++)
-                        {
-                            midarr[i][j] = ((255-pix[j]) * specgain) / 100 - (100-speclevel);
-                        }
                     }
                 }
             
@@ -799,7 +794,14 @@ canvas {
                     // shift midarr
                     for(var idx=(specarrlen-1); idx>=1; idx--)
                     {
-                        midarr[idx][x] = midarr[idx-1][x];
+                        if(arrfirst == 1)
+                        {
+                            midarr[idx][x] = ((255-pix[x]) * (specgain*5)) / 100 - (100-speclevel)-600;
+                        }
+                        else
+                        {
+                            midarr[idx][x] = midarr[idx-1][x];
+                        }
                     }
                     // add new value
                     midarr[0][x] = ((255-pix[x]) * (specgain*5)) / 100 - (100-speclevel)-600;
@@ -823,6 +825,8 @@ canvas {
                         maxval = mv;
                         
                     context.lineTo(x,height - mv);
+                    
+                    arrfirst = 0;
                 }
                 context.lineTo(width-1,height-1);
                 context.fill();
@@ -864,7 +868,7 @@ canvas {
             var cmaxval;
             var cminval;
 
-            var hWFrefval = 150;     // shifts the black value (higher=darker)
+            var hWFrefval = 50;     // shifts the black value (higher=darker)
             var hWFgain = 0.00001;   // contrast (must be > 0, low=high contrast)
 
             var minlog;
@@ -985,7 +989,7 @@ canvas {
                         var pval = getPixelColor(pix[x]);
                         
                         // user adjustments
-                        pval = pval * (Number(wfgain)/50) + (Number(wflevel) - 50);
+                        pval = pval * (Number(wfgain)/50) + (Number(wflevel) -100);
                         pval = pval.toFixed(0);
                         if(pval < 3) pval = 3;
                         if(pval > 255) pval = 255;
@@ -1279,7 +1283,9 @@ canvas {
                     var id = 0;
                     for(var i=0; i<pixwidth; i+=2)
                     {
-                        pix[id++] = pix3000[i];
+                        pix[id] = pix3000[i];
+                        if(pix3000[i+1] < pix[id]) pix[id] = pix3000[i+1];
+                        id++;
                     }
                     pixwidth /= 2;
                     
@@ -1287,8 +1293,6 @@ canvas {
                     var sd = "RX: " + fval.toFixed(6) + " MHz, TX: " + (fval-ftx/1000).toFixed(6) + " MHz";
                     $("#tuneinfo").html(sd);
                     
-                    //drawWFtitle("wf_title",tuneqrg+start/1000,tuneqrg+end/1000,resolution);
-                    //drawWFtitle("wf_txtitle",tuneqrg-ftx+start/1000,tuneqrg-ftx+end/1000,resolution);
                     drawWFtitle_eshail_rx("wf_title");
                     drawWFtitle_eshail_tx("wf_txtitle");
                     drawWFtitle_eshail_ssb("wf_title1",fval);
@@ -1301,7 +1305,7 @@ canvas {
                     reload = 0;
                 }
                 
-                if(type == 1)
+                /*if(type == 1)
                 {
                     var idx = pos + 2;
                     start1 = get32(arr.slice(idx));
@@ -1319,7 +1323,7 @@ canvas {
                     drawWF1();
                     drawConnect();
                     drawOverlay1();
-                }
+                }*/
 
                 if(type == 2)
                 {
@@ -1642,7 +1646,7 @@ canvas {
                         Level:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="speclevel" type="range" min="1" max="100" value="50">
+                        <input id="speclevel" type="range" min="1" max="160" value="80">
                     </div>
                     <div class="rightcell_label">
                         Level:
@@ -1656,13 +1660,13 @@ canvas {
                         Gain:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="specgain" type="range" min="1" max="120" value="60">
+                        <input id="specgain" type="range" min="1" max="140" value="70">
                     </div>
                     <div class="rightcell_label">
                         Gain:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="wfgain" type="range" min="1" max="100" value="50">
+                        <input id="wfgain" type="range" min="1" max="160" value="80">
                     </div>
                 </div>
                 <div class="rightrow">
