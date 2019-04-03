@@ -1,7 +1,7 @@
 # WebSDR Client specially for the es'hail-2 Satellite
 a web based SDR program made for the SDRplay RSP1a
 
-# made for LINUX ONLY ! There is a "Windows free zone" around my shack :-)
+# made for LINUX ONLY ! 
 
 a PC runs the SDR software:
 * capturing samples from the SDR receiver (SDRplay)
