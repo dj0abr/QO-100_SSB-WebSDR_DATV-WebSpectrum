@@ -33,14 +33,18 @@
 #include <fftw3.h>
 #include <math.h>
 #include <string.h>
+#include <sys/time.h>
 #include "fifo.h"
 #include "wf_univ.h"
 #include "playSDReshail2.h"
 #include "setqrg.h"
 #include "audio_bandpass.h"
+#include "downmixer.h"
+#include "hilbert90.h"
+#include "antialiasing.h"
+#include "timing.h"
 
-
-void beaconLock(fftw_complex *pd, int len);
+void beaconLock(double val, int pos);
 
 #define FSSB_SRATE          600000
 #define FSSB_RESOLUTION     10
@@ -53,6 +57,7 @@ fftw_complex *cpssb = NULL;             // converted cpout, used as input for th
 fftw_plan plan = NULL, iplan = NULL;
 int din_idx = 0;
 int rflock = 0;
+
 
 void init_fssb()
 {
@@ -88,116 +93,186 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // the buffer is full, now lets execute the fft
             fftw_execute(plan);
             
-            // this fft has generated FSSB_NUM_BINS bins in cpout
-            // for the waterfall we need only 3000 (WF_WIDTH) bins
+            // this fft has generated FSSB_NUM_BINS (= 30.000) bins in cpout
             double wfsamp[WF_WIDTH];
             int idx = 0;
             double real,imag;
             int wfbins;
 
-            beaconLock(cpout,idx);            
-            
-            /*for(int x=27480; x<27520; x++)
-            {
-                cpout[x][0] = 0;
-                cpout[x][1] = 0;
-            }*/
-   
+            // for the BIG waterfall we need 1500 (WF_WIDTH) bins, so take every 20th
+            // take the loudest of the ten bins
             // create waterfall line and send to the client through a web socket
-            for(wfbins=0; wfbins<FSSB_NUM_BINS; wfbins+=10)
+            for(wfbins=0; wfbins<FSSB_NUM_BINS; wfbins+=20)
             {
-                // calculate absolute value
-                real = cpout[wfbins][0];
-                imag = cpout[wfbins][1];
-                wfsamp[idx] = sqrt((real * real) + (imag * imag));
-                wfsamp[idx] /= 50;
+                for(int bin10=0; bin10<20; bin10++)
+                {
+                    real = cpout[wfbins+bin10][0];
+                    imag = cpout[wfbins+bin10][1];
+                    double v = sqrt((real * real) + (imag * imag));
+                    beaconLock(v,wfbins+bin10);
+                    if(v > wfsamp[idx]) wfsamp[idx] = v;
+                    // correct level TODO ???
+                    wfsamp[idx] /= 50;
+                }
+                
                 //printf("%.0f\n",wfsamp[idx]);
                 idx++;
             }
             
             drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, 0, FSSB_SRATE/2, FSSB_RESOLUTION*10, DISPLAYED_FREQUENCY_KHZ, "\0");
             
-            // NULL the negative frequencies, this eliminates the mirror image
-            // (in case of LSB demodulation use this negative image and null the positive)
-            for (i = FSSB_NUM_BINS; i < FSSB_FFT_LENGTH; i++)
+            // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
+            // in a range of 15.000 Hz, so every single bin (one bin is 10 Hz)
+            // starting at the current RX frequency - 15kHz/2 (so the RX qrg is in the middle)
+            // foffset is the RX qrg in Hz
+            // so we need the bins from (foffset/10) - 750 to (foffset/10) + 750
+            int start = (foffset/10) - 750;
+            int end = (foffset/10) + 750;
+            
+            double wfsampsmall[WF_WIDTH];
+            idx = 0;
+            for(wfbins=start; wfbins<end; wfbins++)
             {
-                cpout[i][0] = 0;
-                cpout[i][1] = 0;
-            }
-            
-            // shift the required frequency bins to 0 Hz (baseband)
-            // "foffset" has the listening frequency in Hz
-            // the FFT resolution is 10 Hz, so we take 1/10
-            idx = foffset/10;
-            
-            memset(cpssb,0,sizeof(fftw_complex) * FSSB_FFT_LENGTH);
-            
-            for (i = 0; i < (3600/FSSB_RESOLUTION); i++)
-            {
-                cpssb[i][0] = cpout[idx][0];
-                cpssb[i][1] = cpout[idx][1];
-                if(++idx >= FSSB_NUM_BINS) idx=0;
-            }
-            
-            // with invers fft convert the spectrum back to samples
-            fftw_execute(iplan);
-            
-            // and copy samples into the resulting buffer
-            // scaling: the FFT/iFFT multipies the samples by N (capture rate, i.e. 48000)
-            double ssbsamples[FSSB_FFT_LENGTH];
-            for (i = 0; i < FSSB_FFT_LENGTH; i++)
-            {
-                ssbsamples[i] = din[i][0];	                 // use real part only
-                if(hwtype == 1)
-                {
-                    // SDRplay
-                    ssbsamples[i] /= 5000;
-                }
-                if(hwtype == 2)
-                {
-                    // RTL_SDR
-                    ssbsamples[i] /= 40000;
-                }
+                real = cpout[wfbins][0];
+                imag = cpout[wfbins][1];
+                wfsampsmall[idx] = sqrt((real * real) + (imag * imag));
                 
-                if(ssbsamples[i] > 32767 || ssbsamples[i] < -32767)
-                    printf("ssbsamples too loud: %.0f\n",ssbsamples[i]);
-
-                // here we have the samples with rate of 600.000
-                // we need 8.000 for the sound card
-                // lets decimate by 75 (FSSB_SRATE / 8000)
-                static int audio_cnt = 0;
-                static short b16samples[AUDIO_RATE];
-                static int audio_idx = 0;
-                if(++audio_cnt >= 75)
-                {
-                    audio_cnt = 0;
-                    
-                    b16samples[audio_idx] = audio_filter((short)(ssbsamples[i]));
-                    //b16samples[audio_idx] = (short)(ssbsamples[i]);
-                    if(++audio_idx >= AUDIO_RATE)
-                    {
-                        audio_idx = 0;
-                        // we have AUDIO_RATE (8000) samples, this is one second
-                        #ifdef SOUNDLOCAL
-                        write_pipe(FIFO_AUDIO, (unsigned char *)b16samples, AUDIO_RATE*2);
-                        #else
-                        // lets pipe it to the browser through the web socket
-                        write_pipe(FIFO_AUDIOWEBSOCKET, (unsigned char *)b16samples, AUDIO_RATE*2);
-                        #endif
-                    }
-                }
-                else
-                {
-                }
+                // correct level TODO ???
+                wfsampsmall[idx] /= 50;
+                idx++;
             }
+            
+            drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, 0, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + foffset/1000, "\0");
+        }
+        
+        // SSB Decoding and Audio Output
+        // shift the needed frequency to baseband
+        downmixer_process(xi+i,xq+i);
+        
+        // here we have the samples with rate of 600.000
+        // we need 8.000 for the sound card
+        // lets decimate by 75 (FSSB_SRATE / 8000)
+        static int audio_cnt = 0;
+        static short b16samples[AUDIO_RATE];
+        static int audio_idx = 0;
+        if(++audio_cnt >= 75)
+        {
+            audio_cnt = 0;
+            
+            xi[i] = fir_filter_i_ssb(xi[i]);
+            xq[i] = fir_filter_q_ssb(xq[i]);
+    
+            // USB demodulation
+            double dsamp = BandPassm45deg(xi[i]) - BandPass45deg(xq[i]);
+            
+            if(dsamp > 32767 || dsamp < -32767)
+                printf("Hilbert Output too loud: %.0f\n",dsamp);
+            
+            b16samples[audio_idx] = audio_filter((short)dsamp);
+            
+            if(++audio_idx >= AUDIO_RATE)
+            {
+                audio_idx = 0;
+                // we have AUDIO_RATE (8000) samples, this is one second
+                #ifdef SOUNDLOCAL
+                    // play it to the local soundcard
+                    write_pipe(FIFO_AUDIO, (unsigned char *)b16samples, AUDIO_RATE*2);
+                #else
+                    // lets pipe it to the browser through the web socket
+                    write_pipe(FIFO_AUDIOWEBSOCKET, (unsigned char *)b16samples, AUDIO_RATE*2);
+                #endif
+            }
+        }
+        else
+        {
+            fir_filter_i_ssb_inc(xi[i]);
+            fir_filter_q_ssb_inc(xq[i]);
         }
     }
 }
 
-void beaconLock(fftw_complex *pd, int len)
+void beaconLock(double val, int pos)
 {
-    return; 
+static double max = -9999999999;
+static int lastsec = 0;
+static int maxpos;
+static int lastpos;
+    // the CW beacon is 25kHz above the left edge
+    // this is at bin 2500
     
+    // between bin 1500 and 3500 measure the maximum
+    // this give a lock range of 20 kHz
+    if(pos >= 1500 && pos <= 3500)
+    {
+        // measure the peak value for 1s
+        if(fabs(val) > max)
+        {
+            max = fabs(val);
+            maxpos = pos;
+        }
+    }
+    
+    struct timeval  tv;
+    gettimeofday(&tv, NULL);    
+
+    if(tv.tv_sec != lastsec)
+    {
+        lastsec = tv.tv_sec;
+        max = -9999999999;
+        
+        if(maxpos == lastpos)
+        {
+            // correction step
+            int cneg = 0, cpos = 0;
+            if(hwtype == 1)
+            {
+                // SDRPLAY
+                cpos = (2500-maxpos);
+                cneg = (maxpos-2500);
+            }
+            
+            if(hwtype == 2)
+            {
+                // RTL-sdr
+                int diff = 2500-maxpos;
+                if(maxpos > 2500) diff = maxpos - 2500;
+                
+                if(diff > 100)
+                {
+                    cpos = (2500-maxpos)*5;
+                    cneg = (maxpos-2500)*5;
+                }
+                else
+                {
+                    cpos = (2500-maxpos)/5;
+                    cneg = (maxpos-2500)/5;
+                }
+            }
+            
+            // we had 2x the same value
+            if(maxpos > 2505)
+            {
+                printf("Auto-tuning pos:%d\n",maxpos);
+                newrf -= cneg;
+                setrfoffset = 1;
+                rflock = 0;
+            }
+            else if(maxpos < 2495)
+            {
+                printf("Auto-tuning pos:%d\n",maxpos);
+                newrf += cpos;
+                setrfoffset = 1;
+                rflock = 0;
+            }
+            else
+            {
+                rflock = 1;
+            }
+        }
+        lastpos = maxpos;
+    }
+    
+    /*
     // AUTO es'hail-2 tune, lock on PSK beacon
     #define MAXNUM  5
     static int lastmax[MAXNUM];
@@ -265,5 +340,6 @@ void beaconLock(fftw_complex *pd, int len)
         srcupper = (ref+200);
         pass++;
     }
+    */
 }
 

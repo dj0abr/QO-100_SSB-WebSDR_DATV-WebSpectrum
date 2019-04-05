@@ -1,6 +1,8 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
+#include <stdlib.h>
 #include <sys/time.h>
 
 
@@ -38,5 +40,36 @@ static int first=1;
     {
         cnt[id] = 0;
         printf("%d: %.3f\n",id,((samples[id]*1e6)/(tnow - lastus[id]))/1e6);
+    }
+}
+
+void measure_minmax(double v, int pos)
+{
+static double min = 9999999999, max = -9999999999;
+static int lastsec = 0;
+static int maxpos=0, minpos=0;
+
+    v = abs(v);
+    if(v > max) 
+    {
+        max = v;
+        maxpos = pos;
+    }
+    if(v < min) 
+    {
+        min = v;
+        minpos = pos;
+    }
+
+    // print result every second
+    struct timeval  tv;
+    gettimeofday(&tv, NULL);    
+
+    if(tv.tv_sec != lastsec)
+    {
+        lastsec = tv.tv_sec;
+        printf("min:%.0f (%d) max:%.0f (%d)\n",min,minpos,max,maxpos);
+        min = 9999999999;
+        max = -9999999999;
     }
 }

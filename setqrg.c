@@ -29,6 +29,7 @@
 #include "playSDReshail2.h"
 #include "sdrplay.h"
 #include "rtlsdr.h"
+#include "downmixer.h"
 
 // 0=do nothing, 1=set to mouse pos 2=increment/decrement
 // 3=set a band, 4=set LSB/USB
@@ -49,9 +50,11 @@ void set_frequency()
     {
         case 1: printf("new QRG offset: %d\n",foffset);
                 foffset = freqval * FFT_RESOLUTION;
+                downmixer_setFrequency(foffset);
                 break;
                 
         case 2: foffset += (freqval * 10);
+                downmixer_setFrequency(foffset);
                 break;
         
         case 4: ssbmode = freqval;

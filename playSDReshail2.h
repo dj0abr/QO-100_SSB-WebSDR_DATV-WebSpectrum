@@ -49,7 +49,7 @@
 //#define WF_RANGE_HZ        100000       // (first downsampled rate: 200000)
 
 // width of the big waterfall in pixels
-#define WF_WIDTH    3000
+#define WF_WIDTH    1500
 
 // the height of the waterfall picture (ignored in WF_MODE_WEBSOCKET)
 #define WF_HEIGHT   400
@@ -64,7 +64,7 @@
 // this is similar to the left margin of the big waterfall picture
 // and therefore should be the lowest frequency of interest (i.e. beginning of a band)
 // for the Sat es'hail 2 this should be: 10489250000 Hz (= 10.48925 GHz)
-#define TUNED_FREQUENCY     (739525000 - 90000)    // 200000 is the correction for my LNB
+#define TUNED_FREQUENCY     (739525000 - 50000)    // 200000 is the correction for my LNB
 #define DISPLAYED_FREQUENCY_KHZ  10489525
 
 // Websocket Port

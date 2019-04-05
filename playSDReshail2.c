@@ -37,6 +37,7 @@
 #include "rtlsdr.h"
 #include "fifo.h"
 #include "ssbfft.h"
+#include "downmixer.h"
 
 int hwtype = 0; // 1=playSDR, 2=rtlsdr
 int samplesPerPacket;
@@ -94,6 +95,8 @@ int main()
     printf("2nd FTT smp/pass:%d\n",SAMPLES_FOR_FFT_SMALL);
     
     init_fssb();
+    
+    downmixer_init();
     
     // init anti aliasing filters
     //init_ssb_filters();

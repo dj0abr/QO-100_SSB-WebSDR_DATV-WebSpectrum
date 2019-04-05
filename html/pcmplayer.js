@@ -135,6 +135,14 @@ PCMPlayer.prototype.flush = function() {
 
     for (channel = 0; channel < this.option.channels; channel++) {
         audioData = audioBuffer.getChannelData(channel);
+        /* fadein */
+        if (i < 50) {
+            audioData[i] =  (audioData[i] * i) / 50;
+        }
+        /* fadeout*/
+        if (i >= (length - 51)) {
+            audioData[i] =  (audioData[i] * decrement--) / 50;
+        }
         offset = channel;
         decrement = 50;
         for (i = 0; i < length; i++) {

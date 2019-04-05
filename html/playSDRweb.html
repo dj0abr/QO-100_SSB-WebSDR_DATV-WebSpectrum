@@ -476,19 +476,30 @@ canvas {
                 playON = 1;
             }
             
+            var filter_cutoff = 2400;
+            
             function filter18()
             {
                 websocket.send("filterw:0\0");
+                filter_cutoff = 1800;
             }
             
             function filter24()
             {
                 websocket.send("filterw:1\0");
+                filter_cutoff = 2400;
             }
-            
-            function filter36()
+
+            function filter30()
             {
                 websocket.send("filterw:2\0");
+                filter_cutoff = 3000;
+            }
+
+            function filter36()
+            {
+                websocket.send("filterw:3\0");
+                filter_cutoff = 3600;
             }
 
             function onstart()
@@ -501,7 +512,7 @@ canvas {
                     function(evt){
                         var xpos = evt.clientX;
                         var rect = document.getElementById("wf_overlay").getBoundingClientRect();
-                        websocket.send("mousepo:"+ (xpos - rect.left)*2 + "\0");
+                        websocket.send("mousepo:"+ (xpos - rect.left) + "\0");
                     },false
                 );
                 
@@ -653,10 +664,10 @@ canvas {
                 ctx.fillStyle = "#ffffff";
                 
                 ctx.textAlign = "right";
-                ctx.fillText((qrg+0.01).toFixed(6),width-1,16);
+                ctx.fillText((qrg+0.075).toFixed(6),width-1,16);
                 
                 ctx.textAlign = "left";
-                ctx.fillText((qrg-0.01).toFixed(6),0,16);
+                ctx.fillText((qrg-0.0075).toFixed(6),0,16);
 
                 ctx.textAlign = "center";
                 ctx.fillText(qrg.toFixed(6),width/2,16);
@@ -759,7 +770,7 @@ canvas {
             var speclevel = 80;
             var specgain = 70;
             var audiogain = 50;
-            var wflevel = 50;
+            var wflevel = 100;
             var wfgain = 80;
             
             function draw_spec()
@@ -989,7 +1000,7 @@ canvas {
                         var pval = getPixelColor(pix[x]);
                         
                         // user adjustments
-                        pval = pval * (Number(wfgain)/50) + (Number(wflevel) -100);
+                        pval = pval * (Number(wfgain)/50) + (Number(wflevel) -200);
                         pval = pval.toFixed(0);
                         if(pval < 3) pval = 3;
                         if(pval > 255) pval = 255;
@@ -1048,7 +1059,7 @@ canvas {
                 if(vertmarker == 1)
                 {
                 
-                    //$("#tuneinfo").html(start1 + " " + calcpos(start1) + " " + end1 + " " + calcpos(end1));
+                    //console.log(tuneqrg + " " + tuneqrg1 + " " + start1 + " " + calcpos(start1) + " " + end1 + " " + calcpos(end1));
                     // draw transparent rectangle at the zoomed qrg range
                     for(var i=0; i<height; i++)
                     {
@@ -1122,9 +1133,26 @@ canvas {
                         ImageData.data[((i*(width*4)) + (j*4) + 3)] = 255;
                     }
                     
+                    function vls(xpos,i)
+                    {
+                        var j = xpos;
+                        ImageData.data[((i*(width*4)) + (j*4) + 0)] = 100;
+                        ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
+                        ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
+                        ImageData.data[((i*(width*4)) + (j*4) + 3)] = 255;
+                    }
+                    
                     for(var i=0; i<height; i++)
                     {
-                        vl(600,i);
+                        // 0 Hz line
+                        vl(width/2,i);
+                        
+                        // SSB lines 200 Hz and Filter-Cutoff line
+                        if((i%2)==0)
+                        {
+                            vls(width/2 + 20,i);
+                            vls(width/2 + filter_cutoff/10,i);
+                        }
                     }
                 }
                 context.putImageData(ImageData,0,0);
@@ -1156,8 +1184,8 @@ canvas {
                     {
                         var off = y*(line_width1*4) + x*4;
                         
-                        var pval = getPixelColor(pix[x]);
-                        pval = pval * (Number(wfgain)/50) + (Number(wflevel) - 50);
+                        var pval = getPixelColor(pix1[x]);
+                        pval = pval * (Number(wfgain)/50) + (Number(wflevel) - 200);
                         pval = pval.toFixed(0);
                         if(pval < 3) pval = 3;
                         if(pval > 255) pval = 255;
@@ -1200,11 +1228,12 @@ canvas {
                 context1.drawImage(canvas1, 0, linethickness);
             }
             
-            function calcpos(x)
+            // calc px-pos of an offset of WF1 in WF
+            function calcpos(x_wf1)
             {
                 var A = tuneqrg+start/1000;
                 var B = tuneqrg+end/1000;
-                var f = tuneqrg1+x/1000;
+                var f = tuneqrg1+(x_wf1-7500)/1000;
                 
                 var res = 1500 * (f-A)/(B-A);
                 
@@ -1277,17 +1306,8 @@ canvas {
                     tuneqrg = get32(arr.slice(idx+8));
                     resolution = get32(arr.slice(idx+12));
                     foffset = get32(arr.slice(idx+16));
-                    var pix3000  = arr.slice(idx+20);
+                    pix  = arr.slice(idx+20);
                     pixwidth = (end - start) / resolution;
-                    
-                    var id = 0;
-                    for(var i=0; i<pixwidth; i+=2)
-                    {
-                        pix[id] = pix3000[i];
-                        if(pix3000[i+1] < pix[id]) pix[id] = pix3000[i+1];
-                        id++;
-                    }
-                    pixwidth /= 2;
                     
                     var fval = (tuneqrg + start/1000 + foffset/1000)/1e3;
                     var sd = "RX: " + fval.toFixed(6) + " MHz, TX: " + (fval-ftx/1000).toFixed(6) + " MHz";
@@ -1305,7 +1325,7 @@ canvas {
                     reload = 0;
                 }
                 
-                /*if(type == 1)
+                if(type == 1)
                 {
                     var idx = pos + 2;
                     start1 = get32(arr.slice(idx));
@@ -1316,14 +1336,10 @@ canvas {
                     pix1  = arr.slice(idx+20);
                     pixwidth1 = (end - start) / resolution;
                     
-                    //drawWFtitle("wf_title1",tuneqrg1+start1/1000,tuneqrg1+end1/1000,resolution1);
-                    //drawWFtitle("wf_txtit1",tuneqrg1-ftx+start1/1000,tuneqrg1-ftx+end1/1000,resolution1);
-                    //drawWFtitle_eshail_ssb("wf_title1",tuneqrg1+start1/1000,tuneqrg1+end1/1000,resolution1);
-                    //drawWFtitle_eshail_ssb("wf_txtit1",tuneqrg1-ftx+start1/1000,tuneqrg1-ftx+end1/1000,resolution1);
                     drawWF1();
                     drawConnect();
                     drawOverlay1();
-                }*/
+                }
 
                 if(type == 2)
                 {
@@ -1610,6 +1626,7 @@ canvas {
                 <button class="mybutton" onclick="audioON()">AUDIO ON</button>
                 <button class="mybutton" onclick="filter18()">1.8kHz</button>
                 <button class="mybutton" onclick="filter24()">2.4kHz</button>
+                <button class="mybutton" onclick="filter30()">3.0kHz</button>
                 <button class="mybutton" onclick="filter36()">3.6kHz</button>
                 <div class="controls_left">
                     <div class="controls_left_left">
@@ -1652,7 +1669,7 @@ canvas {
                         Level:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="wflevel" type="range" min="1" max="100" value="50">
+                        <input id="wflevel" type="range" min="1" max="200" value="100">
                     </div>
                 </div>
                 <div class="rightrow">

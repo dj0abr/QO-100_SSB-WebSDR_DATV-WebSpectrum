@@ -70,10 +70,9 @@ int init_rtlsdr()
     retval = rtlsdr_set_center_freq(dev, TUNED_FREQUENCY);
     if(retval != 0) printf("freqset= %d\n",retval);
     
-    retval = rtlsdr_set_tuner_gain_mode(dev, 0);
+    // gain mode: 0=auto, 1=manual
+    retval = rtlsdr_set_tuner_gain_mode(dev, 1);
     if(retval != 0) printf("Gain mode set= %d\n",retval);
-    /*retval = rtlsdr_set_tuner_gain(dev, 90);
-    if(retval != 0) printf("Set gain= %d\n",retval);*/
     
     retval = rtlsdr_set_agc_mode(dev, 1);
     if(retval != 0) printf("Set agc= %d\n",retval);
@@ -118,7 +117,7 @@ void rtlsetTunedQrgOffset(double hz)
     unsigned long qrg = (unsigned long)(TUNED_FREQUENCY - hz);
     int retval = rtlsdr_set_center_freq(dev, qrg);
     if(retval != 0) printf("freqset= %d\n",retval);
-    //printf("rtl rf : %ld\n",qrg);
+    printf("rtl rf : %ld\n",qrg);
 }
 
 void rtlsdrCallback(unsigned char *buf, uint32_t len, void *ctx)
@@ -159,13 +158,6 @@ int ret;
     // process the data received by rtlsdrCallback
     while(1)
     {
-        /*int num = NumberOfElementsInPipe(0);
-        if(num > maxn)
-        {
-            maxn = num;
-            printf("%d\n",maxn);
-        }*/
-        
         ret = read_pipe_wait(FIFO_RTL, buf, SAMPLES_PER_PASS);
         if(ret)
         {

@@ -161,7 +161,7 @@ void remove_SDRplay()
 void setTunedQrgOffset(double hz)
 {
     mir_sdr_SetRf((double)TUNED_FREQUENCY - hz,1,0);
-    //printf("rf : %f\n",(double)TUNED_FREQUENCY - hz);
+    printf("rf : %.6f MHz\n",((double)TUNED_FREQUENCY - hz)/1e6);
 }
 
 /*
