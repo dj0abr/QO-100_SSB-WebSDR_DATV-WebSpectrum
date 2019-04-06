@@ -9,6 +9,7 @@ a PC runs the SDR software:
 * downmixing a selected QRG into baseband
 * creating a line of baseband waterfall over 20 kHz
 * SSB demodulation and playing to a soundcard
+* AUTO Beacon Lock
 
 the waterfall data are written into the Apache HTML directory.
 
@@ -21,13 +22,22 @@ the GUI runs in a browser
 
 # this is WORK in PROGRESS
 actual Status: 
-working with the playSDR (maybe later also with the RTLsdr stick and compatibles)
+working with the playSDR
 1) compile "make" and start "./playSDReshail2". The hardware is detected automatically if the original SDRplay driver is installed
 2) copy the files from the html directory to your web server directory (i.e. /var/www/html)
    the web server must be running
 3) open a web browser and open the html web site
-4) the waterfall muss be running. Click into the waterfall the select the listening frequency.
+4) if all is ok then the waterfall will be running. Click into the waterfall the select the listening frequency.
 5) click the "Audio ON" button
+
+Frequency Adjustment:
+=====================
+playSDReshail2.h: search for the line: #define TUNED_FREQUENCY     (739525000 - 60000)
+modify the "60000" (then recompile) so that the beacon is near its position. The auto-lock will then set it to the exact position.
+
+RTL-SDR:
+========
+the rtl sdr hardware is automatically detected (librtlsdr must be installed). All works fine, except the auto-beacon-lock. This is work in progess.
 
 
 Prerequisites:

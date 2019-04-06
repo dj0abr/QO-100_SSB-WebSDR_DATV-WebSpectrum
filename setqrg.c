@@ -40,7 +40,7 @@ int foffset = 0;    // audio offset to tuned frequency
 int ssbmode = 1;    // 0=LSB 1=USB
 int filtermode = 1; // 0=1,8k 1=2,4k 2=3,6k
 int setrfoffset = 0;
-double newrf = 0;
+unsigned int newrf = 0;
 
 // called in the main loop
 // checks if a new set-frequency command arrived
@@ -71,9 +71,9 @@ void set_frequency()
     {
         if(hwtype == 1)
         {
-            #ifdef SDRPLAY
+            //#ifdef SDRPLAY
             setTunedQrgOffset(newrf);
-            #endif
+            //#endif
         }
         
         if(hwtype == 2)

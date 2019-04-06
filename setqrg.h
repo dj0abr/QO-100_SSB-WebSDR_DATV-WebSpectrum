@@ -5,5 +5,5 @@ extern int freqval;
 extern int foffset;
 extern int ssbmode;
 extern int setrfoffset;
-extern double newrf;
+extern unsigned int newrf;
 extern int filtermode;

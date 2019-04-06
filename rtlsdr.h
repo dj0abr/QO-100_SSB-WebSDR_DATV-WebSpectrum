@@ -1,2 +1,2 @@
 int init_rtlsdr();
-void rtlsetTunedQrgOffset(double hz);
+void rtlsetTunedQrgOffset(unsigned int hz);

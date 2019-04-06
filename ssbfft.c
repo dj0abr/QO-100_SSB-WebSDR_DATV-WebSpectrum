@@ -32,6 +32,7 @@
 
 #include <fftw3.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include "fifo.h"
@@ -119,7 +120,10 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 idx++;
             }
             
-            drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, 0, FSSB_SRATE/2, FSSB_RESOLUTION*10, DISPLAYED_FREQUENCY_KHZ, "\0");
+            unsigned int realrf = TUNED_FREQUENCY - newrf;
+            //printf("%d - %d = %d\n",TUNED_FREQUENCY,newrf,realrf);
+            
+            drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, realrf, FSSB_SRATE/2, FSSB_RESOLUTION*10, DISPLAYED_FREQUENCY_KHZ, "\0");
             
             // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
             // in a range of 15.000 Hz, so every single bin (one bin is 10 Hz)
@@ -142,7 +146,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 idx++;
             }
             
-            drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, 0, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + foffset/1000, "\0");
+            drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, realrf, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + foffset/1000, "\0");
         }
         
         // SSB Decoding and Audio Output
@@ -191,12 +195,14 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
     }
 }
 
+#define CHECKPOS 3
 void beaconLock(double val, int pos)
 {
 static double max = -9999999999;
-static int lastsec = 0;
+static int lastts = 0;
 static int maxpos;
-static int lastpos;
+static int lastmaxpos = 0;
+static int lastpos[CHECKPOS];
     // the CW beacon is 25kHz above the left edge
     // this is at bin 2500
     
@@ -213,133 +219,75 @@ static int lastpos;
     }
     
     struct timeval  tv;
-    gettimeofday(&tv, NULL);    
+    gettimeofday(&tv, NULL);  
+    
+    int ts = (tv.tv_sec % 60) * 10 + (tv.tv_usec / 100000);
 
-    if(tv.tv_sec != lastsec)
+    if((ts % 2)==0 && (lastts != ts))
     {
-        lastsec = tv.tv_sec;
+        lastts = ts;
         max = -9999999999;
         
-        if(maxpos == lastpos)
+        // insert actual position into array
+        for(int i=(CHECKPOS-1); i>0; i--)
         {
-            // correction step
-            int cneg = 0, cpos = 0;
-            if(hwtype == 1)
-            {
-                // SDRPLAY
-                cpos = (2500-maxpos);
-                cneg = (maxpos-2500);
-            }
-            
-            if(hwtype == 2)
-            {
-                // RTL-sdr
-                int diff = 2500-maxpos;
-                if(maxpos > 2500) diff = maxpos - 2500;
-                
-                if(diff > 100)
-                {
-                    cpos = (2500-maxpos)*5;
-                    cneg = (maxpos-2500)*5;
-                }
-                else
-                {
-                    cpos = (2500-maxpos)/5;
-                    cneg = (maxpos-2500)/5;
-                }
-            }
-            
-            // we had 2x the same value
-            if(maxpos > 2505)
-            {
-                printf("Auto-tuning pos:%d\n",maxpos);
-                newrf -= cneg;
-                setrfoffset = 1;
-                rflock = 0;
-            }
-            else if(maxpos < 2495)
-            {
-                printf("Auto-tuning pos:%d\n",maxpos);
-                newrf += cpos;
-                setrfoffset = 1;
-                rflock = 0;
-            }
-            else
-            {
-                rflock = 1;
-            }
+            lastpos[i] = lastpos[i-1];
         }
-        lastpos = maxpos;
-    }
-    
-    /*
-    // AUTO es'hail-2 tune, lock on PSK beacon
-    #define MAXNUM  5
-    static int lastmax[MAXNUM];
-    static int lmidx = 0;
-    #define ref  (100*(10489800-10489525))
-    //#define ref  (100*(10489550-10489525))
-    static int srclower = ref-5000;
-    static int srcupper = ref+5000;
-    double max = -9999;
-    int imax = 0;
-    static int pass = 0;
-    
-    for(int i=srclower; i<srcupper; i++)
-    {
-        double v = sqrt((pd[i][0] * pd[i][0]) + (pd[i][1] * pd[i][1]));
-        if(v>9000000)
-        printf("%d:%.0f ",i,v);
-        if(v > max) 
+        lastpos[0] = maxpos;
+        
+        // check if all pos ar identical
+        for(int i=1; i<CHECKPOS; i++)
         {
-            max = v;
-            imax = i;
+            if(lastpos[i] != lastpos[0])
+                return;
         }
-    }
-    printf("\n\n");
-    return;
-    
-    lastmax[lmidx] = imax;
-    if(++lmidx >= MAXNUM) lmidx=0;
 
-    int eval=0;
-    for(int i=0; i<MAXNUM; i++)
-    {
-        eval += lastmax[i];
-    }
-    eval /= MAXNUM;
-    
-    
-    if(pass > MAXNUM && (eval < (ref-30) || eval > (ref+30)))
-    {
-        if(rflock)
+        if(maxpos == 0) return;
+        
+        if(lastmaxpos != 0 && abs(lastmaxpos-maxpos) > 300) 
         {
-            if((ref - eval) >= 1)
-                newrf++;
-            else
-                newrf--;
+            printf("step too large: %d\n",maxpos);
+            return;
+        }
+        
+        //printf("%d\n",maxpos);
+        
+        // correction step
+        int cneg = 0, cpos = 0;
+        if(hwtype == 1)
+        {
+            // SDRPLAY
+            cpos = (2500-maxpos);
+            cneg = (maxpos-2500);
+        }
+        
+        if(hwtype == 2)
+        {
+            // RTL-sdr
+            cpos = (2500-maxpos);
+            cneg = (maxpos-2500);
+        }
+        
+        // we had 2x the same value
+        if(maxpos > 2505)
+        {
+            printf("Auto-tuning pos:%d, corr:%d\n",maxpos,cneg);
+            newrf -= cneg;
+            setrfoffset = 1;
+            rflock = 0;
+        }
+        else if(maxpos < 2495)
+        {
+            printf("Auto-tuning pos:%d, corr:%d\n",maxpos,cpos);
+            newrf += cpos;
+            setrfoffset = 1;
+            rflock = 0;
         }
         else
         {
-            newrf += (ref - eval);
+            rflock = 1;
         }
-        
-        printf("%d refpixel: %d max: %.0f %d eval: %d\n",pass,ref,max,imax,eval);
-        
-        setrfoffset = 1;
-        
-        //printf("eval: %d newRF: %.0f\n",eval,newrf);
-        //rflock = 0;
+        lastmaxpos = maxpos;
     }
-    else 
-    {
-        rflock = 1;
-        // if locked, reduce search range
-        // so that near stations do not disturb the search
-        srclower = (ref-200);
-        srcupper = (ref+200);
-        pass++;
-    }
-    */
 }
 

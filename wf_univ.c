@@ -68,7 +68,7 @@ typedef struct {
     int pic_height;     // number of vertial pixels of the resulting WF diagram
                         // set pic_height=1 for one pixel line only
     char filename[256]; // store the bitmap into this file
-    int leftqrg;        // qrg of the left margin of the bitmap
+    int realqrg;        // qrg of the tuner
     int rightqrg;       // qrg of the right margin of the bitmap
     int resolution;     // resolution of the fft data in Hz per value
     int toprow;         // start drawing here, keep lines above toprow clear for the title
@@ -83,14 +83,14 @@ void init_wf_univ()
         wfvars[i].dg_first = 1;
 }
 
-void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, int _rightqrg, int res, int _tunedQRG, char *_fn)
+void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _realqrg, int _rightqrg, int res, int _tunedQRG, char *_fn)
 {
     wfvars[id].fftdata = fdata;
     wfvars[id].fftcnt = cnt;
     wfvars[id].pic_width = wpix;
     wfvars[id].pic_height = hpix;
     strcpy(wfvars[id].filename,_fn);
-    wfvars[id].leftqrg = _leftqrg;
+    wfvars[id].realqrg = _realqrg;
     wfvars[id].rightqrg = _rightqrg;
     wfvars[id].resolution = res;
     wfvars[id].toprow = 20;    // lines above toprow are used for the titles, below toprow for the moving waterfall
@@ -154,15 +154,14 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         // save the data in /tmp/wfline.pix in this format:
         // 1 byte: ID counter
         // 1 byte: waterfall ID
-        // 4 byte: left margin frequency in Hz
+        // 4 byte: eal qrg of the SDR's hardware tuner in Hz
         // 4 byte: right margin frequency in Hz
         // 4 byte: tuner frequency in Hz
         // 4 byte: resolution Hz per pixel
         // 4 byte: offset to tuner frequency in Hz
         // followed by the dBm data, 1 byte per pixel holding the dBm value
-        int left = _leftqrg / res;
         int right = _rightqrg / res;
-        unsigned char wfdata[(right-left)+22];
+        unsigned char wfdata[right+22];
         int idx = 0;
         static unsigned char idcnt = 0;
         
@@ -171,17 +170,17 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         // waterfall id, in case we have more waterfalls
         wfdata[idx++] = id;
         
-        // offset of the left and right margin of the picture in Hz
-        wfdata[idx++] = _leftqrg >> 24;
-        wfdata[idx++] = _leftqrg >> 16;
-        wfdata[idx++] = _leftqrg >> 8;
-        wfdata[idx++] = _leftqrg;
+        // real qrg of the SDR's hardware tuner in Hz
+        wfdata[idx++] = _realqrg >> 24;
+        wfdata[idx++] = _realqrg >> 16;
+        wfdata[idx++] = _realqrg >> 8;
+        wfdata[idx++] = _realqrg;
         
+        // offset of the right margin of the picture in Hz
         wfdata[idx++] = _rightqrg >> 24;
         wfdata[idx++] = _rightqrg >> 16;
         wfdata[idx++] = _rightqrg >> 8;
         wfdata[idx++] = _rightqrg;
-        //printf("left: %d right: %d\n",_leftqrg,_rightqrg);
         
         // frequency where the SDR is tuned in Hz
         int tqrg = _tunedQRG;
@@ -203,9 +202,8 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         wfdata[idx++] = foffset;
 
         // draw pixel per pixel
-        for(int i=left; i<right; i++)
+        for(int i=0; i<right; i++)
         {
-            //printf("%.0f %d %d\n",fdata[i],left,right);
             // fdata is the dbm value of the received signal, a negative number
             // put it into the data string as positive numer
             wfdata[idx] = (unsigned char)(-fdata[i]);
@@ -252,7 +250,7 @@ void drawWFimage(int id, gdImagePtr im, char *fn)
  */
 void drawFFTline(int id, gdImagePtr dst)
 {
-    int left = wfvars[id].leftqrg / wfvars[id].resolution;
+    int left = 0;
     int right = wfvars[id].rightqrg / wfvars[id].resolution;
     int width = right-left;
     
@@ -260,7 +258,7 @@ void drawFFTline(int id, gdImagePtr dst)
     calcColorParms(id,left,right,wfvars[id].fftdata); 
     
     // calculate position of vertical lines
-    int fullwidth = wfvars[id].rightqrg - wfvars[id].leftqrg;
+    int fullwidth = wfvars[id].rightqrg;
     char snum[50];
     sprintf(snum,"%d",fullwidth);
     for(int i=1; i<strlen(snum); i++) 
@@ -299,12 +297,12 @@ char s[50];
     
     allocatePalette(dst);
     
-    int left = wfvars[id].leftqrg / wfvars[id].resolution;
+    int left = 0;
     int right = wfvars[id].rightqrg / wfvars[id].resolution;
     int width = right-left;
     
     // calculate position of vertical lines
-    int fullwidth = wfvars[id].rightqrg - wfvars[id].leftqrg;
+    int fullwidth = wfvars[id].rightqrg;
     char snum[50];
     sprintf(snum,"%d",fullwidth);
     for(int i=1; i<strlen(snum); i++) 

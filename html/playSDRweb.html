@@ -79,14 +79,21 @@ body {
     font-weight: 600;
 }
 
-.controls_left_right
+.controls_left_mid
 {
     font-size:14px;
-    width: 480px;
+    width: 200px;
     color: blue;
     font-weight: 600;
 }
 
+.controls_left_right
+{
+    font-size:14px;
+    width: 280px;
+    color: blue;
+    font-weight: 600;
+}
 
 .header_mytitle
 {
@@ -432,8 +439,8 @@ canvas {
             var sockintv;
             var sockOpen = 0;
             var websocket;
-            
-            var start = 0;
+
+            var tunerqrg = 0;
             var end = 0;
             var tuneqrg = 0;
             var foffset = 0;
@@ -442,7 +449,6 @@ canvas {
             var vertmarker = 1;
             var ssbmode = 0;
             
-            var start1 = 0;
             var end1 = 0;
             var tuneqrg1 = 0;
             var foffset1 = 0;
@@ -990,7 +996,7 @@ canvas {
                 {
                     calcColorParms(pix, line_width);
                     
-                    var qrg = start;
+                    var qrg = 0;
                     for (var x = 0; x < line_width; x++) 
                     {
                         var off = y*(line_width*4) + x*4;
@@ -1059,11 +1065,10 @@ canvas {
                 if(vertmarker == 1)
                 {
                 
-                    //console.log(tuneqrg + " " + tuneqrg1 + " " + start1 + " " + calcpos(start1) + " " + end1 + " " + calcpos(end1));
                     // draw transparent rectangle at the zoomed qrg range
                     for(var i=0; i<height; i++)
                     {
-                        for(var j=calcpos(start1); j<calcpos(end1);j++)
+                        for(var j=calcpos(0); j<calcpos(end1);j++)
                         {
                             ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
                             ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
@@ -1073,7 +1078,7 @@ canvas {
                     }
                     
                     // make a vertical line in the middle (which is the carrier frequency)
-                    j = calcpos(start1 + (end1-start1)/2);
+                    j = calcpos(0 + end1/2);
                     for(var i=0; i<height; i++)
                     {
                         ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
@@ -1179,7 +1184,7 @@ canvas {
                 // insert the new data into this line
                 for( var y=0; y<linethickness; y++)
                 {
-                    var qrg = start1;
+                    var qrg = 0;
                     for (var x = 0; x < line_width1; x++) 
                     {
                         var off = y*(line_width1*4) + x*4;
@@ -1231,7 +1236,7 @@ canvas {
             // calc px-pos of an offset of WF1 in WF
             function calcpos(x_wf1)
             {
-                var A = tuneqrg+start/1000;
+                var A = tuneqrg;
                 var B = tuneqrg+end/1000;
                 var f = tuneqrg1+(x_wf1-7500)/1000;
                 
@@ -1242,7 +1247,7 @@ canvas {
             
             function cpos(x)
             {
-                var A = tuneqrg+start/1000;
+                var A = tuneqrg;
                 var B = tuneqrg+end/1000;
                 
                 var res = 1500 * (x-A)/(B-A);
@@ -1270,7 +1275,7 @@ canvas {
                 context.beginPath();
                 
                 context.moveTo(0, height-1);
-                context.lineTo(calcpos(start1), 1);
+                context.lineTo(calcpos(0), 1);
                 context.lineTo(calcpos(end1), 1);
                 context.lineTo(width-1, height-1);
 
@@ -1301,23 +1306,26 @@ canvas {
                 {
                     var idx = pos+2;
                     rflock = arr[pos];
-                    start = get32(arr.slice(idx));
+                    tunerqrg = get32(arr.slice(idx));
                     end = get32(arr.slice(idx+4));
                     tuneqrg = get32(arr.slice(idx+8));
                     resolution = get32(arr.slice(idx+12));
                     foffset = get32(arr.slice(idx+16));
                     pix  = arr.slice(idx+20);
-                    pixwidth = (end - start) / resolution;
+                    pixwidth = end / resolution;
                     
-                    var fval = (tuneqrg + start/1000 + foffset/1000)/1e3;
+                    var fval = (tuneqrg + foffset/1000)/1e3;
                     var sd = "RX: " + fval.toFixed(6) + " MHz, TX: " + (fval-ftx/1000).toFixed(6) + " MHz";
                     $("#tuneinfo").html(sd);
+                    
+                    //if($("#qrg").val() == 0)
+                        $("#qrg").val(tunerqrg);
                     
                     drawWFtitle_eshail_rx("wf_title");
                     drawWFtitle_eshail_tx("wf_txtitle");
                     drawWFtitle_eshail_ssb("wf_title1",fval);
                     drawWFtitle_eshail_ssb("wf_txtit1",fval-ftx/1000);
-                    drawMODEtitle("wf_mdtitle",tuneqrg+start/1000,tuneqrg+end/1000,resolution);
+                    drawMODEtitle("wf_mdtitle",tuneqrg,tuneqrg+end/1000,resolution);
                     drawWF();
                     draw_tune();
                     draw_spec();
@@ -1328,13 +1336,13 @@ canvas {
                 if(type == 1)
                 {
                     var idx = pos + 2;
-                    start1 = get32(arr.slice(idx));
+                    tunerqrg = get32(arr.slice(idx));
                     end1 = get32(arr.slice(idx+4));
                     tuneqrg1 = get32(arr.slice(idx+8));
                     resolution1 = get32(arr.slice(idx+12));
                     foffset1 = get32(arr.slice(idx+16));
                     pix1  = arr.slice(idx+20);
-                    pixwidth1 = (end - start) / resolution;
+                    pixwidth1 = end / resolution;
                     
                     drawWF1();
                     drawConnect();
@@ -1366,7 +1374,7 @@ canvas {
 
                 websocket.onopen = function () {
                     sockOpen = 1;
-                    $("#status").html("Connected to stream: " + window.location.hostname);
+                    $("#status").html("Conn.: to: " + window.location.hostname);
                     //alert("WebSocket is now OPEN");
                     websocket.send("ssbmode:1\0");
                 };
@@ -1448,6 +1456,8 @@ canvas {
                     vertmarker = Number($(this).children("option:selected").val());
                     localStorage.setItem('ymarker',vertmarker);
                 });
+                
+                
             }
             
             function setListboxes()
@@ -1633,9 +1643,13 @@ canvas {
                         <div>QRG-AUTOLOCK:</div>
                         <div>SDR-SERVER:</div>
                     </div>
-                    <div class="controls_left_right">
+                    <div class="controls_left_mid">
                         <div id="lockstat">Lockstatus</div>
                         <div id="status">Status</div>
+                    </div>
+                    <div class="controls_left_right">
+                        <div><input type="checkbox" id="sync" onclick="checkQRG()">Sync ON/off</div>
+                        <div><input type="text" id="qrg">MHz (Tuner)</div>
                     </div>
                 </div>
             </div>
