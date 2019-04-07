@@ -198,9 +198,12 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
 #define CHECKPOS 3
 void beaconLock(double val, int pos)
 {
+    if(autosync == 0) return;
+    
 static double max = -9999999999;
 static int lastts = 0;
 static int maxpos;
+static int bigstepdet = 0;
 static int lastmaxpos = 0;
 static int lastpos[CHECKPOS];
     // the CW beacon is 25kHz above the left edge
@@ -244,11 +247,13 @@ static int lastpos[CHECKPOS];
 
         if(maxpos == 0) return;
         
-        if(lastmaxpos != 0 && abs(lastmaxpos-maxpos) > 300) 
+        if(lastmaxpos != 0 && abs(lastmaxpos-maxpos) > 300 && bigstepdet < 4) 
         {
             printf("step too large: %d\n",maxpos);
+            bigstepdet++;
             return;
         }
+        bigstepdet = 0;
         
         //printf("%d\n",maxpos);
         
@@ -266,6 +271,22 @@ static int lastpos[CHECKPOS];
             // RTL-sdr
             cpos = (2500-maxpos);
             cneg = (maxpos-2500);
+        }
+        
+        if(maxpos > 2650 || maxpos < 2350)
+        {
+            cpos *= 5;
+            cneg *= 5;
+        }
+        else if(maxpos > 2600 || maxpos < 2400)
+        {
+            cpos *= 3;
+            cneg *= 3;
+        }
+        else if(maxpos > 2550 || maxpos < 2450)
+        {
+            cpos *= 2;
+            cneg *= 2;
         }
         
         // we had 2x the same value

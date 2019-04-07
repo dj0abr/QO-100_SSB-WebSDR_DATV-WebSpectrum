@@ -112,6 +112,21 @@ void onmessage(int fd, unsigned char *msg)
         freqval = atoi((char *)msg+8);
         setfreq = 5;
     }
+    if(strstr((char *)msg,"tunerfr:"))
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 6;
+    }
+    if(strstr((char *)msg,"autosyn:"))
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 7;
+    }
+    if(strstr((char *)msg,"tunervl:"))
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 8;
+    }
 	
 	free(cli);
 	free(msg);

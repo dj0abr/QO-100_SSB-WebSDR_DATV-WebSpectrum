@@ -41,11 +41,15 @@ int ssbmode = 1;    // 0=LSB 1=USB
 int filtermode = 1; // 0=1,8k 1=2,4k 2=3,6k
 int setrfoffset = 0;
 unsigned int newrf = 0;
+int autosync = 1;
+
 
 // called in the main loop
 // checks if a new set-frequency command arrived
 void set_frequency()
 {
+unsigned int frdiff;
+
     switch (setfreq)
     {
         case 1: printf("new QRG offset: %d\n",foffset);
@@ -63,6 +67,22 @@ void set_frequency()
                 
         case 5: filtermode = freqval;
                 printf("set filter: %d\n",filtermode);
+                break;
+                
+        case 6: frdiff = freqval;
+                if(frdiff == 1) newrf-=100;
+                else newrf+=100;
+                printf("set tuner qrg: %d\n",frdiff);
+                setrfoffset = 1;
+                break;
+                
+        case 7: autosync = freqval;
+                printf("auto beacon lock: %d\n",autosync);
+                break;
+                
+        case 8: newrf = TUNED_FREQUENCY - freqval;
+                printf("set tuner qrg: %d (%d)\n",newrf,TUNED_FREQUENCY - newrf);
+                setrfoffset = 1;
                 break;
     }
     setfreq = 0;

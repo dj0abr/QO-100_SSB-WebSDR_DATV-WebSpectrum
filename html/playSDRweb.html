@@ -1339,7 +1339,7 @@ var coltab = [
                     var sd = "RX: " + fval.toFixed(6) + " MHz, TX: " + (fval-ftx/1000).toFixed(6) + " MHz";
                     $("#tuneinfo").html(sd);
                     
-                    //if($("#qrg").val() == 0)
+                    if(qrgfocus == 0)
                         $("#qrg").val(tunerqrg);
                     
                     drawWFtitle_eshail_rx("wf_title");
@@ -1385,6 +1385,23 @@ var coltab = [
                 if(rflock == 1) lk = "LOCKED to PSK beacon";
                 $("#lockstat").html(lk);
             }
+            
+            var openintv;
+            var openints = 0;
+            function nowOpen()
+            {
+                switch(openints)
+                {
+                    case 0: websocket.send("ssbmode:1\0"); 
+                            break;
+                    case 1: checkQRG();
+                            break;
+                }
+                
+                openints++;
+                if(openints == 2)
+                    clearInterval(openintv);
+            }
 
             function openWebSocket()
             {
@@ -1397,7 +1414,7 @@ var coltab = [
                     sockOpen = 1;
                     $("#status").html("Conn.: to: " + window.location.hostname);
                     //alert("WebSocket is now OPEN");
-                    websocket.send("ssbmode:1\0");
+                    openintv = setInterval(nowOpen, 500);
                 };
 
                 websocket.onerror = function () {
@@ -1478,7 +1495,39 @@ var coltab = [
                     localStorage.setItem('ymarker',vertmarker);
                 });
                 
+                $(document).ready(function(){
+                $('#qrg').bind('mousewheel', function(e){
+                        if($("#sync").is(':checked') == false)
+                        {
+                            $('#qrg').blur();
+                            if(e.originalEvent.wheelDelta > 0) {
+                                websocket.send("tunerfr:1\0");
+                            }
+                            else{
+                                websocket.send("tunerfr:0\0");
+                            }
+                        }
+                    });
+                });
                 
+                $('#qrg').keypress(function(event){
+                    var keycode = (event.keyCode ? event.keyCode : event.which);
+                    if(keycode == '13'){
+                        var qrgval = $('#qrg').val();
+                        websocket.send("tunervl:" + qrgval + "\0");
+                    }
+
+                });
+            }
+            
+            function checkQRG()
+            {
+                var ckb = $("#sync").is(':checked');
+                $('#qrg').attr('disabled', ckb);
+                if(ckb == true)
+                    websocket.send("autosyn:1\0");
+                else
+                    websocket.send("autosyn:0\0");
             }
             
             function setListboxes()
@@ -1550,6 +1599,7 @@ var coltab = [
                 slider_speclevel.oninput = function() 
                 {
                     speclevel = this.value;
+                    if(Number(speclevel) > Number(specgain)) specgain = Number(speclevel) + 10.0;
                     localStorage.setItem('speclevel',speclevel);
                 }
                 
@@ -1564,6 +1614,7 @@ var coltab = [
                 slider_specgain.oninput = function() 
                 {
                     specgain = this.value;
+                    if(Number(specgain) < Number(speclevel)) speclevel = Number(specgain) - 10.0;
                     localStorage.setItem('specgain',specgain);
                 }
                 
@@ -1608,6 +1659,19 @@ var coltab = [
                     wfgain = this.value;
                     localStorage.setItem('wfgain',wfgain);
                 }
+                
+                
+            }
+            
+            var qrgfocus = 0;
+            function qrgFocusOut()
+            {
+                qrgfocus = 0;
+            }
+            
+            function qrgFocus()
+            {
+                qrgfocus = 1;
             }
             
 
@@ -1670,7 +1734,7 @@ var coltab = [
                     </div>
                     <div class="controls_left_right">
                         <div><input type="checkbox" id="sync" onclick="checkQRG()">Sync ON/off</div>
-                        <div><input type="text" id="qrg">MHz (Tuner)</div>
+                        <div><input type="text" id="qrg" onfocusout="qrgFocusOut()"  onfocus="qrgFocus()">MHz (Tuner)</div>
                     </div>
                 </div>
             </div>

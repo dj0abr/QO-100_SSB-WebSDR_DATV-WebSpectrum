@@ -7,3 +7,4 @@ extern int ssbmode;
 extern int setrfoffset;
 extern unsigned int newrf;
 extern int filtermode;
+extern int autosync;
