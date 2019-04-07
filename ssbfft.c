@@ -259,6 +259,7 @@ static int lastpos[CHECKPOS];
         
         // correction step
         int cneg = 0, cpos = 0;
+        int mini = 2495, maxi=2505;
         if(hwtype == 1)
         {
             // SDRPLAY
@@ -271,6 +272,8 @@ static int lastpos[CHECKPOS];
             // RTL-sdr
             cpos = (2500-maxpos);
             cneg = (maxpos-2500);
+            mini = 2477;
+            maxi = 2523;
         }
         
         if(maxpos > 2650 || maxpos < 2350)
@@ -290,14 +293,14 @@ static int lastpos[CHECKPOS];
         }
         
         // we had 2x the same value
-        if(maxpos > 2505)
+        if(maxpos > maxi)
         {
             printf("Auto-tuning pos:%d, corr:%d\n",maxpos,cneg);
             newrf -= cneg;
             setrfoffset = 1;
             rflock = 0;
         }
-        else if(maxpos < 2495)
+        else if(maxpos < mini)
         {
             printf("Auto-tuning pos:%d, corr:%d\n",maxpos,cpos);
             newrf += cpos;

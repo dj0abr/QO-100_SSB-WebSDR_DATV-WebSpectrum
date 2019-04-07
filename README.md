@@ -32,8 +32,11 @@ working with the playSDR
 
 Frequency Adjustment:
 =====================
-playSDReshail2.h: search for the line: #define TUNED_FREQUENCY     (739525000 - 60000)
-modify the "60000" (then recompile) so that the beacon is near its position. The auto-lock will then set it to the exact position.
+first un-select "Sync ON/off"
+now you can correct the SDR tuner frequency manually in the text box below. You can also use the mouse-wheel to set it in 100Hz steps, or enter a value in Hz.
+When the beacon is close to the correct position then select "Sync ON/off" and the software will automatically correct the LNB drift.
+
+This works with the SDRplay hardware because it has a resolution of 1 Hz. It does not work with the RTLsdr sticks (the frequency will jump up and down) but you can give it a try.
 
 RTL-SDR:
 ========
