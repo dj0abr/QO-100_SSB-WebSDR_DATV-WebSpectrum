@@ -61,4 +61,12 @@ make
 Run the software:
 =================
 
-./playSDReshail2
+1) copy the files from html folder in your webserver html directory
+2) start the software   ./playSDReshail2
+3) open a browser and open the webpage "playSDRweb.html" on your webserver
+
+to access the website from outside (from the internet)
+======================================================
+in your internet router you need to open two TCP ports for external access:
+1) the port to your webserver (usually 80)
+2) the port to the websocket: 8090 (can be changed in playSDReshail2.h)
