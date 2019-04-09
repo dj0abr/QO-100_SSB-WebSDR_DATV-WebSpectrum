@@ -1,4 +1,4 @@
-CFLAGS?=-O3 -Wall -I./websocket -DSDR_PLAY
+CFLAGS?=-O3 -Wall -I./websocket -DSDR_PLAY -std=gnu99
 LDLIBS+= -lpthread -lm -lmirsdrapi-rsp -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype -lrtlsdr
 CC?=gcc
 PROGNAME=playSDReshail2

@@ -1,4 +1,4 @@
-CFLAGS?=-O3 -Wall -I./websocket
+CFLAGS?=-O3 -Wall -I./websocket -std=gnu99
 LDLIBS+= -lpthread -lm -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype -lrtlsdr
 CC?=gcc
 PROGNAME=playSDReshail2

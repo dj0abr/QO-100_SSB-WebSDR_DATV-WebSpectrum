@@ -78,7 +78,7 @@ unsigned int frdiff;
                 
         case 7: autosync = freqval;
                 printf("auto beacon lock: %d\n",autosync);
-                break;
+                break; 
                 
         case 8: newrf = TUNED_FREQUENCY - freqval;
                 printf("set tuner qrg: %d (%d)\n",newrf,TUNED_FREQUENCY - newrf);
@@ -99,9 +99,9 @@ unsigned int frdiff;
     {
         if(hwtype == 1)
         {
-            //#ifdef SDRPLAY
+            #ifdef SDR_PLAY
             setTunedQrgOffset(newrf);
-            //#endif
+            #endif
         }
         
         if(hwtype == 2)
