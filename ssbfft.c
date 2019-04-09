@@ -114,9 +114,10 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     if(v > wfsamp[idx]) wfsamp[idx] = v;
                     // correct level TODO ???
                     wfsamp[idx] /= 50;
+                    //wfsamp[idx] += v;
                 }
+                //wfsamp[idx] /= 500;
                 
-                //printf("%.0f\n",wfsamp[idx]);
                 idx++;
             }
             
@@ -135,6 +136,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             
             double wfsampsmall[WF_WIDTH];
             idx = 0;
+
             for(wfbins=start; wfbins<end; wfbins++)
             {
                 real = cpout[wfbins][0];
@@ -143,9 +145,10 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 
                 // correct level TODO ???
                 wfsampsmall[idx] /= 50;
+                
                 idx++;
             }
-            
+
             drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, realrf, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + foffset/1000, "\0");
         }
         

@@ -349,6 +349,9 @@ void scaleSamples(double *samples, int numSamples)
     {
         double dval = samples[i];
         
+      //  printf("%.0f ",dval);            
+
+        
         // a log of 0 is not possible, so make it to 1
         if (dval < 1) dval = 1;    
         
@@ -375,7 +378,7 @@ void scaleSamples(double *samples, int numSamples)
         // at -80dBm. 
         // !!! all this works ONLY if the receiver AGC is switched OFF !!!
         dval += refminus80dBm;
-
+        
         samples[i] = dval;
     }
 }

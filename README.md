@@ -65,6 +65,10 @@ Run the software:
 2) start the software   ./playSDReshail2
 3) open a browser and open the webpage "playSDRweb.html" on your webserver
 
+ATTENTION: before you can run this website, the WebSocket IP address must be modified in the file playSDRweb.html
+Search for the line: var sockurl = ....
+and enter the IP address of the PC running this software.
+
 to access the website from outside (from the internet)
 ======================================================
 in your internet router you need to open two TCP ports for external access:
