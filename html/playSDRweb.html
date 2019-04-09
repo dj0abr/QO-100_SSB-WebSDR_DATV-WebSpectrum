@@ -567,6 +567,31 @@ var coltab = [
                 {
                     myitem.attachEvent("onmousewheel", MouseWheelHandler);
                 }
+                
+                // click into lower WF
+                document.getElementById('wf1_overly').addEventListener
+                ('click',
+                    function(evt){
+                        var xpos = evt.clientX;
+                        var rect = document.getElementById("wf_overlay").getBoundingClientRect();
+                        websocket.send("mouselo:"+ (xpos - rect.left) + "\0");
+                    },false
+                );
+                
+                // mouse wheel in lower WF
+                var myitem = document.getElementById("wf1_overly");
+                if (myitem.addEventListener)
+                {
+                    // IE9, Chrome, Safari, Opera
+                    myitem.addEventListener("mousewheel", MouseWheelHandler, false);
+                    // Firefox
+                    myitem.addEventListener("DOMMouseScroll", MouseWheelHandler, false);
+                }
+                // IE 6/7/8
+                else
+                {
+                    myitem.attachEvent("onmousewheel", MouseWheelHandler);
+                }
 
                 sockintv = setInterval(checkSocket, 1000);
             }
@@ -701,7 +726,7 @@ var coltab = [
                 ctx.fillStyle = "#ffffff";
                 
                 ctx.textAlign = "right";
-                ctx.fillText((qrg+0.075).toFixed(6),width-1,16);
+                ctx.fillText((qrg+0.0075).toFixed(6),width-1,16);
                 
                 ctx.textAlign = "left";
                 ctx.fillText((qrg-0.0075).toFixed(6),0,16);
@@ -1439,6 +1464,7 @@ var coltab = [
             {
                 window.WebSocket = window.WebSocket || window.MozWebSocket;
 
+                //console.log(sockurl);
                 websocket = new WebSocket(sockurl);
                 websocket.binaryType = "arraybuffer";
 
@@ -1850,8 +1876,9 @@ var coltab = [
             <div class="rl_space">
             </div>
             <div class="rightside">
-                SDR-Server IP/URL<br>('localhost' if unknown):
+                SDR-Server IP/URL<br>(address of the computer<br>where playSDReshail2 is running):
                 <input type="text" class="webserver" id="webserver" value="localhost" onkeyup="setWebserverUrl()">
+                <br><br>reload page if changed !
             </div>
         </div>
         

@@ -87,7 +87,7 @@ void onmessage(int fd, unsigned char *msg)
 	char *cli = ws_getaddress(fd);
 	printf("user message: %s, from: %s/%d\n", msg, cli, fd);
     
-    if(strstr((char *)msg,"mousepo:"))
+    if(strstr((char *)msg,"mousepo:"))  // mouse click upper WF
     {
         freqval = atoi((char *)msg+8);
         setfreq = 1;
@@ -126,6 +126,11 @@ void onmessage(int fd, unsigned char *msg)
     {
         freqval = atoi((char *)msg+8);
         setfreq = 8;
+    }
+    if(strstr((char *)msg,"mouselo:"))  // mouse click lower WF
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 9;
     }
 	
 	free(cli);

@@ -52,8 +52,8 @@ unsigned int frdiff;
 
     switch (setfreq)
     {
-        case 1: printf("new QRG offset: %d\n",foffset);
-                foffset = freqval * FFT_RESOLUTION;
+        case 1: foffset = freqval * FFT_RESOLUTION; // resolution: 200Hz per pixel
+                printf("new QRG offset: %d\n",foffset);
                 downmixer_setFrequency(foffset);
                 break;
                 
@@ -83,6 +83,14 @@ unsigned int frdiff;
         case 8: newrf = TUNED_FREQUENCY - freqval;
                 printf("set tuner qrg: %d (%d)\n",newrf,TUNED_FREQUENCY - newrf);
                 setrfoffset = 1;
+                break;
+                
+        case 9: // mouse click lower WF 0..1500
+                // actual qrg is in the middle at pos=750
+                // resolution: 15kHz (10 Hz/pixel)
+                foffset += ((freqval * 10) - 7500);
+                printf("new QRG offset: %d\n",foffset);
+                downmixer_setFrequency(foffset);
                 break;
     }
     setfreq = 0;

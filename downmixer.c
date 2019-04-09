@@ -94,8 +94,6 @@ void downmixer_init()
         v += (2*M_PI)/SINETABSIZE;
     }
     
-    //init_downmixer_fir_filters(samplerate);
-    
     // set a default frequency of 10kHz
     downmixer_setFrequency(10000);
 }
@@ -103,6 +101,7 @@ void downmixer_init()
 // calculate the fcw from the wanted frequency
 void downmixer_setFrequency(int fr)
 {
+    printf("set mixer qrg: %d\n",fr);
     fcw = (unsigned int)((double)fr * pow(2,32) / (double)samplerate);
 }
 
