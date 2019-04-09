@@ -1440,6 +1440,7 @@ var coltab = [
             {
                 lk = "sync-ing ............";
                 if(rflock == 1) lk = "LOCKED to PSK beacon";
+                if($("#sync").is(':checked') == false) lk = "off";
                 $("#lockstat").html(lk);
             }
             
