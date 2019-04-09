@@ -22,9 +22,15 @@ body {
     background-color: #ffffff;
 }
 
+.midside
+{
+    width: 560px;
+    background-color: #f0f0f0;
+}
+
 .rightside
 {
-    width: 570px;
+    width: 300px;
     background-color: #f0f0f0;
 }
 
@@ -73,7 +79,7 @@ body {
 
 .controls_left_left
 {
-    font-size:14px;
+    font-size:16px;
     width: 150px;
     color: blue;
     font-weight: 600;
@@ -81,7 +87,7 @@ body {
 
 .controls_left_mid
 {
-    font-size:14px;
+    font-size:16px;
     width: 200px;
     color: blue;
     font-weight: 600;
@@ -144,10 +150,10 @@ body {
 }
 
 .mybutton {
-    width: 120px;
-    padding: 6px;
-    margin-top: 6px;
-    margin-bottom: 6px;
+    width:99px;
+    padding: 1px;
+    margin-top: 3px;
+    margin-bottom: 3px;
     -webkit-border-radius:4px;
     -moz-border-radius:4px;
     border-radius:4px;
@@ -161,6 +167,10 @@ body {
     cursor:pointer;
     font-size: 16px;
     font-weight: 600;
+}
+
+.qrg {
+width:100px;
 }
 
 canvas {
@@ -473,13 +483,28 @@ var coltab = [
             
             function audioON()
             {
-                player = new PCMPlayer({
-                        encoding: '16bitInt',
-                        channels: 1,
-                        sampleRate: 8000,
-                        flushingTime: 500
-                });
-                playON = 1;
+                if(playON == 0)
+                {
+                    player = new PCMPlayer({
+                            encoding: '16bitInt',
+                            channels: 1,
+                            sampleRate: 8000,
+                            flushingTime: 500
+                    });
+                    
+                    playON = 1;
+                    $("#audiobutton").html('AUDIO ON');
+                }
+                else if(playON == 1)
+                {
+                    playON = 2;
+                    $("#audiobutton").html('AUDIO OFF');
+                }
+                else if(playON == 2)
+                {
+                    playON = 1;
+                    $("#audiobutton").html('AUDIO ON');
+                }
             }
             
             var filter_cutoff = 2400;
@@ -495,16 +520,22 @@ var coltab = [
                 websocket.send("filterw:1\0");
                 filter_cutoff = 2400;
             }
+            
+            function filter28()
+            {
+                websocket.send("filterw:2\0");
+                filter_cutoff = 2800;
+            }
 
             function filter30()
             {
-                websocket.send("filterw:2\0");
+                websocket.send("filterw:3\0");
                 filter_cutoff = 3000;
             }
 
             function filter36()
             {
-                websocket.send("filterw:3\0");
+                websocket.send("filterw:4\0");
                 filter_cutoff = 3600;
             }
 
@@ -750,8 +781,9 @@ var coltab = [
             var wfcolor = "red";
             var linethickness = 1;
             var next_linethickness = 1;
-            var sockurl = 'ws://wx.spdns.de:8090';
+            //var sockurl = 'ws://wx.spdns.de:8090';
             //var sockurl = 'ws://192.168.0.2:8090';
+            var sockurl = 'ws://192.168.0.105:8090';
             
             function draw_tune()
             {
@@ -1510,7 +1542,7 @@ var coltab = [
                     });
                 });
                 
-                $('#qrg').keypress(function(event){
+                $('#qrg').keyup(function(event){
                     var keycode = (event.keyCode ? event.keyCode : event.which);
                     if(keycode == '13'){
                         var qrgval = $('#qrg').val();
@@ -1518,6 +1550,7 @@ var coltab = [
                     }
 
                 });
+                
             }
             
             function checkQRG()
@@ -1601,6 +1634,7 @@ var coltab = [
                     speclevel = this.value;
                     if(Number(speclevel) > Number(specgain)) specgain = Number(speclevel) + 10.0;
                     localStorage.setItem('speclevel',speclevel);
+                    
                 }
                 
                 var slider_specgain = document.getElementById("specgain");
@@ -1616,6 +1650,8 @@ var coltab = [
                     specgain = this.value;
                     if(Number(specgain) < Number(speclevel)) speclevel = Number(specgain) - 10.0;
                     localStorage.setItem('specgain',specgain);
+                    
+                    //console.log(speclevel + " " + specgain);
                 }
                 
                 var slider_audiogain = document.getElementById("audiogain");
@@ -1660,7 +1696,12 @@ var coltab = [
                     localStorage.setItem('wfgain',wfgain);
                 }
                 
-                
+                var wv = localStorage.getItem('webserver');
+                if(wv !== null && wv.length >= 7)
+                {
+                    $('#webserver').val(wv);
+                    sockurl = "ws://" + wv + ":8090";
+                }
             }
             
             var qrgfocus = 0;
@@ -1674,7 +1715,12 @@ var coltab = [
                 qrgfocus = 1;
             }
             
-
+            function setWebserverUrl()
+            {
+                var wsrv = $('#webserver').val();
+                localStorage.setItem('webserver',wsrv);
+            }
+            
         </script>
         </head>
     <body>
@@ -1718,9 +1764,10 @@ var coltab = [
                     <option value="1">Marker ON</option>
                     <option value="0">Marker OFF</option>
                 </select>
-                <button class="mybutton" onclick="audioON()">AUDIO ON</button>
+                <button class="mybutton" id="audiobutton" onclick="audioON()">AUDIO OFF</button>
                 <button class="mybutton" onclick="filter18()">1.8kHz</button>
                 <button class="mybutton" onclick="filter24()">2.4kHz</button>
+                <button class="mybutton" onclick="filter28()">2.8kHz</button>
                 <button class="mybutton" onclick="filter30()">3.0kHz</button>
                 <button class="mybutton" onclick="filter36()">3.6kHz</button>
                 <div class="controls_left">
@@ -1734,7 +1781,7 @@ var coltab = [
                     </div>
                     <div class="controls_left_right">
                         <div><input type="checkbox" id="sync" onclick="checkQRG()">Sync ON/off</div>
-                        <div><input type="text" id="qrg" onfocusout="qrgFocusOut()"  onfocus="qrgFocus()">MHz (Tuner)</div>
+                        <div><input type="text" class="qrg" id="qrg" onfocusout="qrgFocusOut()"  onfocus="qrgFocus()">  MHz (Tuner)</div>
                     </div>
                 </div>
             </div>
@@ -1742,7 +1789,7 @@ var coltab = [
             <div class="rl_space">
             </div>
             
-            <div class="rightside">
+            <div class="midside">
                 <div class="rightrow">
                     <div class="rightcell_label_header">
                         Spectrum:
@@ -1776,7 +1823,7 @@ var coltab = [
                         Gain:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="specgain" type="range" min="-150" max="-20" value="-60" style="direction: rtl;">
+                        <input id="specgain" type="range" min="-80" max="-20" value="-60" style="direction: rtl;">
                     </div>
                     <div class="rightcell_label">
                         Gain:
@@ -1799,6 +1846,12 @@ var coltab = [
                         <input id="audiogain" type="range" min="1" max="100" value="50">
                     </div>
                 </div>
+            </div>
+            <div class="rl_space">
+            </div>
+            <div class="rightside">
+                SDR-Server IP/URL<br>('localhost' if unknown):
+                <input type="text" class="webserver" id="webserver" value="localhost" onkeyup="setWebserverUrl()">
             </div>
         </div>
         
