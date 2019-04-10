@@ -114,9 +114,12 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     if(v > wfsamp[idx]) wfsamp[idx] = v;
                     // correct level TODO ???
                     wfsamp[idx] /= 50;
-                    //wfsamp[idx] += v;
-                }
-                //wfsamp[idx] /= 500;
+                 }
+                
+				if(idx > 0 && wfsamp[idx] > wfsamp[idx-1])
+				{
+					wfsamp[idx-1] = wfsamp[idx];
+				}
                 
                 idx++;
             }
@@ -202,6 +205,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
 void beaconLock(double val, int pos)
 {
     if(autosync == 0) return;
+    
     
 static double max = -9999999999;
 static int lastts = 0;
