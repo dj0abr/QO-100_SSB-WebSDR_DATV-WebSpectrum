@@ -1492,7 +1492,7 @@ var coltab = [
 
                 websocket.onopen = function () {
                     sockOpen = 1;
-                    $("#status").html("Conn.: to: " + sockurl);
+                    $("#status").html("Connected to: " + sockurl);
                     //alert("WebSocket is now OPEN");
                     openintv = setInterval(nowOpen, 500);
                 };
