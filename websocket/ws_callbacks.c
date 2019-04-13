@@ -43,9 +43,12 @@ void onopen(int fd)
 {
 	char *cli;
 	cli = ws_getaddress(fd);
-    insert_socket(fd);
-	printf("Connection opened, client: %d | addr: %s\n", fd, cli);
-	free(cli);
+    if(cli != NULL)
+    {
+        insert_socket(fd);
+        printf("Connection opened, client: %d | addr: %s\n", fd, cli);
+        free(cli);
+    }
 }
 
 // a browser disconnected
@@ -53,9 +56,12 @@ void onclose(int fd)
 {
 	char *cli;
 	cli = ws_getaddress(fd);
-    remove_socket(fd);
-	printf("Connection closed, client: %d | addr: %s\n", fd, cli);
-	free(cli);
+    if(cli != NULL)
+    {
+        remove_socket(fd);
+        printf("Connection closed, client: %d | addr: %s\n", fd, cli);
+        free(cli);
+    }
 }
 
 // if avaiable, send data to a browser
@@ -85,54 +91,56 @@ void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1)
 void onmessage(int fd, unsigned char *msg)
 {
 	char *cli = ws_getaddress(fd);
-	printf("user message: %s, from: %s/%d\n", msg, cli, fd);
-    
-    if(strstr((char *)msg,"mousepo:"))  // mouse click upper WF
+    if(cli != NULL)
     {
-        freqval = atoi((char *)msg+8);
-        setfreq = 1;
+        printf("user message: %s, from: %s/%d\n", msg, cli, fd);
+        
+        if(strstr((char *)msg,"mousepo:"))  // mouse click upper WF
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 1;
+        }
+        if(strstr((char *)msg,"mousewh:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 2;
+        }
+        if(strstr((char *)msg,"bandsel:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 3;
+        }
+        if(strstr((char *)msg,"ssbmode:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 4;
+        }
+        if(strstr((char *)msg,"filterw:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 5;
+        }
+        if(strstr((char *)msg,"tunerfr:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 6;
+        }
+        if(strstr((char *)msg,"autosyn:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 7;
+        }
+        if(strstr((char *)msg,"tunervl:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 8;
+        }
+        if(strstr((char *)msg,"mouselo:"))  // mouse click lower WF
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 9;
+        }
+        
+        free(cli);
     }
-    if(strstr((char *)msg,"mousewh:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 2;
-    }
-    if(strstr((char *)msg,"bandsel:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 3;
-    }
-    if(strstr((char *)msg,"ssbmode:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 4;
-    }
-    if(strstr((char *)msg,"filterw:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 5;
-    }
-    if(strstr((char *)msg,"tunerfr:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 6;
-    }
-    if(strstr((char *)msg,"autosyn:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 7;
-    }
-    if(strstr((char *)msg,"tunervl:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 8;
-    }
-    if(strstr((char *)msg,"mouselo:"))  // mouse click lower WF
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 9;
-    }
-	
-	free(cli);
-	free(msg);
 }

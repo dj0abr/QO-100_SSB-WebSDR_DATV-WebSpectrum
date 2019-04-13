@@ -151,6 +151,8 @@ unsigned char *ws_build_txframe(int i, int *plength)
         int idx = 0;
         int len = AUDIO_RATE*2;
         unsigned char *txdata = malloc(len+3);
+        if(txdata == NULL)
+            return NULL;
         //printf("audio:%d\n",len);
         txdata[idx++] = 2;    // type of audio samples
         txdata[idx++] = len >> 8;
@@ -178,6 +180,8 @@ unsigned char *ws_build_txframe(int i, int *plength)
     
     // assign TX buffer
     unsigned char *txdata = malloc(geslen);
+    if(txdata == NULL)
+        return NULL;
     
     // copy data into TX buffer and set the type byte
     int idx = 0;

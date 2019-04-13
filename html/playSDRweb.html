@@ -467,6 +467,12 @@ var coltab = [
             var player;
             var playON = 0;
             
+            function MouseMoveHandler(e)
+            {
+                var e = window.event || e; // old IE support
+                $('#mousepos').html("mouse pointer: " + (tuneqrg/1e3 + (e.pageX * 200)/1e6) + " MHz");
+            }
+            
             function MouseWheelHandler(e)
             {
                 // cross-browser wheel delta
@@ -561,6 +567,8 @@ var coltab = [
                     myitem.addEventListener("mousewheel", MouseWheelHandler, false);
                     // Firefox
                     myitem.addEventListener("DOMMouseScroll", MouseWheelHandler, false);
+                    
+                    myitem.addEventListener("mousemove", MouseMoveHandler, false);
                 }
                 // IE 6/7/8
                 else
@@ -806,9 +814,7 @@ var coltab = [
             var wfcolor = "red";
             var linethickness = 1;
             var next_linethickness = 1;
-            //var sockurl = 'ws://wx.spdns.de:8090';
-            //var sockurl = 'ws://192.168.0.2:8090';
-            var sockurl = 'ws://192.168.0.105:8090';
+            var sockurl = '?';
             
             function draw_tune()
             {
@@ -1465,13 +1471,28 @@ var coltab = [
             {
                 window.WebSocket = window.WebSocket || window.MozWebSocket;
 
+                // get socket URL fromactual browser-URL
+                var x = location.href;
+                var a = x.split("/");
+                var y = "?";
+                for(var i=0; i<a.length; i++)
+                {
+                    if(a[i].length > 6)
+                    {
+                        y = a[i];
+                        break;
+                    }
+                }
+                var ya = y.split(":");
+                sockurl = "ws://" + ya[0] + ":8090";
                 //console.log(sockurl);
+                //$('#myinfo').html(sockurl);
                 websocket = new WebSocket(sockurl);
                 websocket.binaryType = "arraybuffer";
 
                 websocket.onopen = function () {
                     sockOpen = 1;
-                    $("#status").html("Conn.: to: " + window.location.hostname);
+                    $("#status").html("Conn.: to: " + sockurl);
                     //alert("WebSocket is now OPEN");
                     openintv = setInterval(nowOpen, 500);
                 };
@@ -1722,13 +1743,6 @@ var coltab = [
                     wfgain = this.value;
                     localStorage.setItem('wfgain',wfgain);
                 }
-                
-                var wv = localStorage.getItem('webserver');
-                if(wv !== null && wv.length >= 7)
-                {
-                    $('#webserver').val(wv);
-                    sockurl = "ws://" + wv + ":8090";
-                }
             }
             
             var qrgfocus = 0;
@@ -1740,12 +1754,6 @@ var coltab = [
             function qrgFocus()
             {
                 qrgfocus = 1;
-            }
-            
-            function setWebserverUrl()
-            {
-                var wsrv = $('#webserver').val();
-                localStorage.setItem('webserver',wsrv);
             }
             
         </script>
@@ -1808,7 +1816,7 @@ var coltab = [
                     </div>
                     <div class="controls_left_right">
                         <div><input type="checkbox" id="sync" onclick="checkQRG()">Sync ON/off</div>
-                        <div><input type="text" class="qrg" id="qrg" onfocusout="qrgFocusOut()"  onfocus="qrgFocus()">  MHz (Tuner)</div>
+                        <div><input type="text" class="qrg" id="qrg" onfocusout="qrgFocusOut()"  onfocus="qrgFocus()">  Hz (Tuner)</div>
                     </div>
                 </div>
             </div>
@@ -1877,9 +1885,7 @@ var coltab = [
             <div class="rl_space">
             </div>
             <div class="rightside">
-                SDR-Server IP/URL<br>(address of the computer<br>where playSDReshail2 is running):
-                <input type="text" class="webserver" id="webserver" value="localhost" onkeyup="setWebserverUrl()">
-                <br><br>reload page if changed !
+                <div id="mousepos"></div>
             </div>
         </div>
         

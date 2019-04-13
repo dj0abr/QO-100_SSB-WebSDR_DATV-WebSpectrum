@@ -72,7 +72,7 @@ int main()
 	sigaction(SIGINT, &sigact, NULL);
 	sigaction(SIGTERM, &sigact, NULL);
 	sigaction(SIGQUIT, &sigact, NULL);
-	sigaction(SIGPIPE, &sigact, NULL);
+	sigaction(SIGPIPE, &sigact, NULL); // signal 13
     
     struct sigaction sigact_mem;
     sigact_mem.sa_handler = sighandler_mem;
@@ -98,17 +98,8 @@ int main()
     
     downmixer_init();
     
-    // init anti aliasing filters
-    //init_ssb_filters();
-    
-    // init the FFT for the big waterfall
-    //init_ffts();
-    
     // init the FIFO
     initpipe();
-
-    // init downmixer
-    //downmixer_init(SAMPLERATE_FIRST);
     
     // init waterfall drawing
     init_wf_univ();

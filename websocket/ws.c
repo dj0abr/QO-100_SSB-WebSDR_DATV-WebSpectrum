@@ -50,6 +50,8 @@ char* ws_getaddress(int fd)
     	return NULL;
 
     client = malloc(sizeof(char) * 20);
+    if(client == NULL)
+        return NULL;
     strcpy(client, inet_ntoa(addr.sin_addr));
     return (client);
 }
@@ -60,27 +62,26 @@ char* ws_getaddress(int fd)
  * @param fd  Target to be send.
  * @param msg Message to be send.
  */
-int ws_sendframe(int fd, char *msg)
+/*int ws_sendframe(int fd, char *msg)
 {
-	unsigned char *response;  /* Response data.  */
-	unsigned char frame[10];  /* Frame.          */
-	uint8_t idx_first_rData;  /* Index data.     */
-	uint64_t length;          /* Message length. */
-	int idx_response;      /* Index response. */
-	int output;               /* Bytes sent.     */
+	unsigned char frame[10];
+	uint8_t idx_first_rData;
+	uint64_t length;        
+	int idx_response;      
+	int output;            
 
-	/* Text data. */
+	// Text data. 
 	length   = strlen( (const char *) msg);
 	frame[0] = (WS_FIN | WS_FR_OP_TXT);
 
-	/* Split the size between octects. */
+	// Split the size between octects. 
 	if (length <= 125)
 	{
 		frame[1] = length & 0x7F;
 		idx_first_rData = 2;
 	}
 
-	/* Size between 126 and 65535 bytes. */
+	// Size between 126 and 65535 bytes. 
 	else if (length >= 126 && length <= 65535)
 	{
 		frame[1] = 126;
@@ -89,7 +90,7 @@ int ws_sendframe(int fd, char *msg)
 		idx_first_rData = 4;
 	}
 
-	/* More than 65535 bytes. */
+	// More than 65535 bytes. 
 	else
 	{
 		frame[1] = 127;
@@ -104,7 +105,7 @@ int ws_sendframe(int fd, char *msg)
 		idx_first_rData = 10;
 	}
 
-	/* Add frame bytes. */
+	// Add frame bytes. 
 	idx_response = 0;
 	response = malloc( sizeof(unsigned char) * (idx_first_rData + length + 1) );
 	for (int i = 0; i < idx_first_rData; i++)
@@ -113,7 +114,7 @@ int ws_sendframe(int fd, char *msg)
 		idx_response++;
 	}
 
-	/* Add data bytes. */
+	// Add data bytes. 
 	for (int i = 0; i < length; i++)
 	{
 		response[idx_response] = msg[i];
@@ -124,7 +125,7 @@ int ws_sendframe(int fd, char *msg)
 	output = write(fd, response, idx_response);
 	free(response);
 	return (output);
-}
+}*/
 
 /**
  * Creates and send an WebSocket frame
@@ -177,22 +178,26 @@ int ws_sendframe_binary(int fd, unsigned char *msg, uint64_t length)
 	/* Add frame bytes. */
 	idx_response = 0;
 	response = malloc( sizeof(unsigned char) * (idx_first_rData + length + 1) );
-	for (int i = 0; i < idx_first_rData; i++)
-	{
-		response[i] = frame[i];
-		idx_response++;
-	}
+    if(response != NULL)
+    {
+        for (int i = 0; i < idx_first_rData; i++)
+        {
+            response[i] = frame[i];
+            idx_response++;
+        }
 
-	/* Add data bytes. */
-	for (int i = 0; i < length; i++)
-	{
-		response[idx_response] = msg[i];
-		idx_response++;
-	}
+        /* Add data bytes. */
+        for (int i = 0; i < length; i++)
+        {
+            response[idx_response] = msg[i];
+            idx_response++;
+        }
 
-	output = write(fd, response, idx_response);
-	free(response);
-	return (output);
+        output = write(fd, response, idx_response);
+        free(response);
+        return (output);
+    }
+	return 0;
 }
 
 
@@ -237,6 +242,9 @@ static unsigned char* ws_receiveframe(unsigned char *frame, size_t length, int *
 		masks[3] = frame[idx_first_mask+3];
 
 		msg = malloc(sizeof(unsigned char) * (data_length+1) );
+        if(msg == NULL)
+            return NULL;
+        
 		for (i = idx_first_data, j = 0; i < length; i++, j++)
 			msg[j] = frame[i] ^ masks[j % 4];
 
@@ -308,13 +316,11 @@ static void* ws_establishconnection(void *vsock)
             {
                 getHSresponse( (char *) frm, &response);
                 handshaked = 1;
-    #ifdef VERBOSE_MODE
-                printf("Handshaked, response: \n"
+                /*printf("Handshaked, response: \n"
                     "------------------------------------\n"
                     "%s"
                     "------------------------------------\n"
-                    ,response);
-    #endif
+                    ,response);*/
                 n = write(sock, response, strlen(response));
                 events.onopen(sock);
                 free(response);
@@ -323,29 +329,22 @@ static void* ws_establishconnection(void *vsock)
             /* Decode/check type of frame. */
             msg = ws_receiveframe(frm, n, &type);
             if (msg == NULL)
-            {
-    #ifdef VERBOSE_MODE
-                printf("Non text frame received from %d", sock);
-                if (type == WS_FR_OP_CLSE)
-                    printf(": close frame!\n");
-                else
-                {
-                    printf(", type: %x\n", type);
-                    continue;
-                }
-    #endif
-            }
+                continue;
 
             /* Trigger events. */
             if (type == WS_FR_OP_TXT)
                 events.onmessage(sock, msg);
             else if (type == WS_FR_OP_CLSE)
             {
+                if(msg != NULL) free(msg);
                 events.onclose(sock);
-                goto closed;
+                close(sock);
+                return vsock;
             }
             else
                 printf("type :%d\n",type);
+            
+            if(msg != NULL) free(msg);
         }
         if(n == 0)
         {
@@ -355,9 +354,7 @@ static void* ws_establishconnection(void *vsock)
         }
 	}
 
-closed:
 	close(sock);
-
 	return vsock;
 }
 
