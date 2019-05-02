@@ -33,6 +33,7 @@ working with the RTLSDR (copy Makefile_rtlsdr to Makefile)
 
 # NEW
 Synchronisation between the waterfall and an ICOM transceiver.
+* the CIV address is set to 0xA2 (IC9700), you can change it in civ.c
 * The kHz must be equal i.e.: 10489.525 MHz must display in the transceiver as 144.525 MHz or similar.
 * enter the Icoms receive frequency in playSDReshail2.h:  TUNED_FREQUENCY, this must be the frequency of the CW beacon minus 25 kHz
 
