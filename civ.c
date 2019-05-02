@@ -85,6 +85,18 @@ void civ_ptt(int onoff, unsigned char civad)
     write_port(tx, 8);
 }
 
+// mainsub: 0=main, 1=sub
+void civ_selMainSub(int mainsub)
+{
+    printf("set VFO: %s",(mainsub==1)?"SUB":"MAIN");
+    unsigned char tx[7] = {0xfe, 0xfe, 0x00, 0xe0,    0x07, 0xD0, 0xfd};
+
+    tx[2] = civ_adr;
+    if(mainsub == 1) tx[5] = 0xD1;
+
+    write_port(tx, 7);
+}
+
 // query the Icom's Frequency
 void civ_queryQRG()
 {

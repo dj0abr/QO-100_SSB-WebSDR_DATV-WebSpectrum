@@ -23,6 +23,7 @@
 #include <termios.h>
 #include <sys/file.h>
 #include <pthread.h>
+#include "playSDReshail2.h"
 #include "cat.h"
 #include "civ.h"
 
@@ -238,7 +239,23 @@ void do_command()
         {
             case 1: civ_queryQRG();
                     break;
-            case 4: civ_setQRG(trx_frequency);
+                    
+            case 4: // set main (RX) frequency
+                    civ_selMainSub(0);          
+                    civ_setQRG(trx_frequency);
+                    
+                    // set sub (TX) frequency
+                    civ_selMainSub(1);  
+                    
+                    // see playSDReshail.h
+                    // #define TUNED_FREQUENCY     144525000
+                    // #define TRANSMIT_FREQUENCY  435525000  
+                    
+                    int tx_qrg = trx_frequency - TUNED_FREQUENCY + TRANSMIT_FREQUENCY;
+                    civ_setQRG(tx_qrg);
+                    
+                    // select main VFO again, for user convenience
+                    civ_selMainSub(0);
                     break;
         }
     }
