@@ -54,6 +54,7 @@
 #include "color.h"
 #include "websocketserver.h"
 #include "setqrg.h"
+#include "civ.h"
 
 void drawWFimage(int id, gdImagePtr im, char *fn);
 void drawFFTline(int id, gdImagePtr dst);
@@ -195,7 +196,14 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _re
         wfdata[idx++] = res >> 8;
         wfdata[idx++] = res;
 
-        // offset of the RX frequency to the tuned frequency in Hz
+        // offset of the RX frequency to the tuner frequency in Hz
+        // which is 10489.525 MHz (DISPLAYED_FREQUENCY_KHZ)
+        // if a freq was recved via CIV, enter it here
+        if(civ_freq != 0)
+        {
+            foffset = civ_freq - TUNED_FREQUENCY;
+        }
+        
         wfdata[idx++] = foffset >> 24;
         wfdata[idx++] = foffset >> 16;
         wfdata[idx++] = foffset >> 8;

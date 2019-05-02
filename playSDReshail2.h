@@ -64,7 +64,8 @@
 // this is similar to the left margin of the big waterfall picture
 // and therefore should be the lowest frequency of interest (i.e. beginning of a band)
 // for the Sat es'hail 2 this should be: 10489250000 Hz (= 10.48925 GHz)
-#define TUNED_FREQUENCY     (439525000)    // 200000 is the correction for my LNB
+#define TUNED_FREQUENCY     144525000
+//#define TUNED_FREQUENCY     (739467503)    // 200000 is the correction for my LNB
 #define DISPLAYED_FREQUENCY_KHZ  10489525   // RX frequency of the left margin i kHz
 
 // Websocket Port

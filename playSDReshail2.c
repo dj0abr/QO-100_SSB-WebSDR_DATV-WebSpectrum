@@ -38,6 +38,7 @@
 #include "fifo.h"
 #include "ssbfft.h"
 #include "downmixer.h"
+#include "cat.h"
 
 int hwtype = 0; // 1=playSDR, 2=rtlsdr
 int samplesPerPacket;
@@ -72,7 +73,7 @@ int main()
 	sigaction(SIGINT, &sigact, NULL);
 	sigaction(SIGTERM, &sigact, NULL);
 	sigaction(SIGQUIT, &sigact, NULL);
-	sigaction(SIGPIPE, &sigact, NULL); // signal 13
+	//sigaction(SIGPIPE, &sigact, NULL); // signal 13
     
     struct sigaction sigact_mem;
     sigact_mem.sa_handler = sighandler_mem;
@@ -111,6 +112,9 @@ int main()
     #ifdef SOUNDLOCAL
         init_soundprocessing();
     #endif
+        
+    // init CAT interface
+    cat_init();
     
     printf("\nInitialisation complete, system running ... stop with Ctrl-C\n");
     
@@ -139,9 +143,18 @@ int main()
 
     // infinite loop, 
     // stop program with Ctrl-C
+    int del250ms=0;
     while(1)
     {
         set_frequency();
+        
+        del250ms++;
+        if(del250ms >= 250)
+        {
+            ser_command = 1;
+            del250ms=0;
+        }
+        
         usleep(1000);
     }
     

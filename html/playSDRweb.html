@@ -438,8 +438,10 @@ var coltab = [
 [1.0000,1.0000,0.9608],
 [1.0000,1.0000,0.9686],
 [1.0000,1.0000,0.9765],
-[ 1.0,0.0,0.0],
-[ 1.0,0.0,0.0]
+//[ 1.0,0.0,0.0],
+//[ 1.0,0.0,0.0]
+[ 1.0,1.0,1.0],
+[ 1.0,1.0,1.0]
 ];
             
             window.onload = onstart;
@@ -843,6 +845,9 @@ var coltab = [
             
             function draw_spec()
             {
+
+				var pntarr = new Array(width);
+
                 if(arrfirst == 1)
                 {
                     for(var i=0; i<200; i++)
@@ -904,6 +909,9 @@ var coltab = [
                       minval = mv;
                         
                     context.lineTo(x,scale(mv));
+
+					// store value for later use
+					pntarr.push(mv);
                     
                     arrfirst = 0;
                 }
@@ -915,7 +923,7 @@ var coltab = [
                 context.stroke();
                 
                 // hor line at highest value
-                context.strokeStyle = '#ff8080';
+                context.strokeStyle = '#008080';
                 context.beginPath();
                 context.moveTo(0, scale(maxval));
                 context.lineTo(width-1, scale(maxval));
@@ -929,10 +937,42 @@ var coltab = [
                 context.lineTo(width-1, scale(yvalue));
                 context.stroke();
                 
+				// write dB value to max line
                 var dynrange = maxval - minval;
                 context.font = "12px Arial";
                 context.fillStyle = "#ffc0c0";
                 context.fillText("+" + dynrange.toFixed(0) + " dB",10,scale(maxval)+10);
+
+				// write dB value to every peak which is > 15dB over min
+				// draw max. 20 peak labels
+				var maxv = 0;
+				var maxx = 0;
+				for(var pk=0; pk<20; pk++)
+				{
+					maxv = 0;
+					maxx = 0;
+					for(var x=0; x<width; x++)
+					{
+						var dval = pntarr[x] - minval;
+						// seek max. value
+						if(dval > maxv) 
+						{
+							maxv = dval;
+							maxx = x;
+						}
+					}
+					if(maxv < 15) break;	// only values >15dB over minval
+					//console.log("max:" + maxv.toFixed(0) + " " + maxx);
+					// max value is at position maxx
+					// draw the label
+					context.fillText(maxv.toFixed(0) + " dB",maxx,scale(pntarr[maxx]));
+					// clear the values +-10 of this max value
+					for(var c = (maxx-10); c < (maxx+10); c++)
+					{
+						if(c>=0 && c<width)
+							pntarr[c] = minval;
+					}
+				}
                 
                 // scale dBm value to y-pixelpos
                 function scale(v)

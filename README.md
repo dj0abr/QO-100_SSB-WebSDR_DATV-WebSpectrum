@@ -22,13 +22,19 @@ the GUI runs in a browser
 
 # this is WORK in PROGRESS
 actual Status: 
-working with the playSDR
+working with the playSDR (copy Makefile_sdrplay to Makefile)
+working with the RTLSDR (copy Makefile_rtlsdr to Makefile)
 1) compile "make" and start "./playSDReshail2". The hardware is detected automatically if the original SDRplay driver is installed
 2) copy the files from the html directory to your web server directory (i.e. /var/www/html)
    the web server must be running
 3) open a web browser and open the html web site
 4) if all is ok then the waterfall will be running. Click into the waterfall the select the listening frequency.
 5) click the "Audio ON" button
+
+# NEW
+Synchronisation between the waterfall and an ICOM transceiver.
+* The kHz must be equal i.e.: 10489.525 MHz must display in the transceiver as 144.525 MHz or similar.
+* enter the Icoms receive frequency in playSDReshail2.h:  TUNED_FREQUENCY, this must be the frequency of the CW beacon minus 25 kHz
 
 Frequency Adjustment:
 =====================
@@ -49,7 +55,7 @@ these libraries are required:
 
 apt-get update
 
-apt-get install libasound2-dev libfftw3-dev libgd3 libgd-dev apache2 sndfile-tools libsndfile1-dev php
+apt-get install libasound2-dev libfftw3-dev libgd3 libgd-dev apache2 sndfile-tools libsndfile1-dev php librtlsdr-dev
 
 additionally the SDRplay driver from the SDRplay Webpage must be installed.
 

@@ -71,6 +71,7 @@
 #include "downmixer.h"
 #include "fir_table_calc.h"
 #include "setqrg.h"
+#include "cat.h"
 
 void init_downmixer_fir_filters();
 int fir_filter_i_ssb(double sample);
@@ -102,6 +103,11 @@ void downmixer_init()
 void downmixer_setFrequency(int fr)
 {
     printf("set mixer qrg: %d\n",fr);
+    
+    // set in TRX via CAT
+    trx_frequency = fr + TUNED_FREQUENCY;
+    ser_command = 4;
+    
     fcw = (unsigned int)((double)fr * pow(2,32) / (double)samplerate);
 }
 
