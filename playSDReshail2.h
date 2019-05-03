@@ -65,7 +65,7 @@
 // and therefore should be the lowest frequency of interest (i.e. beginning of a band)
 // for the Sat es'hail 2 this should be: 10489250000 Hz (= 10.48925 GHz)
 #define TUNED_FREQUENCY     144525000
-#define TRANSMIT_FREQUENCY  435525000       // only used to calculate ICOM's TX qrg in satellite mode, if an ICOM is connected via CIV
+#define TRANSMIT_FREQUENCY  435025000       // only used to calculate ICOM's TX qrg in satellite mode, if an ICOM is connected via CIV
 //#define TUNED_FREQUENCY     739467503     // direct reception from the LNB
 #define DISPLAYED_FREQUENCY_KHZ  10489525   // RX frequency of the left margin in kHz
 
