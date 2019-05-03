@@ -7,3 +7,4 @@ void civ_selMainSub(int mainsub);
 #define MAXCIVDATA 30
 
 extern unsigned int civ_freq;
+extern int civ_active;

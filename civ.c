@@ -31,6 +31,7 @@ uint32_t bcdToint32(uint8_t *d, int mode);
 unsigned char civRXdata[MAXCIVDATA];
 unsigned int civ_freq = 0;
 int civ_adr = 0xA2;
+int civ_active = 10;    // if down to 0, then CIV is inactive
 
 int readCIVmessage(int reti)
 {
@@ -45,6 +46,8 @@ int readCIVmessage(int reti)
     
 	if(civRXdata[0] == 0xfd)
 	{
+        civ_active = 10;
+        
         // an ICOM frame was received, extract the CIV address
         if(civRXdata[3] == 0xe0 && civRXdata[4] == 0xfe && civRXdata[5] == 0xfe)
         {

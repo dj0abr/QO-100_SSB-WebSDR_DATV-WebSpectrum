@@ -235,6 +235,16 @@ void do_command()
     
     if(txmode == 1)
     {
+        if(ser_command)
+        {
+            if(civ_active) civ_active--;
+            else 
+            {
+                civ_freq = 0;
+                return;    // CIV inactive
+            }
+        }
+        
         switch (ser_command)
         {
             case 1: civ_queryQRG();
