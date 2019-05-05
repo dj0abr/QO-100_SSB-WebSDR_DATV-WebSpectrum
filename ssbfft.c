@@ -103,9 +103,10 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // for the BIG waterfall we need 1500 (WF_WIDTH) bins, so take every 20th
             // take the loudest of the ten bins
             // create waterfall line and send to the client through a web socket
-            for(wfbins=0; wfbins<FSSB_NUM_BINS; wfbins+=20)
+            int picture_div = 20;
+            for(wfbins=0; wfbins<FSSB_NUM_BINS; wfbins+=picture_div)
             {
-                for(int bin10=0; bin10<20; bin10++)
+                for(int bin10=0; bin10<picture_div; bin10++)
                 {
                     real = cpout[wfbins+bin10][0];
                     imag = cpout[wfbins+bin10][1];
@@ -125,9 +126,8 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             }
             
             unsigned int realrf = TUNED_FREQUENCY - newrf;
-            //printf("%d - %d = %d\n",TUNED_FREQUENCY,newrf,realrf);
             
-            drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, realrf, FSSB_SRATE/2, FSSB_RESOLUTION*10, DISPLAYED_FREQUENCY_KHZ, "\0");
+            drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, realrf, FSSB_SRATE/2, FSSB_RESOLUTION*picture_div, DISPLAYED_FREQUENCY_KHZ, "\0");
             
             // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
             // in a range of 15.000 Hz, so every single bin (one bin is 10 Hz)

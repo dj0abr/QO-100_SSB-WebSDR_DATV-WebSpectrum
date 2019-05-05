@@ -31,7 +31,7 @@ void closeSerial();
 int activate_serial(char *serdevice, int baudrate);
 void openSerialInterface();
 int read_port();
-void do_command();
+void ser_loop();
 
 void *catproc(void *pdata);
 pthread_t cat_tid; 
@@ -43,7 +43,8 @@ int trx_frequency = 0;
 
 int fd_ser = -1; // handle of the ser interface
 char serdevice[20] = {"/dev/ttyUSB0"};
-int ser_command = 10;    // 0=no action 1=queryQRG 2=setPTT 3=releasePTT 4=setQRG
+int ser_command = 0;    // 0=no action 1=queryQRG 2=setPTT 3=releasePTT 4=setQRG
+int ser_status = 0;
 
 // creates a thread to run all serial specific jobs
 // call this once after program start
@@ -97,9 +98,11 @@ void *catproc(void *pdata)
             }
         }
  
-        if(ser_command) do_command();   // a process requested a CAT action
+        ser_loop();
+        usleep(100);
     }
     
+    printf("exit serial thread\n");
     closeSerial();
     pthread_exit(NULL);
 }
@@ -218,6 +221,11 @@ static unsigned char c;
 // schreibe ein
 void write_port(unsigned char *data, int len)
 {
+    /*printf("PC -> ICOM: ");
+    for(int i=0; i<len; i++)
+        printf("%02X ",data[i]);
+    printf("\n");*/
+        
     int ret = write(fd_ser, data, len);
     if(ret == -1)
     {
@@ -225,50 +233,127 @@ void write_port(unsigned char *data, int len)
     }
 }
 
-// execute a CAT command
-void do_command()
+void ser_loop()
 {
-    if(txmode == 0)
-    {
-        // no action
-    }
+static int txoffset = 0;
+    //printf("ser_status = %d\n",ser_status);
     
-    if(txmode == 1)
+    switch (ser_status)
     {
-        if(ser_command)
-        {
-            if(civ_active) civ_active--;
-            else 
-            {
-                civ_freq = 0;
-                return;    // CIV inactive
-            }
-        }
-        
-        switch (ser_command)
-        {
-            case 1: civ_queryQRG();
-                    break;
+        case 0: 
+                if(ser_command == 0)
+                {
+                    // no command, just read the MAIN VFO frequency
+                    // query MAIN frequency
+                    // first set MAIN VFO
+                    //printf("read MAIN VFO\n");
+                    civ_confirm = 0;
+                    civ_selMainSub(0);
+                    ser_status = 1;
+                }
+                
+                if(ser_command == 1)
+                {
+                    if(civ_freq != 0)
+                    {
+                        // GUI sends frequency
+                        // read the SUB VFO frequency
+                        printf("read SUB VFO\n");
+                        ser_command = 0;
+                        civ_confirm = 0;
+                        civ_selMainSub(1);
+                        ser_status = 11;
+                    }
+                    else
+                    {
+                        // if civ_freq unknown, do nothing
+                        ser_command = 0;
+                    }
+                }
+                break;
+                
+        case 1: // wait for confirmation of command in state 0
+                //printf("wait for conf: %d\n",civ_confirm);
+                if(civ_confirm == 1)
+                    ser_status = 2;
+                break;
+                
+        case 2: // read frequency
+                civ_confirm = 0;
+                civ_queryQRG();
+                ser_status = 3;
+                break;
+                
+        case 3: // wait for frequency
+                if(civ_confirm == 1)
+                {
+                    ser_status = 0;
+                }
+                break;
+
+        case 11: // wait for confirmation of command in state 0
+                if(civ_confirm == 1)
+                    ser_status = 12;
+                break;
+                
+        case 12: // read frequency
+                civ_confirm = 0;
+                civ_queryTXQRG();
+                ser_status = 13;
+                break;
+                
+        case 13: // wait for frequency
+                if(civ_confirm == 1)
+                {
+                    // we have the SUB VCO frequency
+                    // calculate the offset adjusted by the user
+                    // actual calculated TX frequency:
+                    int tx_act_calc = civ_freq - TUNED_FREQUENCY + TRANSMIT_FREQUENCY;
+                    printf("tx_act_calc: %d\n",tx_act_calc);
+                    // this offset was set by the user to compensate i.e. doppler shift or crystal error
+                    txoffset = tx_act_calc - civ_subfreq;
+                    printf("txoffset: %d\n",txoffset);
                     
-            case 4: // set main (RX) frequency
-                    civ_selMainSub(0);          
-                    civ_setQRG(trx_frequency);
-                    
-                    // set sub (TX) frequency
-                    civ_selMainSub(1);  
-                    
-                    // see playSDReshail.h
-                    // #define TUNED_FREQUENCY     144525000
-                    // #define TRANSMIT_FREQUENCY  435525000  
-                    
+                    // the new calculated frequency
                     int tx_qrg = trx_frequency - TUNED_FREQUENCY + TRANSMIT_FREQUENCY;
+                    printf("new tx_qrg: %d\n",tx_qrg);
+                    // add user offset
+                    tx_qrg += txoffset;
+                    printf("new tx_qrg+txoffset: %d\n",tx_qrg);
+                    // set the QRG (the SUB VFO is currently selected)
+                    civ_confirm = 0;
                     civ_setQRG(tx_qrg);
                     
-                    // select main VFO again, for user convenience
+                    ser_status = 14;
+                }
+                break;
+                
+        case 14:// wait for confirmation for setting TX frequency
+                // then select MAIN VFO
+                if(civ_confirm == 1)
+                {
+                    civ_confirm = 0;
                     civ_selMainSub(0);
-                    break;
-        }
+                    ser_status = 15;
+                }
+                break;
+                
+        case 15:// wait for confirmation for selecting MAIN VFO
+                // then set RX frequency
+                if(civ_confirm == 1)
+                {
+                    civ_confirm = 0;
+                    civ_setQRG(trx_frequency);
+                    ser_status = 16;
+                }
+                break;
+                
+        case 16:// wait for confirmation for setting RX frequency
+                if(civ_confirm == 1)
+                {
+                    ser_status = 0;
+                    ser_command = 0;
+                }
+                break;
     }
-
-    ser_command = 0;
 }

@@ -41,7 +41,7 @@ int ssbmode = 1;    // 0=LSB 1=USB
 int filtermode = 1; // 0=1,8k 1=2,4k 2=3,6k
 int setrfoffset = 0;
 unsigned int newrf = 0;
-int autosync = 1;
+int autosync = 0;
 
 
 // called in the main loop

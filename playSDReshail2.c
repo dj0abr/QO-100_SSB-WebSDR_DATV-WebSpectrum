@@ -73,13 +73,13 @@ int main()
 	sigaction(SIGINT, &sigact, NULL);
 	sigaction(SIGTERM, &sigact, NULL);
 	sigaction(SIGQUIT, &sigact, NULL);
-	//sigaction(SIGPIPE, &sigact, NULL); // signal 13
+	sigaction(SIGPIPE, &sigact, NULL); // signal 13
     
-    struct sigaction sigact_mem;
+    /*struct sigaction sigact_mem;
     sigact_mem.sa_handler = sighandler_mem;
 	sigemptyset(&sigact_mem.sa_mask);
 	sigact_mem.sa_flags = 0;
-    sigaction(SIGSEGV, &sigact_mem, NULL);
+    sigaction(SIGSEGV, &sigact_mem, NULL);*/
     
     printf("\nplaySDRweb parameters:\n\n");
     printf("SDR base QRG:    %d Hz\n",TUNED_FREQUENCY);
@@ -143,17 +143,9 @@ int main()
 
     // infinite loop, 
     // stop program with Ctrl-C
-    int del250ms=0;
     while(1)
     {
         set_frequency();
-        
-        del250ms++;
-        if(del250ms >= 250)
-        {
-            ser_command = 1;
-            del250ms=0;
-        }
         
         usleep(1000);
     }

@@ -30,11 +30,16 @@ uint32_t bcdToint32(uint8_t *d, int mode);
 
 unsigned char civRXdata[MAXCIVDATA];
 unsigned int civ_freq = 0;
+unsigned int civ_subfreq = 0;
 int civ_adr = 0xA2;
 int civ_active = 10;    // if down to 0, then CIV is inactive
+int readingSubBand = 0;
+int civ_confirm = 0;
 
 int readCIVmessage(int reti)
 {
+unsigned int rx_freq = 0;
+
     // printf("ser.rx: %02X\n",reti);
     
     // handle the CIV data
@@ -48,38 +53,74 @@ int readCIVmessage(int reti)
 	{
         civ_active = 10;
         
-        // an ICOM frame was received, extract the CIV address
-        if(civRXdata[3] == 0xe0 && civRXdata[4] == 0xfe && civRXdata[5] == 0xfe)
+        // print received message
+        int mlen = 0;
+        for(int i=0; i<50; i++)
         {
-            // response to PTT off
-            // fe fe e0 [ad] fb fd
-            //  5  4  3   2   1  0
-            //civ_adr = civRXdata[2];
+            if(civRXdata[i] != 0xfe) mlen++;
+            else break;
         }
         
-		if(civRXdata[8] == 0xe0 && civRXdata[9] == 0xfe && civRXdata[10] == 0xfe)
+        /*printf("ICOM -> PC: ");
+        for(int i=(mlen+1); i>=0; i--)
+            printf("%02X ",civRXdata[i]);
+        printf("\n");*/
+        
+        // check confirmation
+        if(civRXdata[1] == 0xfb && civRXdata[3] == 0xe0 && civRXdata[4] == 0xfe && civRXdata[5] == 0xfe)
+        {
+            //printf("OK message from ICOM\n");
+            civ_confirm = 1;
+            return 1;
+        }
+        
+        // check for NG (error) message
+        else if(civRXdata[1] == 0xfa && civRXdata[3] == 0xe0 && civRXdata[4] == 0xfe && civRXdata[5] == 0xfe)
+        {
+            printf("!!! NG message from ICOM !!!\n");
+            civ_confirm = 1;
+            return 1;
+        }
+        
+		else if(civRXdata[8] == 0xe0 && civRXdata[9] == 0xfe && civRXdata[10] == 0xfe)
 		{
 			// 5 byte Datensatz
 			//civ_adr = civRXdata[7];
-			civ_freq = bcdToint32(civRXdata+1,5);
+			rx_freq = bcdToint32(civRXdata+1,5);
 		}
-		if(civRXdata[8] == 0xe0 && civRXdata[8] == 0xfe && civRXdata[9] == 0xfe)
+		
+		else if(civRXdata[8] == 0xe0 && civRXdata[8] == 0xfe && civRXdata[9] == 0xfe)
 		{
 			// 4 byte Datensatz
             //civ_adr = civRXdata[6];
-			civ_freq = bcdToint32(civRXdata+1,4);
+			rx_freq = bcdToint32(civRXdata+1,4);
 		}
 		
-		if(civ_freq < 0) civ_freq = 0;    // remove invalid values 
+		if(rx_freq < 0) rx_freq = 0;    // remove invalid values 
 		
-		//printf("CIV: frequency = %d\n",civ_freq);
+		//printf("CIV: frequency = %d\n",rx_freq);
+		if(readingSubBand == 1)
+        {
+            // the sub band freq was read to get the offset
+            if(rx_freq != 0)
+                civ_subfreq = rx_freq;
+            //printf("CIV: SUB frequency = %d\n",civ_subfreq);
+        }
+        else
+        {
+            if(rx_freq != 0)
+                civ_freq = rx_freq;
+            //printf("CIV: MAIN frequency = %d\n",civ_freq);
+        }
+        
+        civ_confirm = 1;
 	}
 	return 1;
 }
 
 void civ_ptt(int onoff, unsigned char civad)
 {
-    printf("set PTT: %s",(onoff==1)?"TX":"RX");
+    printf("set PTT: %s\n",(onoff==1)?"TX":"RX");
     unsigned char tx[8] = {0xfe, 0xfe, 0x00, 0xe0, 0x1c,00, 00, 0xfd};
     
     tx[2] = civad;
@@ -91,24 +132,32 @@ void civ_ptt(int onoff, unsigned char civad)
 // mainsub: 0=main, 1=sub
 void civ_selMainSub(int mainsub)
 {
-    printf("set VFO: %s",(mainsub==1)?"SUB":"MAIN");
+    //printf("set VFO: %s\n",(mainsub==1)?"SUB":"MAIN");
     unsigned char tx[7] = {0xfe, 0xfe, 0x00, 0xe0,    0x07, 0xD0, 0xfd};
 
     tx[2] = civ_adr;
     if(mainsub == 1) tx[5] = 0xD1;
-
     write_port(tx, 7);
 }
 
 // query the Icom's Frequency
 void civ_queryQRG()
 {
+    readingSubBand = 0;
+    
     unsigned char tx[6] = {0xfe, 0xfe, 0x00, 0xe0,    0x03, 0xfd};
-
-    // CI-V 1 ist die Default Adresse, da nicht alle TRX die 00 als Broadcast erkennen
-    //tx[3] = 0xE1; // Controller Address, Default is 0xe0 but we can also use 0xe1 if we have multiple controllers
     tx[2] = civ_adr;
+    write_port(tx, 6);
+}
 
+// query the Icom's SubFrequency
+void civ_queryTXQRG()
+{
+    readingSubBand = 1;
+
+    // read the frequency
+    unsigned char tx[6] = {0xfe, 0xfe, 0x00, 0xe0,    0x03, 0xfd};
+    tx[2] = civ_adr;
     write_port(tx, 6);
 }
 
@@ -117,7 +166,7 @@ void civ_setQRG(int freq)
 {
     if(freq > 0.1)
     {
-        printf("set TRX to QRG: %d",freq);
+        printf("set TRX to QRG: %d\n",freq);
         civ_send_valu32(5,freq);
     }
 }
@@ -224,13 +273,6 @@ void civ_send(unsigned char cmd, unsigned char subcmd, unsigned char sendsubcmd,
             txdata[idx++] = dataarr[i];
     }
     txdata[idx++] = 0xfd;
-
-    char s[256] = {0};
-    for (int i = 0; i < idx; i++)
-    {
-        sprintf(s+strlen(s),"%02X ",txdata[i]);
-    }
-    printf("PC->Icom: %s\n",s);
 
     write_port(txdata, idx);
 }

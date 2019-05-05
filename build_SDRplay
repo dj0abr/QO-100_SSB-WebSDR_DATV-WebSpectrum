@@ -1,3 +1,4 @@
 cp Makefile_rtlsdr Makefile
 make clean
 make -j 4
+sudo cp html/*  /var/www/html
