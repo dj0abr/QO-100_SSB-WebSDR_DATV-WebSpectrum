@@ -235,30 +235,28 @@ void write_port(unsigned char *data, int len)
 
 void ser_loop()
 {
-static int txoffset = 0;
-    //printf("ser_status = %d\n",ser_status);
+    if(ser_command == 1)
+        printf("civ_freq:%d %d %d\n",civ_freq,ser_status,ser_command);
     
     switch (ser_status)
     {
         case 0: 
                 if(ser_command == 0)
                 {
-                    // no command, just read the MAIN VFO frequency
-                    // query MAIN frequency
-                    // first set MAIN VFO
-                    //printf("read MAIN VFO\n");
+                    // read the MAIN VFO frequency
+                    // this must be the selected default VFO
+                    // because frequent VFO change disturbs the Icom user interface
                     civ_confirm = 0;
-                    civ_selMainSub(0);
+                    civ_queryQRG();
                     ser_status = 1;
                 }
                 
-                if(ser_command == 1)
+                if(ser_command == 2)
                 {
+                    printf("civ_freq:%d\n",civ_freq);
                     if(civ_freq != 0)
                     {
                         // GUI sends frequency
-                        // read the SUB VFO frequency
-                        printf("read SUB VFO\n");
                         ser_command = 0;
                         civ_confirm = 0;
                         civ_selMainSub(1);
@@ -272,54 +270,20 @@ static int txoffset = 0;
                 }
                 break;
                 
-        case 1: // wait for confirmation of command in state 0
-                //printf("wait for conf: %d\n",civ_confirm);
-                if(civ_confirm == 1)
-                    ser_status = 2;
-                break;
-                
-        case 2: // read frequency
-                civ_confirm = 0;
-                civ_queryQRG();
-                ser_status = 3;
-                break;
-                
-        case 3: // wait for frequency
+        case 1: // wait for frequency
                 if(civ_confirm == 1)
                 {
                     ser_status = 0;
                 }
                 break;
 
-        case 11: // wait for confirmation of command in state 0
-                if(civ_confirm == 1)
-                    ser_status = 12;
-                break;
-                
-        case 12: // read frequency
-                civ_confirm = 0;
-                civ_queryTXQRG();
-                ser_status = 13;
-                break;
-                
-        case 13: // wait for frequency
+        case 11: // wait for confirmation of Sub-VFO selection
                 if(civ_confirm == 1)
                 {
-                    // we have the SUB VCO frequency
-                    // calculate the offset adjusted by the user
-                    // actual calculated TX frequency:
-                    int tx_act_calc = civ_freq - TUNED_FREQUENCY + TRANSMIT_FREQUENCY;
-                    printf("tx_act_calc: %d\n",tx_act_calc);
-                    // this offset was set by the user to compensate i.e. doppler shift or crystal error
-                    txoffset = tx_act_calc - civ_subfreq;
-                    printf("txoffset: %d\n",txoffset);
-                    
                     // the new calculated frequency
                     int tx_qrg = trx_frequency - TUNED_FREQUENCY + TRANSMIT_FREQUENCY;
-                    printf("new tx_qrg: %d\n",tx_qrg);
                     // add user offset
-                    tx_qrg += txoffset;
-                    printf("new tx_qrg+txoffset: %d\n",tx_qrg);
+                    //tx_qrg += txoffset;
                     // set the QRG (the SUB VFO is currently selected)
                     civ_confirm = 0;
                     civ_setQRG(tx_qrg);
