@@ -106,6 +106,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             int picture_div = 20;
             for(wfbins=0; wfbins<FSSB_NUM_BINS; wfbins+=picture_div)
             {
+                wfsamp[idx] = -99999;
                 for(int bin10=0; bin10<picture_div; bin10++)
                 {
                     real = cpout[wfbins+bin10][0];
@@ -114,14 +115,17 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     beaconLock(v,wfbins+bin10);
                     if(v > wfsamp[idx]) wfsamp[idx] = v;
                     // correct level TODO ???
-                    wfsamp[idx] /= 50;
+                    //wfsamp[idx] /= 50;
                  }
+                 
+                 wfsamp[idx] /= 100;
+                 
                 
-				if(idx > 0 && wfsamp[idx] > wfsamp[idx-1])
-				{
-					wfsamp[idx-1] = wfsamp[idx];
-				}
-                
+                /*if(idx > 0 && wfsamp[idx] > wfsamp[idx-1])
+                {
+                    wfsamp[idx-1] = wfsamp[idx];
+                }*/
+
                 idx++;
             }
             

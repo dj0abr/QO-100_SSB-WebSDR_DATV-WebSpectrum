@@ -100,6 +100,8 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _re
     // scale the fft data to match antenna dBm
     scaleSamples(fdata, cnt); 
     
+    
+    
     if(hpix > 1)
     {
         // if the requested height of the bitmap is > 1, draw a bitmap
@@ -213,7 +215,8 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _re
         for(int i=0; i<right; i++)
         {
             // fdata is the dbm value of the received signal, a negative number
-            // put it into the data string as positive numer
+            // put it into the data string as positive number
+            //printf("%.2f\n",fdata[idx]);
             wfdata[idx] = (unsigned char)(-fdata[i]);
             idx++;
             if(idx >= sizeof(wfdata))
@@ -350,7 +353,8 @@ double refminus80dBm = 0;
 
 void scaleSamples(double *samples, int numSamples)
 {
-    double log1122 = log(1.122);
+static double log1122 = log(1.122);
+
     double maxval = (double)(log(32768.0*(double)numSamples) / log1122);
     
     for(int i=0; i<numSamples; i++)

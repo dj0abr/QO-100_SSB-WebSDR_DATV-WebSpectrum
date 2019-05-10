@@ -472,7 +472,8 @@ var coltab = [
             function MouseMoveHandler(e)
             {
                 var e = window.event || e; // old IE support
-                $('#mousepos').html("mouse pointer: " + (tuneqrg/1e3 + (e.pageX * 200)/1e6) + " MHz");
+                var mval = tuneqrg/1e3 + (e.pageX * 200)/1e6;
+                $('#mousepos').html("mouse pointer: " + mval.toFixed(6) + " MHz");
             }
             
             function MouseWheelHandler(e)
@@ -834,14 +835,14 @@ var coltab = [
                 ctx.fillRect(x,0,20,c.height);
             }
             
-            var specarrlen = 30;
+            var specarrlen = 8;
             var midarr = new Array(200);
             var arrfirst = 1;
-            var speclevel = -120;
+            var speclevel = -180;
             var specgain = -60;
             var audiogain = 50;
-            var wflevel = 100;
-            var wfgain = 80;
+            var wflevel = 230;
+            var wfgain = 50;
             
             function draw_spec()
             {
@@ -977,7 +978,13 @@ var coltab = [
                 // scale dBm value to y-pixelpos
                 function scale(v)
                 {
-                    return -height*(v-speclevel)/(specgain-speclevel) + height;
+                    var v = -height*(v-speclevel)/(specgain-speclevel) + height;
+                    
+                    // auto set min level to bottom of the picture
+                    if(v>(height-10)) speclevel--;
+                    if(v<(height-15)) speclevel++;
+                                        
+                    return v;
                 }
                 
                 function vertline(qrg)
@@ -1197,7 +1204,7 @@ var coltab = [
                             ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
                             ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
                             ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 75;
+                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 50;//75;
                         }
                     }
                     
@@ -1208,7 +1215,7 @@ var coltab = [
                         ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
                         ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
                         ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                        ImageData.data[((i*(width*4)) + (j*4) + 3)] = 255;
+                        ImageData.data[((i*(width*4)) + (j*4) + 3)] = 80;
                     }
                 }
                 
@@ -1705,11 +1712,12 @@ var coltab = [
                 slider_specmid.oninput = function() 
                 {
                     specarrlen = this.value;
+                    //console.log(specarrlen);
                     if(specarrlen <= 0) specarrlen = 1;
                     localStorage.setItem('specmid',specarrlen);
                 }
                 
-                var slider_speclevel = document.getElementById("speclevel");
+                /*var slider_speclevel = document.getElementById("speclevel");
                 v = localStorage.getItem('speclevel');
                 if(v != null)
                 {
@@ -1723,7 +1731,7 @@ var coltab = [
                     if(Number(speclevel) > Number(specgain)) specgain = Number(speclevel) + 10.0;
                     localStorage.setItem('speclevel',speclevel);
                     
-                }
+                }*/
                 
                 var slider_specgain = document.getElementById("specgain");
                 v = localStorage.getItem('specgain');
@@ -1767,6 +1775,7 @@ var coltab = [
                 slider_wflevel.oninput = function() 
                 {
                     wflevel = this.value;
+                    
                     localStorage.setItem('wflevel',wflevel);
                 }
                 
@@ -1781,6 +1790,7 @@ var coltab = [
                 slider_wfgain.oninput = function() 
                 {
                     wfgain = this.value;
+                    //console.log(wfgain);
                     localStorage.setItem('wfgain',wfgain);
                 }
             }
@@ -1881,16 +1891,16 @@ var coltab = [
                 </div>
                 <div class="rightrow">
                     <div class="rightcell_label">
-                        Level:
+                        
                     </div>
                     <div class="rightcell_slider">
-                        <input id="speclevel" type="range" min="-150" max="-20" value="-120" style="direction: rtl;">
+                        
                     </div>
                     <div class="rightcell_label">
                         Level:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="wflevel" type="range" min="1" max="200" value="100">
+                        <input id="wflevel" type="range" min="50" max="350" value="230">
                     </div>
                 </div>
                 <div class="rightrow">
@@ -1898,13 +1908,13 @@ var coltab = [
                         Gain:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="specgain" type="range" min="-80" max="-20" value="-60" style="direction: rtl;">
+                        <input id="specgain" type="range" min="-60" max="0" value="-60" style="direction: rtl;">
                     </div>
                     <div class="rightcell_label">
                         Gain:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="wfgain" type="range" min="1" max="160" value="80">
+                        <input id="wfgain" type="range" min="20" max="100" value="50">
                     </div>
                 </div>
                 <div class="rightrow">
@@ -1912,7 +1922,7 @@ var coltab = [
                         Average:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="specmid" type="range" min="5" max="100" value="50">
+                        <input id="specmid" type="range" min="1" max="20" value="10">
                     </div>
                     <div class="rightcell_label">
                         Audio:
