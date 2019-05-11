@@ -338,7 +338,6 @@ static void* ws_establishconnection(void *vsock)
             {
                 if(msg != NULL) free(msg);
                 events.onclose(sock);
-                close(sock);
                 return vsock;
             }
             else
@@ -349,7 +348,13 @@ static void* ws_establishconnection(void *vsock)
         if(n == 0)
         {
             // no data received, normal processing loop
-            events.onwork(sock,&cnt0,&cnt1);
+            int ret = events.onwork(sock,&cnt0,&cnt1);
+            if(ret == -1)
+            {
+                // other side closed the connection (write error)
+                events.onclose(sock);
+                return vsock;
+            }
             //usleep(1000);      // do not eat up the CPU time
         }
 	}

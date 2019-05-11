@@ -1,8 +1,8 @@
-CFLAGS?=-O3 -Wall -I./websocket -std=gnu99
-LDLIBS+= -lpthread -lm -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype -lrtlsdr
+CFLAGS?=-O3 -Wall -I./websocket -DSDR_PLAY -std=gnu99
+LDLIBS+= -lpthread -lm -lmirsdrapi-rsp -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype -lrtlsdr
 CC?=gcc
 PROGNAME=playSDReshail2
-OBJ=playSDReshail2.o sdrplay.o fir_table_calc.o wf_univ.o color.o websocket/websocketserver.o websocket/ws_callbacks.o websocket/base64.o websocket/sha1.o websocket/ws.o websocket/handshake.o audio.o setqrg.o rtlsdr.o timing.o fifo.o ssbfft.o audio_bandpass.o hilbert90.o downmixer.o antialiasing.o cat.o civ.o
+OBJ=playSDReshail2.o sdrplay.o fir_table_calc.o wf_univ.o color.o websocket/websocketserver.o websocket/ws_callbacks.o websocket/base64.o websocket/sha1.o websocket/ws.o websocket/handshake.o audio.o setqrg.o rtlsdr.o timing.o fifo.o ssbfft.o audio_bandpass.o hilbert90.o downmixer.o antialiasing.o cat.o  civ.o
 
 all: playSDReshail2
 
@@ -15,3 +15,4 @@ playSDReshail2: $(OBJ)
 
 clean:
 	rm -f *.o websocket/*.o playSDReshail2
+

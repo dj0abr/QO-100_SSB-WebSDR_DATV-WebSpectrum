@@ -54,37 +54,35 @@ void onopen(int fd)
 // a browser disconnected
 void onclose(int fd)
 {
-	char *cli;
-	cli = ws_getaddress(fd);
-    if(cli != NULL)
-    {
-        remove_socket(fd);
-        printf("Connection closed, client: %d | addr: %s\n", fd, cli);
-        free(cli);
-    }
+    remove_socket(fd);
+    close(fd);
+    printf("Connection closed, client: %d\n", fd);
 }
 
 // if avaiable, send data to a browser
-void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1)
+int onwork(int fd, unsigned char *cnt0, unsigned char *cnt1)
 {
+int ret = 0;
+
     for(int i=0; i<MAX_CLIENTS; i++)
     {
         if(actsock[i].socket == fd)
         {
             // send all available data in one frame
-            // (sending is multiple frames resulted in data loss)
+            // (sending multiple frames resulted in data loss)
             int len;
             unsigned char *p = ws_build_txframe(i,&len);
             if(p != NULL)
             {
-                ws_sendframe_binary(fd, p, len);
+                ret = ws_sendframe_binary(fd, p, len);
                 free(p);
                 actsock[i].send0 = 0;
                 actsock[i].send1 = 0;
             }
-            return;
+            return ret;
         }
     }
+    return 0;
 }
 
 // received a Websocket Message from a browser

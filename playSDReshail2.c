@@ -73,7 +73,11 @@ int main()
 	sigaction(SIGINT, &sigact, NULL);
 	sigaction(SIGTERM, &sigact, NULL);
 	sigaction(SIGQUIT, &sigact, NULL);
-	sigaction(SIGPIPE, &sigact, NULL); // signal 13
+	//sigaction(SIGPIPE, &sigact, NULL); // signal 13
+    
+    // switch off signal 13 (broken pipe)
+    // instead handle the return value of the write or send function
+    signal(SIGPIPE, SIG_IGN);
     
     /*struct sigaction sigact_mem;
     sigact_mem.sa_handler = sighandler_mem;
@@ -137,8 +141,8 @@ int main()
 
     if(hwtype == 0)
     {
-        printf("no SDR hardware found. Exit\n");
-        exit(0);
+        printf("no SDR hardware found.\n");
+        //exit(0);
     }
 
     // infinite loop, 

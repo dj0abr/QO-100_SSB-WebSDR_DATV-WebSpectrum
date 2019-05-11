@@ -54,8 +54,8 @@ struct ws_events
 	/* void onmessage(int fd, unsigned char *message); */
 	void (*onmessage)(int, unsigned char *);
     
-    /* void onwork(int fd); do something short, worker function, called by the thread's main loop */
-    void (*onwork)(int fd, unsigned char *cnt0, unsigned char *cnt1);
+    /* int onwork(int fd); do something short, worker function, called by the thread's main loop */
+    int (*onwork)(int fd, unsigned char *cnt0, unsigned char *cnt1);
 };
 
 int getHSaccept(char *wsKey, unsigned char **dest);
@@ -71,7 +71,7 @@ void ws_send(unsigned char *pwfdata, int idx, int wf_id);
 void onopen(int fd);
 void onclose(int fd);
 void onmessage(int fd, unsigned char *message);
-void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1);
+int onwork(int fd, unsigned char *cnt0, unsigned char *cnt1);
 void insert_socket(int fd);
 void remove_socket(int fd);
 unsigned char *ws_build_txframe(int i, int *plength);

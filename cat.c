@@ -120,7 +120,7 @@ int activate_serial(char *serdevice,int baudrate)
 	closeSerial();
 	fd_ser = open(serdevice, O_RDWR | O_NDELAY);
 	if (fd_ser < 0) {
-		printf("error when opening %s, errno=%d\n", serdevice,errno);
+		//printf("error when opening %s, errno=%d\n", serdevice,errno);
 		return -1;
 	}
 

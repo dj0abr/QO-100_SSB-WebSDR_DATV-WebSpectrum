@@ -3,6 +3,9 @@ a web based SDR program made for the SDRplay RSP1a
 
 # made for LINUX ONLY ! 
 
+actual version: May, 11  2019
+(many bug fixes, please replace your older versions !)
+
 a PC runs the SDR software:
 * capturing samples from the SDR receiver (SDRplay)
 * creating one line of a waterfall over a range of 200kHz

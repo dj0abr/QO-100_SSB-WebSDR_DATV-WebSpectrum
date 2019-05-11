@@ -980,9 +980,13 @@ var coltab = [
                 {
                     var v = -height*(v-speclevel)/(specgain-speclevel) + height;
                     
-                    // auto set min level to bottom of the picture
-                    if(v>(height-10)) speclevel--;
-                    if(v<(height-15)) speclevel++;
+                    var ckb = $("#spekautolevel").is(':checked');
+                    if(ckb)
+                    {
+                        // auto set min level to bottom of the picture
+                        if(v>(height-10)) speclevel--;
+                        if(v<(height-15)) speclevel++;
+                    }
                                         
                     return v;
                 }
@@ -1717,7 +1721,7 @@ var coltab = [
                     localStorage.setItem('specmid',specarrlen);
                 }
                 
-                /*var slider_speclevel = document.getElementById("speclevel");
+                var slider_speclevel = document.getElementById("speclevel");
                 v = localStorage.getItem('speclevel');
                 if(v != null)
                 {
@@ -1731,7 +1735,7 @@ var coltab = [
                     if(Number(speclevel) > Number(specgain)) specgain = Number(speclevel) + 10.0;
                     localStorage.setItem('speclevel',speclevel);
                     
-                }*/
+                }
                 
                 var slider_specgain = document.getElementById("specgain");
                 v = localStorage.getItem('specgain');
@@ -1746,8 +1750,6 @@ var coltab = [
                     specgain = this.value;
                     if(Number(specgain) < Number(speclevel)) speclevel = Number(specgain) - 10.0;
                     localStorage.setItem('specgain',specgain);
-                    
-                    //console.log(speclevel + " " + specgain);
                 }
                 
                 var slider_audiogain = document.getElementById("audiogain");
@@ -1762,6 +1764,25 @@ var coltab = [
                 {
                     audiogain = this.value;
                     localStorage.setItem('audiogain',audiogain);
+                }
+                
+                var checkbox_autolevel = document.getElementById("spekautolevel");
+                var v1x = localStorage.getItem('spekautolevelx');
+                if(v1x != null)
+                {
+                    if(v1x == 0)
+                        checkbox_autolevel.checked = false;
+                    else
+                        checkbox_autolevel.checked = true;
+                }
+                
+                checkbox_autolevel.onclick = function() 
+                {
+                    autoclk = this.checked;
+                    if(this.checked)
+                        localStorage.setItem('spekautolevelx',1);
+                    else
+                        localStorage.setItem('spekautolevelx',0);
                 }
                 
                 var slider_wflevel = document.getElementById("wflevel");
@@ -1891,10 +1912,10 @@ var coltab = [
                 </div>
                 <div class="rightrow">
                     <div class="rightcell_label">
-                        
+                        <input type="checkbox" id="spekautolevel">Level:
                     </div>
                     <div class="rightcell_slider">
-                        
+                        <input id="speclevel" type="range" min="-180" max="-20" value="-180" style="direction: rtl;">                        
                     </div>
                     <div class="rightcell_label">
                         Level:
