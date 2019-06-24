@@ -1,5 +1,5 @@
 # WebSDR Client specially for the es'hail-2 Satellite
-a web based SDR program made for the SDRplay RSP1a
+a web based SDR program made for the SDRplay RSP1a and RTL-SDR
 
 # made for LINUX ONLY ! 
 
