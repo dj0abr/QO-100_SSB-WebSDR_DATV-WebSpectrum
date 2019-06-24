@@ -30,6 +30,7 @@
 #include "sdrplay.h"
 #include "rtlsdr.h"
 #include "downmixer.h"
+#include "cat.h"
 
 // 0=do nothing, 1=set to mouse pos 2=increment/decrement
 // 3=set a band, 4=set LSB/USB
@@ -92,6 +93,15 @@ unsigned int frdiff;
                 printf("new QRG offset: %d\n",foffset);
                 downmixer_setFrequency(foffset);
                 break;
+                
+        case 10:// activate icom CAT interface (open/close serial port)
+                useCAT = freqval;
+                break;
+
+        case 11:// set TRX via CAT if WF clicked
+                setIcomFrequency = freqval;
+                break;
+
     }
     setfreq = 0;
     

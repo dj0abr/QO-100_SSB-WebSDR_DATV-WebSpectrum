@@ -35,7 +35,6 @@ void ser_loop();
 
 void *catproc(void *pdata);
 pthread_t cat_tid; 
-int txmode = 1;
 int trx_frequency = 0;
 
 #define SERSPEED_CIV B4800
@@ -45,6 +44,8 @@ int fd_ser = -1; // handle of the ser interface
 char serdevice[20] = {"/dev/ttyUSB0"};
 int ser_command = 0;    // 0=no action 1=queryQRG 2=setPTT 3=releasePTT 4=setQRG
 int ser_status = 0;
+int setIcomFrequency = 0;   // 0=do nothing, 1= a click in the waterfall sets the icom transceiver frequency
+int useCAT = 0;         // 0= don't use the serial port, 1= use the serial port for Icom CIV
 
 // creates a thread to run all serial specific jobs
 // call this once after program start
@@ -70,14 +71,15 @@ void *catproc(void *pdata)
     
     while(1)
     {
-        if(txmode == 0)
+        if(useCAT == 0)
         {
             // TX is OFF, no action
+            closeSerial();
             sleep(1);
             continue;
         }
         
-        if(txmode == 1)
+        if(useCAT == 1)
         {
             // ICOM mode selected
             // open the serial interface and handle all messages through the CIV module
@@ -109,7 +111,10 @@ void *catproc(void *pdata)
 
 void closeSerial()
 {
-    if(fd_ser != -1) close(fd_ser);
+    if(fd_ser != -1) 
+        close(fd_ser);
+               
+    fd_ser = -1;
 }
 
 // Öffne die serielle Schnittstelle
@@ -254,7 +259,7 @@ void ser_loop()
                 if(ser_command == 2)
                 {
                     printf("civ_freq:%d\n",civ_freq);
-                    if(civ_freq != 0)
+                    if(setIcomFrequency && civ_freq != 0)
                     {
                         // GUI sends frequency
                         ser_command = 0;

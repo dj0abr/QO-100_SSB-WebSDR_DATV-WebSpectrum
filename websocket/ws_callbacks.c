@@ -138,6 +138,16 @@ void onmessage(int fd, unsigned char *msg)
             freqval = atoi((char *)msg+8);
             setfreq = 9;
         }
+        if(strstr((char *)msg,"catonof:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 10;
+        }
+        if(strstr((char *)msg,"catsetq:"))
+        {
+            freqval = atoi((char *)msg+8);
+            setfreq = 11;
+        }
         
         free(cli);
     }

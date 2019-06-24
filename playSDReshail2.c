@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <rtl-sdr.h>
@@ -42,6 +43,7 @@
 
 int hwtype = 0; // 1=playSDR, 2=rtlsdr
 int samplesPerPacket;
+char htmldir[256] = { "." };
 
 void sighandler(int signum)
 {
@@ -63,8 +65,144 @@ void sighandler_mem(int signum)
     exit(0);
 }
 
+// check if playSDReshail2 is already running
+void isRunning()
+{
+    int num = 0;
+    char s[256];
+    sprintf(s,"ps -e | grep playSDReshail2");
+    
+    FILE *fp = popen(s,"r");
+    if(fp)
+    {
+        // gets the output of the system command
+        while (fgets(s, sizeof(s)-1, fp) != NULL) 
+        {
+            if(strstr(s,"playSDReshail2") && !strstr(s,"grep"))
+            {
+                if(++num == 2)
+                {
+                    printf("playSDReshail2 is already running, do not start twice !");
+                    pclose(fp);
+                    exit(0);
+                }
+            }
+        }
+        pclose(fp);
+    }
+}
+
+// cleans white spaces from beginning, middle and end of a string
+char *cleanString(char *str, int cleanspace)
+{
+static char hs[256];
+char *hp = str;
+int idx = 0;
+
+    // putze den Anfang
+    while(*hp == ' ' || *hp == ',' || *hp == '\n' || *hp == '\r' || *hp == '\'' || *hp == '\"')
+    {
+ hp++;
+    }
+    
+    // putze die Mitte
+    if(cleanspace)
+    {
+ while(*hp)
+ {
+     if(*hp != ' ' && *hp != ',' && *hp != '\n' && *hp != '\r' && *hp != '\'' && *hp != '\"')
+  hs[idx++] = *hp;
+     hp++;
+ }
+    }
+    else
+    {
+ while(*hp)
+     hs[idx++] = *hp++;
+    }
+    
+    // putze das Ende
+    hp = hs+idx-1;
+
+    while(*hp == ' ' || *hp == ',' || *hp == '\n' || *hp == '\r' || *hp == '\'' || *hp == '\"')
+    {
+ *hp = 0;
+ hp--;
+    }
+    
+
+    hs[idx] = 0;
+
+    return hs;
+}
+
+void searchHTMLpath()
+{
+    if(htmldir[0] == '.')
+    {
+        // search for the apache woking directory
+        system("find  /srv -xdev -name htdocs  -print > pfad 2>/dev/null");
+        system("find  /var -xdev -name htdocs  -print >> pfad 2>/dev/null");
+        system("find  /var -xdev -name html  -print >> pfad 2>/dev/null");
+        system("find  /usr -xdev -name htdocs  -print >> pfad 2>/dev/null");
+        // if the directory was found its name is in file: "pfad"
+        FILE *fp=fopen("./pfad","r");
+        if(fp)
+        {
+            char p[256];
+            fgets(p,255,fp);
+            char *cp= cleanString(p,0);
+            if(strlen(cp)>3)
+            {
+                strcpy(htmldir,cp);
+                printf("Webserver Path: %s",htmldir);
+            }
+            else
+            {
+                printf("Path to apache webserver files not found");
+                exit(0);
+            }
+            
+            fclose(fp);
+        }
+        else
+        {
+            printf("Path to apache webserver files not found");
+            exit(0);
+        }
+    }
+}
+
+void installHTMLfiles()
+{
+    // the HTML files are located in the html folder below the es folder
+    // copy these files into the Apache HTML folder
+    char fn[512];
+    snprintf(fn,sizeof(fn),"cp ./html/* %s",htmldir);
+    printf("copy Web Site files to: %s",htmldir);
+    FILE *fp = popen(fn,"r");
+    if(fp)
+    {
+        // Liest die Ausgabe von cp
+        while (fgets(fn, sizeof(fn)-1, fp) != NULL) 
+        {
+            //printf("Output: %s\n",fn);
+        }
+        pclose(fp);
+    }
+}
+
 int main()
 {
+    // check if it is already running, if yes then exit
+    isRunning();
+    
+    // look for the apache HTML path
+    searchHTMLpath();
+    
+    // Install or Update the html files
+    installHTMLfiles();
+    
     // make signal handler, mainly use if the user presses Ctrl-C
     struct sigaction sigact;
     sigact.sa_handler = sighandler;

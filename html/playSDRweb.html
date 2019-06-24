@@ -1203,12 +1203,22 @@ var coltab = [
                     // draw transparent rectangle at the zoomed qrg range
                     for(var i=0; i<height; i++)
                     {
-                        for(var j=calcpos(0); j<calcpos(end1);j++)
+                        // right part USB
+                        for(var j=calcpos(end1/2); j<calcpos(end1);j++)
                         {
                             ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
                             ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
                             ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 50;//75;
+                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 50;
+                        }
+                        
+                        // left part LSB
+                        for(var j=calcpos(0); j<calcpos(end1/2);j++)
+                        {
+                            ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
+                            ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
+                            ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
+                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 20;
                         }
                     }
                     
@@ -1590,7 +1600,7 @@ var coltab = [
                         len += arr[pos++];
                         handle_type(type,arr,pos,len);
                     }
-                    // remark: window.requestAnimationFrame(drawWF); do NOT use this, high CPU load and corrupts picture if in background*/
+                    // remark: window.requestAnimationFrame(drawWF); do NOT use this, high CPU load and corrupts picture if in background
                 };
                 
                 // store settings and send to server
@@ -1660,6 +1670,24 @@ var coltab = [
                     websocket.send("autosyn:1\0");
                 else
                     websocket.send("autosyn:0\0");
+            }
+            
+            function CATonoff()
+            {
+                var ckb = $("#catonoff").is(':checked');
+                if(ckb == true)
+                    websocket.send("catonof:1\0");
+                else
+                    websocket.send("catonof:0\0");
+            }
+            
+            function CATsetTRXonoff()
+            {
+                var ckb = $("#catsetqrgonoff").is(':checked');
+                if(ckb == true)
+                    websocket.send("catsetq:1\0");
+                else
+                    websocket.send("catsetq:0\0");
             }
             
             function setListboxes()
@@ -1956,6 +1984,14 @@ var coltab = [
             <div class="rl_space">
             </div>
             <div class="rightside">
+                <div>
+                    <input type="checkbox" id="catonoff" onclick="CATonoff()">Icom CAT
+                </div>
+                <div>
+                    <input type="checkbox" id="catsetqrgonoff" onclick="CATsetTRXonoff()">WF click sets TRX QRG
+                </div>
+                <div>
+                </div>
                 <div id="mousepos"></div>
             </div>
         </div>
