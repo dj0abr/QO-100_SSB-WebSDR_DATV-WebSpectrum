@@ -22,6 +22,7 @@
 #include <sys/file.h>
 #include "civ.h"
 #include "cat.h"
+#include "playSDReshail2.h"
 
 void civ_send_valu32(unsigned char cmd, unsigned int ulval);
 void civ_send(unsigned char cmd, unsigned char subcmd, unsigned char sendsubcmd, unsigned char *dataarr, int arrlen);
@@ -96,7 +97,10 @@ unsigned int rx_freq = 0;
 			rx_freq = bcdToint32(civRXdata+1,4);
 		}
 		
-		if(rx_freq < 0) rx_freq = 0;    // remove invalid values 
+		if( rx_freq < 0 || 
+            rx_freq > (TUNED_FREQUENCY+10000000) || 
+            rx_freq < (TUNED_FREQUENCY-10000000)) 
+                rx_freq = 0;    // remove invalid values 
 		
 		//printf("CIV: frequency = %d\n",rx_freq);
 		if(readingSubBand == 1)

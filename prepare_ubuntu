@@ -1,0 +1,2 @@
+sudo apt-get update
+sudo apt-get install libasound2-dev libfftw3-dev libgd3 libgd-dev apache2 sndfile-tools libsndfile1-dev php librtlsdr-dev
