@@ -473,6 +473,7 @@ var coltab = [
             {
                 var e = window.event || e; // old IE support
                 var mval = tuneqrg/1e3 + (e.pageX * 200)/1e6;
+                mval -= 0.001200; // needed to get right value from mouse pointer, reason unknown
                 $('#mousepos').html("mouse pointer: " + mval.toFixed(6) + " MHz");
             }
             

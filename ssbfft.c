@@ -1,5 +1,4 @@
-/*
-* Web based SDR Client for SDRplay
+/* Web based SDR Client for SDRplay
 * =============================================================
 * Author: DJ0ABR
 *
@@ -119,12 +118,6 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                  }
                  
                  wfsamp[idx] /= 100;
-                 
-                
-                /*if(idx > 0 && wfsamp[idx] > wfsamp[idx-1])
-                {
-                    wfsamp[idx-1] = wfsamp[idx];
-                }*/
 
                 idx++;
             }
@@ -138,8 +131,11 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // starting at the current RX frequency - 15kHz/2 (so the RX qrg is in the middle)
             // foffset is the RX qrg in Hz
             // so we need the bins from (foffset/10) - 750 to (foffset/10) + 750
-            int start = (foffset/10) - 750;
-            int end = (foffset/10) + 750;
+            int start = ((foffset+0)/10) - 750;
+            int end = ((foffset+0)/10) + 750;
+
+			if(start < 0) start = 0;
+			if(end >= FSSB_FFT_LENGTH) end = FSSB_FFT_LENGTH-1;
             
             double wfsampsmall[WF_WIDTH];
             idx = 0;
@@ -156,7 +152,9 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 idx++;
             }
 
-            drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, realrf, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + foffset/1000, "\0");
+			// void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _realqrg, int _rightqrg, int res, int _tunedQRG, char *_fn)
+            drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, realrf, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + (foffset)/1000, "\0");
+
         }
         
         // SSB Decoding and Audio Output
