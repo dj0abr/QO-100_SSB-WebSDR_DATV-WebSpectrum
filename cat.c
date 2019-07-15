@@ -112,9 +112,11 @@ void *catproc(void *pdata)
 void closeSerial()
 {
     if(fd_ser != -1) 
+	{
         close(fd_ser);
-               
-    fd_ser = -1;
+	    fd_ser = -1;
+		printf("serial interface closed\n");
+	}
 }
 
 // Öffne die serielle Schnittstelle
@@ -194,11 +196,13 @@ static int ttynum = 0;
     
     while(ret == -1)
     {
+		printf("try to open %s\n",serdevice);
         ret = activate_serial(serdevice,baudrate);
         if(ret == 0) 
         {
             printf("%s is now OPEN\n",serdevice);
             sleep(1);
+			ser_status = 0;
             break;
         }
         fd_ser = -1;
@@ -212,36 +216,55 @@ static int ttynum = 0;
 int read_port()
 {
 static unsigned char c;
+static int rxfail = 0;
+
+	//printf("ICOM -> PC: ");
 
     int rxlen = read(fd_ser, &c, 1);
     
     if(rxlen == 0)
     {
+		//printf("no data, rxfail: %d\n",rxfail);
+		if(++rxfail >= 100)
+		{
+			printf("no data after 100 tries, close interface\n");
+			closeSerial();
+			ser_status = 0;
+			rxfail = 0;
+		}
         return -1;
     }
+	else
+	{
+	    //printf("%d, %02X\n",rxlen,c);
+	}
 
+	rxfail = 0;
 	return (unsigned int)c;
 }
 
 // schreibe ein
 void write_port(unsigned char *data, int len)
 {
-    /*printf("PC -> ICOM: ");
-    for(int i=0; i<len; i++)
-        printf("%02X ",data[i]);
-    printf("\n");*/
-        
+	//printf("PC -> ICOM: ");
+
     int ret = write(fd_ser, data, len);
     if(ret == -1)
     {
+		closeSerial();
         fd_ser = -1;
     }
+
+    /*for(int i=0; i<len; i++)
+	{
+        printf("%02X ",data[i]);
+	}
+	printf(" ret: %d\n",ret);*/
 }
 
 void ser_loop()
 {
-    if(ser_command == 1)
-        printf("civ_freq:%d %d %d\n",civ_freq,ser_status,ser_command);
+    // if(ser_command == 1) printf("civ_freq:%d %d %d\n",civ_freq,ser_status,ser_command);
     
     switch (ser_status)
     {
