@@ -189,10 +189,11 @@ void direct_ptt(int onoff)
     ioctl(fd_ser, TIOCMSET, &flags);
 }
 
+int ttynum = 0;
+
 void openSerialInterface(int baudrate)
 {
 int ret = -1;
-static int ttynum = 0;
     
     while(ret == -1)
     {
@@ -231,6 +232,7 @@ static int rxfail = 0;
 			closeSerial();
 			ser_status = 0;
 			rxfail = 0;
+			ttynum = 0;
 		}
         return -1;
     }
