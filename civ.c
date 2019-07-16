@@ -33,7 +33,6 @@ unsigned char civRXdata[MAXCIVDATA];
 unsigned int civ_freq = 0;
 unsigned int civ_subfreq = 0;
 int civ_adr = 0xA2;
-int civ_active = 10;    // if down to 0, then CIV is inactive
 int readingSubBand = 0;
 int civ_confirm = 0;
 
@@ -52,8 +51,6 @@ unsigned int rx_freq = 0;
     
 	if(civRXdata[0] == 0xfd)
 	{
-        civ_active = 10;
-        
         // print received message
         int mlen = 0;
         for(int i=0; i<50; i++)
