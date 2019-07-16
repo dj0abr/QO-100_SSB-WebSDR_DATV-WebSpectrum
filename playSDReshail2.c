@@ -29,6 +29,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <unistd.h>
 #include <rtl-sdr.h>
 #include "sdrplay.h"
 #include "audio.h"
@@ -44,6 +45,7 @@
 int hwtype = 0; // 1=playSDR, 2=rtlsdr
 int samplesPerPacket;
 char htmldir[256] = { "." };
+int TUNED_FREQUENCY = _TUNED_FREQUENCY;
 
 void sighandler(int signum)
 {
@@ -177,6 +179,13 @@ void installHTMLfiles()
 {
     // the HTML files are located in the html folder below the es folder
     // copy these files into the Apache HTML folder
+    int i;
+    if ((i=getuid()))
+    {
+        printf("\nYou are not root, HTML files are not automatically copied into the Apache folder!\n");
+        return;
+    }
+    
     char fn[512];
     snprintf(fn,sizeof(fn),"cp ./html/* %s",htmldir);
     printf("copy Web Site files to: %s",htmldir);
@@ -192,8 +201,42 @@ void installHTMLfiles()
     }
 }
 
-int main()
+void usage()
 {
+    printf("\nusage:\n");
+    printf("./playSDReshail2  -f  frequency\n");
+    printf("frequency ... frequency of the CW beacon minus 25 kHz\n");
+    printf("using a normal LNB the frequency is 739525000\n");
+    printf("using a down mixer: enter the output frequency of the down mixer, i.e.: 144525000\n");
+}
+
+int main(int argc, char *argv[])
+{
+int c;
+
+    while((c = getopt(argc, argv, "f:")) !=-1) 
+    {
+        switch (c) {
+            case 'f':
+                TUNED_FREQUENCY = strtod(optarg,NULL); // in Hz
+                if(TUNED_FREQUENCY < 100000 || TUNED_FREQUENCY > 1500000000)
+                {
+                    printf("\nenter QRG in Hz. i.e.: 144525000 or 739525000 or similar\n\n");
+                    return 1;
+                }
+                break;
+            case '?':
+                usage();
+                return 1;
+        }
+    }
+    
+    if(argc == 1)
+    {
+        usage();
+        return 1;
+    }
+    
     // check if it is already running, if yes then exit
     isRunning();
     
