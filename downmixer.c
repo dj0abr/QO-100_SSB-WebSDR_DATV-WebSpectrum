@@ -67,7 +67,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include "playSDReshail2.h"
+#include "qo100websdr.h"
 #include "downmixer.h"
 #include "fir_table_calc.h"
 #include "setqrg.h"

@@ -29,7 +29,7 @@
 */
 
 #include <stdio.h>
-#include "playSDReshail2.h"
+#include "qo100websdr.h"
 
 /*
 * designed with Iowa Hills Hilbert Filter Designer

@@ -1,4 +1,6 @@
 cp Makefile_playsdr Makefile
 make clean
 make -j 4
-sudo cp html/*  /var/www/html
+# copy web files to apache folder. Check folder name !!!
+# sudo cp html/*  /var/www/html
+

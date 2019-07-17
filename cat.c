@@ -23,7 +23,7 @@
 #include <termios.h>
 #include <sys/file.h>
 #include <pthread.h>
-#include "playSDReshail2.h"
+#include "qo100websdr.h"
 #include "cat.h"
 #include "civ.h"
 

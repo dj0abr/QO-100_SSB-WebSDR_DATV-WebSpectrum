@@ -37,7 +37,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <pthread.h>
-#include "playSDReshail2.h"
+#include "qo100websdr.h"
 #include "fifo.h"
 
 

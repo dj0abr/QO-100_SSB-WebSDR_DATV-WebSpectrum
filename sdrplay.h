@@ -1,4 +1,4 @@
-#include "playSDReshail2.h"
+#include "qo100websdr.h"
 
 int init_SDRplay();
 void remove_SDRplay();

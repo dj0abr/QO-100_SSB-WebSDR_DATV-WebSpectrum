@@ -22,7 +22,7 @@
 #include <sys/file.h>
 #include "civ.h"
 #include "cat.h"
-#include "playSDReshail2.h"
+#include "qo100websdr.h"
 
 void civ_send_valu32(unsigned char cmd, unsigned int ulval);
 void civ_send(unsigned char cmd, unsigned char subcmd, unsigned char sendsubcmd, unsigned char *dataarr, int arrlen);

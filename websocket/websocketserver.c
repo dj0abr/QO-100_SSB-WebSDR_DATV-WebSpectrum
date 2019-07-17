@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include "../playSDReshail2.h"
+#include "../qo100websdr.h"
 #include "websocketserver.h"
 #include "../fifo.h"
 #include "../ssbfft.h"

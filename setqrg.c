@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 #include "setqrg.h"
-#include "playSDReshail2.h"
+#include "qo100websdr.h"
 #include "sdrplay.h"
 #include "rtlsdr.h"
 #include "downmixer.h"
