@@ -1,0 +1,1 @@
+while true; do ./qo100websdr_SDRplay_arm32; sleep 1; done;
