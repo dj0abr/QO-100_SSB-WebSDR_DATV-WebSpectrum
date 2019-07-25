@@ -232,7 +232,8 @@ static int rxfail = 0;
 			closeSerial();
 			ser_status = 0;
 			rxfail = 0;
-			ttynum = 0;
+			if(++ttynum >= 4) ttynum = 0;
+            sprintf(serdevice,"/dev/ttyUSB%d",ttynum);
 		}
         return -1;
     }
