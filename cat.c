@@ -226,14 +226,21 @@ static int rxfail = 0;
     if(rxlen == 0)
     {
 		//printf("no data, rxfail: %d\n",rxfail);
-		if(++rxfail >= 100)
+		rxfail++;
+		if(rxfail >= 100)
 		{
 			printf("no data after 100 tries, close interface\n");
 			closeSerial();
 			ser_status = 0;
 			rxfail = 0;
 			if(++ttynum >= 4) ttynum = 0;
-            sprintf(serdevice,"/dev/ttyUSB%d",ttynum);
+				sprintf(serdevice,"/dev/ttyUSB%d",ttynum);
+		}
+		if(rxfail == 40 || rxfail == 60 || rxfail == 80)
+		{
+			// new qrg request
+			ser_status = 0;
+			ser_command = 0;
 		}
         return -1;
     }
@@ -249,7 +256,10 @@ static int rxfail = 0;
 // schreibe ein
 void write_port(unsigned char *data, int len)
 {
-	//printf("PC -> ICOM: ");
+int debug = 0;
+
+    if(debug)	
+		printf("PC -> ICOM:\n");
 
     int ret = write(fd_ser, data, len);
     if(ret == -1)
@@ -258,11 +268,14 @@ void write_port(unsigned char *data, int len)
         fd_ser = -1;
     }
 
-    /*for(int i=0; i<len; i++)
+    if(debug)
 	{
-        printf("%02X ",data[i]);
+		for(int i=0; i<len; i++)
+		{
+		    printf("%02X ",data[i]);
+		}
+		printf(" ret: %d\n",ret);
 	}
-	printf(" ret: %d\n",ret);*/
 }
 
 void ser_loop()
@@ -284,10 +297,10 @@ void ser_loop()
                 
                 if(ser_command == 2)
                 {
-                    printf("civ_freq:%d\n",civ_freq);
                     if(setIcomFrequency && civ_freq != 0)
                     {
                         // GUI sends frequency
+			printf("civ_freq:%d\n",civ_freq);
                         ser_command = 0;
                         civ_confirm = 0;
                         civ_selMainSub(1);
