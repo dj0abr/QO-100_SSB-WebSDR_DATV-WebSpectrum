@@ -43,6 +43,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
 #include <gd.h>
 #include "gdfontt.h"
@@ -105,6 +106,9 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _re
     
     if(hpix > 1)
     {
+        // this is not needed for eshail2 WebSDR
+#ifndef ESHAIL2
+          
         // if the requested height of the bitmap is > 1, draw a bitmap
         
         // filename of a temporary bitmap
@@ -146,6 +150,7 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _re
             gdImageFile(convim, wfvars[id].filename);
             gdImageDestroy(convim);
         }
+#endif // #ifndef ESHAIL2
     }
     else
     {
@@ -239,6 +244,8 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _re
  */
 void drawWFimage(int id, gdImagePtr im, char *fn)
 {
+    //this is not needed for eshail2 WebSDR
+#ifndef ESHAIL2
     // create destination image
     gdImagePtr dst = gdImageCreate(wfvars[id].pic_width, wfvars[id].pic_height);
     // allocate the colors
@@ -255,6 +262,7 @@ void drawWFimage(int id, gdImagePtr im, char *fn)
     gdImageFile(dst, fn);
     // free ressources
     gdImageDestroy(dst);
+#endif // #ifndef ESHAIL2
 }
 
 /*
@@ -354,8 +362,8 @@ double refminus80dBm = 0;
 
 void scaleSamples(double *samples, int numSamples)
 {
-static double log1122 = log(1.122);
 
+    double log1122 = log(1.122);
     double maxval = (double)(log(32768.0*(double)numSamples) / log1122);
     
     for(int i=0; i<numSamples; i++)

@@ -31,14 +31,22 @@ uint32_t bcdToint32(uint8_t *d, int mode);
 
 unsigned char civRXdata[MAXCIVDATA];
 unsigned int civ_freq = 0;
-unsigned int civ_subfreq = 0;
 int civ_adr = 0xA2;
-int readingSubBand = 0;
-int civ_confirm = 0;
 
+/*
+ * evaluate a message from icom civ
+ * returns:
+ * 0 ... no message
+ * 1 ... OK message
+ * 2 ... NG message
+ * 3 ... actual VFO frequency in civ_freq
+ */
 int readCIVmessage(int reti)
 {
 unsigned int rx_freq = 0;
+int debug = 0;
+
+    if(reti == -1) return 0;
 
     // printf("ser.rx: %02X\n",reti);
     
@@ -59,16 +67,18 @@ unsigned int rx_freq = 0;
             else break;
         }
         
-        /*printf("ICOM -> PC: ");
-        for(int i=(mlen+1); i>=0; i--)
-            printf("%02X ",civRXdata[i]);
-        printf("\n");*/
+        if(debug)
+        {
+            printf("ICOM -> PC: ");
+            for(int i=(mlen+1); i>=0; i--)
+                printf("%02X ",civRXdata[i]);
+            printf("\n");
+        }
         
         // check confirmation
         if(civRXdata[1] == 0xfb && civRXdata[3] == 0xe0 && civRXdata[4] == 0xfe && civRXdata[5] == 0xfe)
         {
-            //printf("OK message from ICOM\n");
-            civ_confirm = 1;
+            printf("OK message from ICOM\n");
             return 1;
         }
         
@@ -76,8 +86,7 @@ unsigned int rx_freq = 0;
         else if(civRXdata[1] == 0xfa && civRXdata[3] == 0xe0 && civRXdata[4] == 0xfe && civRXdata[5] == 0xfe)
         {
             printf("!!! NG message from ICOM !!!\n");
-            civ_confirm = 1;
-            return 1;
+            return 2;
         }
         
 		else if(civRXdata[8] == 0xe0 && civRXdata[9] == 0xfe && civRXdata[10] == 0xfe)
@@ -100,23 +109,13 @@ unsigned int rx_freq = 0;
                 rx_freq = 0;    // remove invalid values 
 		
 		//printf("CIV: frequency = %d\n",rx_freq);
-		if(readingSubBand == 1)
+        if(rx_freq != 0)
         {
-            // the sub band freq was read to get the offset
-            if(rx_freq != 0)
-                civ_subfreq = rx_freq;
-            //printf("CIV: SUB frequency = %d\n",civ_subfreq);
+            civ_freq = rx_freq;
+            return 3;
         }
-        else
-        {
-            if(rx_freq != 0)
-                civ_freq = rx_freq;
-            //printf("CIV: MAIN frequency = %d\n",civ_freq);
-        }
-        
-        civ_confirm = 1;
 	}
-	return 1;
+	return 0;
 }
 
 void civ_ptt(int onoff, unsigned char civad)
@@ -130,33 +129,9 @@ void civ_ptt(int onoff, unsigned char civad)
     write_port(tx, 8);
 }
 
-// mainsub: 0=main, 1=sub
-void civ_selMainSub(int mainsub)
-{
-    //printf("set VFO: %s\n",(mainsub==1)?"SUB":"MAIN");
-    unsigned char tx[7] = {0xfe, 0xfe, 0x00, 0xe0,    0x07, 0xD0, 0xfd};
-
-    tx[2] = civ_adr;
-    if(mainsub == 1) tx[5] = 0xD1;
-    write_port(tx, 7);
-}
-
 // query the Icom's Frequency
 void civ_queryQRG()
 {
-    readingSubBand = 0;
-    
-    unsigned char tx[6] = {0xfe, 0xfe, 0x00, 0xe0,    0x03, 0xfd};
-    tx[2] = civ_adr;
-    write_port(tx, 6);
-}
-
-// query the Icom's SubFrequency
-void civ_queryTXQRG()
-{
-    readingSubBand = 1;
-
-    // read the frequency
     unsigned char tx[6] = {0xfe, 0xfe, 0x00, 0xe0,    0x03, 0xfd};
     tx[2] = civ_adr;
     write_port(tx, 6);

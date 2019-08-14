@@ -28,24 +28,23 @@
 #include "civ.h"
 
 void closeSerial();
-int activate_serial(char *serdevice, int baudrate);
+int activate_serial();
 void openSerialInterface();
 int read_port();
 void ser_loop();
 
 void *catproc(void *pdata);
 pthread_t cat_tid; 
-int trx_frequency = 0;
 
 #define SERSPEED_CIV B4800
-#define SERSPEED_DDS B115200
 
 int fd_ser = -1; // handle of the ser interface
 char serdevice[20] = {"/dev/ttyUSB0"};
 int ser_command = 0;    // 0=no action 1=queryQRG 2=setPTT 3=releasePTT 4=setQRG
-int ser_status = 0;
 int setIcomFrequency = 0;   // 0=do nothing, 1= a click in the waterfall sets the icom transceiver frequency
 int useCAT = 0;         // 0= don't use the serial port, 1= use the serial port for Icom CIV
+int trx_frequency = 0;
+int ttynum = 0;
 
 // creates a thread to run all serial specific jobs
 // call this once after program start
@@ -67,6 +66,12 @@ int cat_init()
 
 void *catproc(void *pdata)
 {
+int status = 0;
+int rxbyte = 0;
+int respcnt = 0;
+int tries = 0;
+int cret = 0;
+
     pthread_detach(pthread_self());
     
     while(1)
@@ -82,25 +87,111 @@ void *catproc(void *pdata)
         if(useCAT == 1)
         {
             // ICOM mode selected
-            // open the serial interface and handle all messages through the CIV module
+            
             if(fd_ser == -1)
             {
-                // serial IF is closed, try to open it
-                sleep(1);
-                openSerialInterface(SERSPEED_CIV);
+                // somebody closed the serial IF, start from beginning
+                status = 0;
             }
-            else
+            
+            //if(status >= 2)
             {
-                // serial IF is open, read one byte and pass it to the CIV message receiver routine
-                int reti = read_port();
-                if(reti == -1) 
-                    usleep(10000);  // no data received
-                else
-                    readCIVmessage(reti);
+                // serial IF is open, receive one byte
+                rxbyte = read_port();
+                if(rxbyte != -1)
+                {
+                    //printf("rx: %d\n",rxbyte);
+                }
+            }
+            
+            switch (status)
+            {
+                case 0: // ser IF is closed, open it and look for an icom trx
+                        printf("Open Serial Port\n");
+                        sleep(1);
+                        if(activate_serial() == 0)
+                        {
+                            status = 1;
+                        }
+                        else
+                        {
+                            // if open tty failed, then try the next ttyUSBx number
+                            if(++ttynum >= 4) ttynum = 0;
+                        }
+                        break;
+                        
+                case 1: // serial IF is open, look for an icom TRX
+                        printf("Query Icom\n");
+                        // read VFO
+                        civ_queryQRG();
+                        civ_freq = 0;   // if icom answers, the civ_freq is set to the actual VFO frequency
+                        respcnt = 0;
+                        status = 2;
+                        break;
+                        
+                case 2: // wait for a response from icom
+                        readCIVmessage(rxbyte);
+                        // this loop takes 100us, the icom may take up to 100ms
+                        // so we wait maximum 1000 loops
+                        if(++respcnt > 1000)
+                        {
+                            // no answer from icom 
+                            printf("no answer from Icom within 100ms, try next serial port\n");
+                            status = 0;
+                            // try with the next serial port
+                            closeSerial();
+                            if(++ttynum >= 4) ttynum = 0;
+                            break;
+                        }
+                        
+                        if(civ_freq > 0)
+                        {
+                            // got an answer from icom, so we found the transceiver
+                            printf("Icom TRX found, goto normal processing\n");
+                            status = 3; // normal processing
+                        }
+                        break;
+                        
+                case 3: // normal processing: query CIV
+                        usleep(100000); // query every 100ms
+                        civ_queryQRG();
+                        respcnt = 0;
+                        tries = 0;
+                        status = 4;
+                        break;
+                        
+                case 4: // normal processing: wait for answer from icom
+                        cret = readCIVmessage(rxbyte);
+                        if(cret == 3)
+                        {
+                            // got an frequency from icom
+                            //printf("got QRG\n");
+                            tries = 0;
+                            status = 3;
+                            break;
+                        }
+                        
+                        // no answer from icom 
+                        if(++respcnt > 10000)
+                        {
+                            printf("no answer from Icom within 1s, try again\n");
+                            if(++tries > 5)
+                            {
+                                printf("already 5 tries, Icom looks to be unavailable, search it again\n");
+                                status = 0;
+                                // try with the next serial port
+                                closeSerial();
+                                if(++ttynum >= 4) ttynum = 0;
+                                break;
+                            }
+                            civ_queryQRG();
+                            respcnt = 0;
+                        }
+                        
+                        break;
             }
         }
  
-        ser_loop();
         usleep(100);
     }
     
@@ -120,14 +211,20 @@ void closeSerial()
 }
 
 // Öffne die serielle Schnittstelle
-int activate_serial(char *serdevice,int baudrate)
+int activate_serial()
 {
 	struct termios tty;
+    char serdevice[30];
+
+    sprintf(serdevice,"/dev/ttyUSB%d",ttynum);
     
 	closeSerial();
+    
+    printf("Open: /dev/ttyUSB%d\n",ttynum);
+    
 	fd_ser = open(serdevice, O_RDWR | O_NDELAY);
 	if (fd_ser < 0) {
-		//printf("error when opening %s, errno=%d\n", serdevice,errno);
+		printf("error when opening %s, errno=%d\n", serdevice,errno);
 		return -1;
 	}
 
@@ -136,8 +233,8 @@ int activate_serial(char *serdevice,int baudrate)
 		return -1;
 	}
 
-	cfsetospeed(&tty, baudrate);
-	cfsetispeed(&tty, baudrate);
+	cfsetospeed(&tty, SERSPEED_CIV);
+	cfsetispeed(&tty, SERSPEED_CIV);
 
 	tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
 	tty.c_iflag &= ~ICRNL; // binary mode (no CRLF conversion)
@@ -168,6 +265,8 @@ int activate_serial(char *serdevice,int baudrate)
     flags &= ~TIOCM_RTS;
     ioctl(fd_ser, TIOCMSET, &flags);
     
+    printf("/dev/ttyUSB%d opened sucessfully\n",ttynum);
+    
 	return 0;
 }
 
@@ -189,67 +288,18 @@ void direct_ptt(int onoff)
     ioctl(fd_ser, TIOCMSET, &flags);
 }
 
-int ttynum = 0;
-
-void openSerialInterface(int baudrate)
-{
-int ret = -1;
-    
-    while(ret == -1)
-    {
-		printf("try to open %s\n",serdevice);
-        ret = activate_serial(serdevice,baudrate);
-        if(ret == 0) 
-        {
-            printf("%s is now OPEN\n",serdevice);
-            sleep(1);
-			ser_status = 0;
-            break;
-        }
-        fd_ser = -1;
-        sleep(1);
-        if(++ttynum >= 4) ttynum = 0;
-        sprintf(serdevice,"/dev/ttyUSB%d",ttynum);
-    }
-}
-
 // read one byte non blocking
 int read_port()
 {
 static unsigned char c;
-static int rxfail = 0;
 
 	//printf("ICOM -> PC: ");
 
     int rxlen = read(fd_ser, &c, 1);
-    
     if(rxlen == 0)
     {
-		//printf("no data, rxfail: %d\n",rxfail);
-		rxfail++;
-		if(rxfail >= 100)
-		{
-			printf("no data after 100 tries, close interface\n");
-			closeSerial();
-			ser_status = 0;
-			rxfail = 0;
-			if(++ttynum >= 4) ttynum = 0;
-				sprintf(serdevice,"/dev/ttyUSB%d",ttynum);
-		}
-		if(rxfail == 40 || rxfail == 60 || rxfail == 80)
-		{
-			// new qrg request
-			ser_status = 0;
-			ser_command = 0;
-		}
         return -1;
     }
-	else
-	{
-	    //printf("%d, %02X\n",rxlen,c);
-	}
-
-	rxfail = 0;
 	return (unsigned int)c;
 }
 
@@ -278,90 +328,3 @@ int debug = 0;
 	}
 }
 
-void ser_loop()
-{
-    // if(ser_command == 1) printf("civ_freq:%d %d %d\n",civ_freq,ser_status,ser_command);
-    
-    switch (ser_status)
-    {
-        case 0: 
-                if(ser_command == 0)
-                {
-                    // read the MAIN VFO frequency
-                    // this must be the selected default VFO
-                    // because frequent VFO change disturbs the Icom user interface
-                    civ_confirm = 0;
-                    civ_queryQRG();
-                    ser_status = 1;
-                }
-                
-                if(ser_command == 2)
-                {
-                    if(setIcomFrequency && civ_freq != 0)
-                    {
-                        // GUI sends frequency
-			printf("civ_freq:%d\n",civ_freq);
-                        ser_command = 0;
-                        civ_confirm = 0;
-                        civ_selMainSub(1);
-                        ser_status = 11;
-                    }
-                    else
-                    {
-                        // if civ_freq unknown, do nothing
-                        ser_command = 0;
-                    }
-                }
-                break;
-                
-        case 1: // wait for frequency
-                if(civ_confirm == 1)
-                {
-                    ser_status = 0;
-                }
-                break;
-
-        case 11: // wait for confirmation of Sub-VFO selection
-                if(civ_confirm == 1)
-                {
-                    // the new calculated frequency
-                    int tx_qrg = trx_frequency - TUNED_FREQUENCY + TRANSMIT_FREQUENCY;
-                    // add user offset
-                    //tx_qrg += txoffset;
-                    // set the QRG (the SUB VFO is currently selected)
-                    civ_confirm = 0;
-                    civ_setQRG(tx_qrg);
-                    
-                    ser_status = 14;
-                }
-                break;
-                
-        case 14:// wait for confirmation for setting TX frequency
-                // then select MAIN VFO
-                if(civ_confirm == 1)
-                {
-                    civ_confirm = 0;
-                    civ_selMainSub(0);
-                    ser_status = 15;
-                }
-                break;
-                
-        case 15:// wait for confirmation for selecting MAIN VFO
-                // then set RX frequency
-                if(civ_confirm == 1)
-                {
-                    civ_confirm = 0;
-                    civ_setQRG(trx_frequency);
-                    ser_status = 16;
-                }
-                break;
-                
-        case 16:// wait for confirmation for setting RX frequency
-                if(civ_confirm == 1)
-                {
-                    ser_status = 0;
-                    ser_command = 0;
-                }
-                break;
-    }
-}

@@ -1,4 +1,4 @@
-CFLAGS?=-O3 -Wall -I./websocket -std=gnu99
+CFLAGS?=-O3 -Wall -I./websocket -std=gnu99 -DESHAIL2
 LDLIBS+= -lpthread -lm -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype -lrtlsdr
 CC?=gcc
 PROGNAME=qo100websdr

@@ -138,21 +138,24 @@ int idx = 0;
     return hs;
 }
 
+int sret;
+void *pret;
+
 void searchHTMLpath()
 {
     if(htmldir[0] == '.')
     {
         // search for the apache woking directory
-        system("find  /srv -xdev -name htdocs  -print > pfad 2>/dev/null");
-        system("find  /var -xdev -name htdocs  -print >> pfad 2>/dev/null");
-        system("find  /var -xdev -name html  -print >> pfad 2>/dev/null");
-        system("find  /usr -xdev -name htdocs  -print >> pfad 2>/dev/null");
+        sret = system("find  /srv -xdev -name htdocs  -print > pfad 2>/dev/null");
+        sret = system("find  /var -xdev -name htdocs  -print >> pfad 2>/dev/null");
+        sret = system("find  /var -xdev -name html  -print >> pfad 2>/dev/null");
+        sret = system("find  /usr -xdev -name htdocs  -print >> pfad 2>/dev/null");
         // if the directory was found its name is in file: "pfad"
         FILE *fp=fopen("./pfad","r");
         if(fp)
         {
             char p[256];
-            fgets(p,255,fp);
+            pret = fgets(p,255,fp);
             char *cp= cleanString(p,0);
             if(strlen(cp)>3)
             {
