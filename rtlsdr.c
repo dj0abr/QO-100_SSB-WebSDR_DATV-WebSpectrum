@@ -48,6 +48,8 @@ static rtlsdr_dev_t *dev;
 
 int init_rtlsdr()
 {
+    int rtldevicenumber = 0;
+    
     // check if an RTL device is available
     int devices = rtlsdr_get_device_count();
     printf("found %d RTLSDR devices\n",devices);
@@ -56,10 +58,10 @@ int init_rtlsdr()
     {
         printf("this program does work with the FIRST rtl device only !\n");
     }
-    printf("Device: %s\n\n",rtlsdr_get_device_name(0));
+    printf("Device: %s\n\n",rtlsdr_get_device_name(rtldevicenumber));
 
     // open the first device
-    int retval = rtlsdr_open(&dev, 0);
+    int retval = rtlsdr_open(&dev, rtldevicenumber);
     printf("open returned: %d\n",retval);
     
     // configure the device
