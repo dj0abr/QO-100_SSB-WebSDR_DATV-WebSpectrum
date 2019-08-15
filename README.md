@@ -29,13 +29,19 @@ actual Status:
 
 1) build for the playSDR (the Raspberry or ARM / ARM64 library must be installed from the SDRplay website !)
 execute the script:  ./build_SDRplay
+
 or
+
 build for the RTLSDR
 execute the script:  ./build_RTLSDR
+
 2) start the program:  sudo ./qo100websdr -f RXFREQUENCY
+
 RXFREQUENCY is the frequency in Hz where you receive the QO100 beacon in Hz minus 25000 Hz
 (Example: 739525000)
+
 sudo ... this is required only for the first time ! (it copies files into the HTML folder). Then you can run it without sudo.
+
 3) open a web browser and open the html web site
 4) if all is ok then the waterfall will be running. Click into the waterfall the select the listening frequency.
 5) click the "Audio ON" button
