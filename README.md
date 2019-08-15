@@ -3,7 +3,8 @@ a web based SDR program made for the SDRplay RSP1a and RTL-SDR
 
 # made for LINUX ONLY ! 
 
-actual version: May, 11  2019
+actual version V1.3: August, 15  2019
+by DJ0ABR
 (many bug fixes, please replace your older versions !)
 
 a PC runs the SDR software:
@@ -25,11 +26,16 @@ the GUI runs in a browser
 
 # this is WORK in PROGRESS
 actual Status: 
-working with the playSDR (copy Makefile_sdrplay to Makefile)
-working with the RTLSDR (copy Makefile_rtlsdr to Makefile)
-1) compile "make" and start "./playSDReshail2". The hardware is detected automatically if the original SDRplay driver is installed
-2) copy the files from the html directory to your web server directory (i.e. /var/www/html)
-   the web server must be running
+
+1) build for the playSDR (the Raspberry or ARM / ARM64 library must be installed from the SDRplay website !)
+execute the script:  ./build_SDRplay
+or
+build for the RTLSDR
+execute the script:  ./build_RTLSDR
+2) start the program:  sudo ./qo100websdr -f RXFREQUENCY
+RXFREQUENCY is the frequency in Hz where you receive the QO100 beacon in Hz minus 25000 Hz
+(Example: 739525000)
+sudo ... this is required only for the first time ! (it copies files into the HTML folder). Then you can run it without sudo.
 3) open a web browser and open the html web site
 4) if all is ok then the waterfall will be running. Click into the waterfall the select the listening frequency.
 5) click the "Audio ON" button
@@ -50,7 +56,7 @@ This works with the SDRplay hardware because it has a resolution of 1 Hz. It doe
 
 RTL-SDR:
 ========
-the rtl sdr hardware is automatically detected (librtlsdr must be installed). All works fine, except the auto-beacon-lock. This is work in progess.
+the rtl sdr hardware is automatically detected (librtlsdr must be installed). All works fine, except the auto-beacon-lock which works not as good as with the SDRplay receiver.
 
 
 Prerequisites:
@@ -58,10 +64,13 @@ Prerequisites:
 these libraries are required:
 
 apt-get update
-
 apt-get install libasound2-dev libfftw3-dev libgd3 libgd-dev apache2 sndfile-tools libsndfile1-dev php librtlsdr-dev
 
-additionally the SDRplay driver from the SDRplay Webpage must be installed.
+above libraries are installed if you execute ./prepare_ubuntu
+
+(php ... sometimes this must be replaced with php5 or php7 depending on your linux distribution)
+
+additionally the SDRplay driver from the SDRplay Webpage must be installed if you want to run the SDRplay receiver.
 
 Make the software:
 ==================
@@ -71,9 +80,8 @@ make
 Run the software:
 =================
 
-1) copy the files from html folder in your webserver html directory
-2) start the software   ./playSDReshail2
-3) open a browser and open the webpage "playSDRweb.html" on your webserver
+1) start the software  sudo ./playSDReshail2 -f 144525000 (your CW-beacon RX frequency minus 25 kHz) (sudo is only required for the first time).
+2) open a browser and open the webpage "playSDRweb.html" on your webserver
 
 ATTENTION: before you can run this website, the WebSocket IP address must be modified in the file playSDRweb.html
 Search for the line: var sockurl = ....
