@@ -89,9 +89,6 @@ Run the software:
 1) start the software  sudo ./playSDReshail2 -f 144525000 (your CW-beacon RX frequency minus 25 kHz) (sudo is only required for the first time).
 2) open a browser and open the webpage "playSDRweb.html" on your webserver
 
-ATTENTION: before you can run this website, the WebSocket IP address must be modified in the file playSDRweb.html
-Search for the line: var sockurl = ....
-and enter the IP address of the PC running this software.
 
 to access the website from outside (from the internet)
 ======================================================
