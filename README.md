@@ -60,7 +60,7 @@ build_SDRplay ... build the software for the NB-Transponder and the SDRplay and/
 build_SDRplay_WB ... build the software for the SDRplay and the Wideband (DATV) transponder
 
 simply run one of these scripts in a terminal i.e.:  ./build_RTLSDR
-when the script finishes without errors then the job is done and you can use the software.
+when the script finishes without errors then the job is done and you can use the software.  
 
 # starting the server
 in the termimal enter:
