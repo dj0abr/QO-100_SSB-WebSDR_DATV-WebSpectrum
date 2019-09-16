@@ -124,6 +124,11 @@ you can now start the WB version and the NB version simultaneously. Just be sure
 
 The CPU load is quite high if you run both, but is not a problem for a modern PC, and also an Odroid N2 can handle both.
 
+# ICOM synchronisation (for NB SSB transponder)
+an ICOM TRX can be connected via CIV (USB) to the computer running this software.
+When the ICOM checkbox is activated in the browser, the frequency of the Icom TRX will be read and the marker and lower waterfall will be set to this frequency every 100ms.
+To adapt the CIV address to your Icom Transceiver, open file: civ.c and change variable civ_adr to the address of the transceiver. Then rebuild the software.
+
 vy 73
 de DJ0ABR, Kurt Moraw
 Germany
