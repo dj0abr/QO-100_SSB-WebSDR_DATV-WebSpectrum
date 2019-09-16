@@ -55,8 +55,11 @@ This software can be started twice (for NB and WB) on the same computer.
 3) copy this software in any empty directory. Keep the names and contents of the subfolders.
 
 4) there are three scripts that build the software automatically:
+
 build_RTLSDR ... build the software for the NB-Transponder and for the RTLsdr ONLY
+
 build_SDRplay ... build the software for the NB-Transponder and the SDRplay and/or RTLsdr (requires the SDRplay libraries, see above)
+
 build_SDRplay_WB ... build the software for the SDRplay and the Wideband (DATV) transponder
 
 simply run one of these scripts in a terminal i.e.:  ./build_RTLSDR
