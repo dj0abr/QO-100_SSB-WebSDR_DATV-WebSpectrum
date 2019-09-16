@@ -1,7 +1,7 @@
 # WebSDR Server for the QO-100 es'hail-2 Satellite
 a web based SDR program made for the SDRplay RSP1a and RTL-SDR
 uses any Browser in your network or Internet to view / listen your SDR data
-
+  
 # made for LINUX ONLY ! 
 
 NEW ! Supports NB and WB transponder !
