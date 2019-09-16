@@ -1,5 +1,5 @@
 /*
-* Web based SDR Client for SDRplay
+* Web based SDR Client for SDRplay and RTLsdr
 * =============================================================
 * Author: DJ0ABR
 *
@@ -20,7 +20,7 @@
 *   along with this program; if not, write to the Free Software
 *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 * 
-* playSDRweb.c ... file containing main() and calling all other functions 
+* q100websdr.c ... file containing main() and calling all other functions 
 * 
 */
 
@@ -39,6 +39,7 @@
 #include "rtlsdr.h"
 #include "fifo.h"
 #include "ssbfft.h"
+#include "wb_fft.h"
 #include "downmixer.h"
 #include "cat.h"
 
@@ -283,7 +284,13 @@ int c;
     printf("2nd FFT resol.  :%d\n",FFT_RESOLUTION_SMALL);
     printf("2nd FTT smp/pass:%d\n",SAMPLES_FOR_FFT_SMALL);
     
-    init_fssb();
+    
+    #ifdef WIDEBAND
+        init_fwb();
+    #else
+        init_fssb();
+    #endif // WIDEBAND
+
     
     downmixer_init();
     
@@ -309,24 +316,33 @@ int c;
     // init SDRplay hardware
     // this MUST be the LAST initialisation because
     // the callback starts immediately after init_SDRplay
-    if(init_rtlsdr())
-    {
-        hwtype = 2;
-        samplesPerPacket = SAMPLES_PER_PASS;
-    }
+	#ifdef WIDEBAND
+		// only SDRplay can be used in wideband mode
+		init_SDRplay();
+		hwtype = 1;
+	#else
+		// for NB transponder try RTLsdr first
+		// and if not exists, try SDRplay
+		if(init_rtlsdr())
+		{
+		    hwtype = 2;
+		    samplesPerPacket = SAMPLES_PER_PASS;
+		}
 
-    #ifdef SDR_PLAY
-        if(hwtype == 0)
-        {
-            init_SDRplay();
-            hwtype = 1;
-        }
-    #endif   
+		#ifdef SDR_PLAY
+		    if(hwtype == 0)
+		    {
+		        init_SDRplay();
+		        hwtype = 1;
+		    }
+    	#endif
+	#endif // WIDEBAND
+       
 
     if(hwtype == 0)
     {
         printf("no SDR hardware found.\n");
-        //exit(0);
+        exit(0);
     }
 
     // infinite loop, 

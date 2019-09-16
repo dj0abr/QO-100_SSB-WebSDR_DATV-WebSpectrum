@@ -53,7 +53,12 @@ unsigned int frdiff;
 
     switch (setfreq)
     {
-        case 1: foffset = freqval * FFT_RESOLUTION; // resolution: 200Hz per pixel
+        case 1: 
+                #ifdef WIDEBAND
+                    foffset = freqval * 5250;
+                #else
+                    foffset = freqval * FFT_RESOLUTION; // resolution: 200Hz per pixel
+                #endif
                 printf("new QRG offset: %d\n",foffset);
                 downmixer_setFrequency(foffset);
                 break;

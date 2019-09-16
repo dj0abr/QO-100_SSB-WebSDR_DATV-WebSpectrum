@@ -1,4 +1,4 @@
-void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _realqrg, int _rightqrg, int res, int _tunedQRG, char *_fn);
+void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int _rightqrg, int res, int _tunedQRG);
 void init_wf_univ();
 
 enum _WATERFALL_IDs_ {

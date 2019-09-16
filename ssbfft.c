@@ -62,7 +62,7 @@ int rflock = 0;
 void init_fssb()
 {
     char fn[300];
-	sprintf(fn, "fssb_wisom");	// wisdom file for each capture rate
+	sprintf(fn, "fssb_wisdom");	// wisdom file for each capture rate
 
 	fftw_import_wisdom_from_filename(fn);
   
@@ -75,6 +75,9 @@ void init_fssb()
 
     fftw_export_wisdom_to_filename(fn);
 }
+
+int ssb_gaincorr = 1600; // if wfsamp[] overflows 16 bit then make this value higher
+int small_gaincorr = 1600;
 
 void fssb_sample_processing(short *xi, short *xq, int numSamples)
 {
@@ -94,7 +97,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             fftw_execute(plan);
             
             // this fft has generated FSSB_NUM_BINS (= 30.000) bins in cpout
-            double wfsamp[WF_WIDTH];
+            unsigned short wfsamp[WF_WIDTH];
             int idx = 0;
             double real,imag;
             int wfbins;
@@ -105,26 +108,35 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             int picture_div = 20;
             for(wfbins=0; wfbins<FSSB_NUM_BINS; wfbins+=picture_div)
             {
-                wfsamp[idx] = -99999;
+				double maxv = -99999;
                 for(int bin10=0; bin10<picture_div; bin10++)
                 {
                     real = cpout[wfbins+bin10][0];
                     imag = cpout[wfbins+bin10][1];
                     double v = sqrt((real * real) + (imag * imag));
                     beaconLock(v,wfbins+bin10);
-                    if(v > wfsamp[idx]) wfsamp[idx] = v;
+                    if(v > maxv) maxv = v;
                     // correct level TODO ???
                     //wfsamp[idx] /= 50;
                  }
                  
-                 wfsamp[idx] /= 100;
+                 maxv /= ssb_gaincorr;
+				if(maxv > 65535) printf("maxv overflow, rise ssb_gaincorr %.0f %.0f\n",maxv,maxv*ssb_gaincorr/65535);
+                wfsamp[idx] = (unsigned short)maxv;
 
-                idx++;
+				idx++;
             }
             
             unsigned int realrf = TUNED_FREQUENCY - newrf;
             
-            drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, realrf, FSSB_SRATE/2, FSSB_RESOLUTION*picture_div, DISPLAYED_FREQUENCY_KHZ, "\0");
+            //drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, realrf, FSSB_SRATE/2, FSSB_RESOLUTION*picture_div, DISPLAYED_FREQUENCY_KHZ, "\0");
+
+			drawWF( WFID_BIG,                   // Waterfall ID
+                    wfsamp,                     // FFT output data
+                    realrf,            			// frequency of the SDR 
+                    FSSB_SRATE/2,               // total width of the fft data in Hz (in this case 8.000.000)
+                    FSSB_RESOLUTION*picture_div,// Hz/pixel
+                    DISPLAYED_FREQUENCY_KHZ);   // frequency of the left margin of the waterfall
             
             // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
             // in a range of 15.000 Hz, so every single bin (one bin is 10 Hz)
@@ -137,23 +149,32 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
 			if(start < 0) start = 0;
 			if(end >= FSSB_FFT_LENGTH) end = FSSB_FFT_LENGTH-1;
             
-            double wfsampsmall[WF_WIDTH];
+            unsigned short wfsampsmall[WF_WIDTH];
             idx = 0;
 
             for(wfbins=start; wfbins<end; wfbins++)
             {
                 real = cpout[wfbins][0];
                 imag = cpout[wfbins][1];
-                wfsampsmall[idx] = sqrt((real * real) + (imag * imag));
+                double dm = sqrt((real * real) + (imag * imag));
                 
                 // correct level TODO ???
-                wfsampsmall[idx] /= 50;
+                dm /= small_gaincorr;
+				if(dm > 65535) printf("maxv overflow, rise small_gaincorr dm:%.0f %.0f\n",dm,dm*small_gaincorr/65535);
+				wfsampsmall[idx] = (unsigned short)dm;
                 
                 idx++;
             }
 
 			// void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _realqrg, int _rightqrg, int res, int _tunedQRG, char *_fn)
-            drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, realrf, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + (foffset)/1000, "\0");
+            //drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, realrf, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + (foffset)/1000, "\0");
+
+			drawWF( WFID_SMALL,                 // Waterfall ID
+                    wfsampsmall,                // FFT output data
+                    realrf,            			// frequency of the SDR 
+                    15000,               		// total width of the fft data in Hz (in this case 8.000.000)
+                    FSSB_RESOLUTION,			// Hz/pixel
+                    DISPLAYED_FREQUENCY_KHZ + (foffset)/1000);   // frequency of the left margin of the waterfall
 
         }
         

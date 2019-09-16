@@ -1445,6 +1445,53 @@ var coltab = [
             
             var ftx = 8089500;
             var rflock = 0;
+
+			// arr is an uint8 array containing the pixel data at arr+20
+            // each value is 16 bit, MSB first, so in total 3000 bytes = 1500 fft values
+            
+            var rxpix = new Array();
+			var rxpix1 = new Array();
+            var log1122 = Math.log(1.122);
+            var db_maxval = Math.log(32768.0*1500) / log1122;
+
+            // fill pix with dBm values
+            function scaledBm()
+            {
+                var idx = 0;
+                for(var i=0; i<1500; i++)
+                {
+                    // reconstruct the fft value
+                    var fftval = rxpix[idx++];
+                    fftval <<= 8;
+                    fftval += rxpix[idx++];
+                    
+                    // calculate the dBm value
+                    if (fftval < 1) fftval = 1;    
+        
+                    var dval = Math.log(fftval) / log1122;
+                    dval = dval - db_maxval;
+                    pix[i] = -dval;
+                }
+            }
+
+			function scaledBm1()
+            {
+                var idx = 0;
+                for(var i=0; i<1500; i++)
+                {
+                    // reconstruct the fft value
+                    var fftval = rxpix1[idx++];
+                    fftval <<= 8;
+                    fftval += rxpix[idx++];
+                    
+                    // calculate the dBm value
+                    if (fftval < 1) fftval = 1;    
+        
+                    var dval = Math.log(fftval) / log1122;
+                    dval = dval - db_maxval;
+                    pix1[i] = -dval;
+                }
+            }
             
             function handle_type(type,arr,pos,len)
             {
@@ -1457,7 +1504,8 @@ var coltab = [
                     tuneqrg = get32(arr.slice(idx+8));
                     resolution = get32(arr.slice(idx+12));
                     foffset = get32(arr.slice(idx+16));
-                    pix  = arr.slice(idx+20);
+                    rxpix  = arr.slice(idx+20);
+					scaledBm();
                     pixwidth = end / resolution;
                     
                     var fval = (tuneqrg + foffset/1000)/1e3;
@@ -1487,7 +1535,8 @@ var coltab = [
                     tuneqrg1 = get32(arr.slice(idx+8));
                     resolution1 = get32(arr.slice(idx+12));
                     foffset1 = get32(arr.slice(idx+16));
-                    pix1  = arr.slice(idx+20);
+                    rxpix1  = arr.slice(idx+20);
+					scaledBm1();
                     pixwidth1 = end / resolution;
                     
                     drawWF1();
@@ -1546,7 +1595,7 @@ var coltab = [
                     }
                 }
                 var ya = y.split(":");
-                sockurl = "ws://" + ya[0] + ":8090";
+                sockurl = "ws://" + ya[0] + ":8091";
                 //console.log(sockurl);
                 //$('#myinfo').html(sockurl);
                 websocket = new WebSocket(sockurl);
@@ -1859,8 +1908,8 @@ var coltab = [
         </script>
         </head>
     <body>
-        <div class="header_mytitle" id="header_mytitle">es'hail-2 Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V1.3</div>
+        <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V1.4</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">

@@ -24,32 +24,37 @@
 *  
 * 
 */
-
-//#define SOUNDLOCAL
-
 #include <stdint.h>
 
-// sample rate of the SDRplay hardware
+
+//#define SOUNDLOCAL    // activate to send the sound to the local sound card (and not to the browser)
+
+// sample rate of the SDR hardware
 // see the possible values in the SDRplay driver
 // high values will generate a high CPU load !
-// its best to keep the default value of 2.4MS/s
-#define SDR_SAMPLE_RATE 2400000 
+// its best to keep the default value of 2.4MS/s (which is the maximum for the RTLSDR)
+#ifdef WIDEBAND
+	#ifndef	SDR_PLAY
+		#define SDR_PLAY				// SDRplay must be used in wideband mode
+	#endif
+    #define SDR_SAMPLE_RATE 10000000    // 10 MHz sample rate, the maximum of the SDRplay hardware
+#else
+    #define SDR_SAMPLE_RATE 2400000     // 2,4 MHz sample rate (SDRplay and RTLSDR can do that)
+#endif // WIDEBAND
 
 // width of the big waterfall in Hz
 // attention: the expression (SDR_SAMPLE_RATE / 2 / WF_RANGE_HZ) HAS to 
 // be an integer number without decimal places !!!
-// (the following alternatives are integer numbers if the sampling rate is 2.4MS/s)
 // !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!! (see also SSB_RATE below)
-// #define WF_RANGE_HZ        400000       // (first downsampled rate: 800000)
-#define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
-//#define WF_RANGE_HZ        240000       // (first downsampled rate: 480000)
-//#define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
-// #define WF_RANGE_HZ        150000       // (first downsampled rate: 300000)
-// #define WF_RANGE_HZ        120000       // (first downsampled rate: 240000)
-//#define WF_RANGE_HZ        100000       // (first downsampled rate: 200000)
+#ifdef WIDEBAND
+    #define WF_RANGE_HZ 8000000     // rate = 8MHz, which is the max bandwidth of the RSP1a
+    #define WF_WIDTH    1600        // width of the waterfall in pixels
+#else
+    #define WF_RANGE_HZ 300000      // (first downsampled rate: 600000 = 2,4MHz / 4)
+    #define WF_WIDTH    1500        // width of the waterfall in pixels
+#endif // WIDEBAND
 
-// width of the big waterfall in pixels
-#define WF_WIDTH    1500
+
 
 // the height of the waterfall picture (ignored in WF_MODE_WEBSOCKET)
 #define WF_HEIGHT   400
@@ -67,12 +72,20 @@
 
 #define _TUNED_FREQUENCY    739525000       // default SDR's RX frequency (direct LNB reception) is overwritten by the command line parameter -f
 #define TRANSMIT_FREQUENCY  435025000       // only used to calculate ICOM's TX qrg in satellite mode, if an ICOM is connected via CIV
-#define DISPLAYED_FREQUENCY_KHZ  10489525   // RX frequency of the left margin in kHz
+#ifdef WIDEBAND
+    #define DISPLAYED_FREQUENCY_KHZ  (10490000 + 1000)   // RX frequency of the left margin in kHz
+#else
+    #define DISPLAYED_FREQUENCY_KHZ  10489525   // RX frequency of the left margin in kHz
+#endif // WIDEBAND
 
 // Websocket Port
 // the computer running this software must be reachable under this port
 // (i.e. open this TCP port in the internet router)
-#define WEBSOCK_PORT    8090
+#ifdef WIDEBAND
+    #define WEBSOCK_PORT    8090
+#else
+    #define WEBSOCK_PORT    8091
+#endif // WIDEBAND
 
 // ==========================================================================================
 // calculations according to above values

@@ -31,8 +31,10 @@
 #include <stdint.h>
 #include <time.h>
 #include <sys/time.h>
+#include "qo100websdr.h"
 #include "sdrplay.h"
 #include "ssbfft.h"
+#include "wb_fft.h"
 #include "mirsdrapi-rsp.h"  // the SDRplay driver must be installed !
 
 int device = 0;     // device number. If we have one SDRplay device connected: device=0
@@ -45,7 +47,12 @@ int notchEnable = 0;
 int biasT = 0;
 mir_sdr_SetGrModeT grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 int gainR = 50;
-int bwkHz = 600;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
+#ifdef WIDEBAND
+    int bwkHz = 8000;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
+#else
+    int bwkHz = 600;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
+#endif // WIDEBAND
+
 int ifkHz = 0;      // 0 is used in this software
 int rspLNA = 0;
 void *cbContext = NULL;
@@ -79,12 +86,12 @@ int init_SDRplay()
 
     if (devAvail == 0) {
         printf("ERROR: No RSP devices available.\n");
-        return 0;
+        exit(1);
     }
 
     if (devices[device].devAvail != 1) {
         printf("ERROR: RSP selected (%d) is not available.\n", (device + 1));
-        return 0;
+        exit(1);
     }
     
     // read device information and initialize
@@ -116,16 +123,17 @@ int init_SDRplay()
         (mir_sdr_Bw_MHzT)bwkHz, (mir_sdr_If_kHzT)ifkHz, rspLNA, &gRdBsystem,
         grMode, &samplesPerPacket, streamCallback, gainCallback, &cbContext);
     
-    printf("Delivering %d samples per streamCallback\n",samplesPerPacket);
+    //printf("Delivering %d samples per streamCallback\n",samplesPerPacket);
 
 	if (r != mir_sdr_Success) {
 		printf("Failed to start SDRplay RSP device.\n");
-        printf("Use -v 1 (for verbose mode) to see the issue.\n");
 		exit(1);
 	}
 	
+	#ifndef WIDEBAND
 	// reduce the sample rate to 600kHz
 	mir_sdr_DecimateControl(1,4,0);
+    #endif
 
     mir_sdr_AgcControl(agcControl, setPoint, 0, 0, 0, 0, rspLNA);
     
@@ -196,12 +204,15 @@ void streamCallback(short *xi, short *xq, unsigned int firstSampleNum,
     samples += numSamples;
     unsigned long tnow = tv.tv_sec * 1000000 + tv.tv_usec;
     printf("%.2f\n",((samples*1e6)/(tnow-lastus))/1e6);
-    return;
+    //return;
     */
     
     // call the function to process the new samples (file: sampleprocessing.c)
-    //sample_processing(xi, xq, numSamples);
+#ifdef WIDEBAND
+	wb_sample_processing(xi, xq, numSamples);
+#else
     fssb_sample_processing(xi, xq, numSamples);
+#endif // WIDEBAND
 }
 
 // currently not used

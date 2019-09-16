@@ -38,6 +38,8 @@
 #include "../setqrg.h"
 #include "../fifo.h"
 
+int connections = 0;
+
 // a new browser connected
 void onopen(int fd)
 {
@@ -47,6 +49,8 @@ void onopen(int fd)
     {
         insert_socket(fd);
         printf("Connection opened, client: %d | addr: %s\n", fd, cli);
+        connections++;
+        printf("%d users logged in\n",connections);
         free(cli);
     }
 }
@@ -57,6 +61,8 @@ void onclose(int fd)
     remove_socket(fd);
     close(fd);
     printf("Connection closed, client: %d\n", fd);
+    connections--;
+    printf("%d users logged in\n",connections);
 }
 
 // if avaiable, send data to a browser

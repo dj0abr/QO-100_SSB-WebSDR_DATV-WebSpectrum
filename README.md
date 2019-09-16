@@ -1,116 +1,122 @@
-# WebSDR Client specially for the es'hail-2 Satellite
+# WebSDR Server for the QO-100 es'hail-2 Satellite
 a web based SDR program made for the SDRplay RSP1a and RTL-SDR
+uses any Browser in your network or Internet to view / listen your SDR data
 
 # made for LINUX ONLY ! 
 
-actual version V1.3: August, 15  2019
-by DJ0ABR
-(many bug fixes, please replace your older versions !)
+NEW ! Supports NB and WB transponder !
 
-a PC runs the SDR software:
-* capturing samples from the SDR receiver (SDRplay)
-* creating one line of a waterfall over a range of 200kHz
+# NB-Transponder
+* Spectrum
+* Big waterfall showing the complete transponder (300kHz)
+* Small waterfall showing a selectable 15kHz segment
+* Audio: listen to SSB signals via your browser
+* AUTO Beacon Lock
+* ICOM synchronisation of the transceiver to the waterfall
+* for SDRplay RSPx and RTLsdr and compatibles
+
+# WB (DATV) Transponder
+* Spectrum
+* waterfall showing the complete transponder (8MHz)
+* for SDRplay RSPx only (since we need 10MS/s sampling rate)
+
+# required computer
+for NB-transponder: 
+any PC or SBC (Raspberry, Odroid..) running Ubuntu (or compatible like Mint ...)
+
+for WB-transponder:
+due to the high sampling rate of 10MS/s you need a PC (Intel/AMD).
+The only SBC that is able to handle the load is the Odroid-N2.
+
+This software can be started twice (for NB and WB) on the same computer.
+
+# General function of the server
+* capturing samples from the SDR receiver
+* creating one line of a waterfall
+* sending this waterfall line via port 8090 (WB) or 8091 (NB) to the browser
 * downmixing a selected QRG into baseband
-* creating a line of baseband waterfall over 20 kHz
-* SSB demodulation and playing to a soundcard
+* creating a line of baseband waterfall over 15 kHz
+* SSB demodulation and playing to the browser
 * AUTO Beacon Lock
 
-the waterfall data are written into the Apache HTML directory.
-
-User Interface:
-the GUI runs in a browser
+# Function in the browser
+* the User Interface (GUI) runs in a browser on a PC, Tablet, Smartphone ... on any computer in your local network or even in the internet
 * receiving the single line of the waterfalls via WebSocket
-* drawing the full waterfall
-* creating the GUI
+* drawing the full waterfall and spectrum
 * sending user command via WebSocket to above SDR program
 
-# this is WORK in PROGRESS
-actual Status: 
+# Installation
 
-1) build for the playSDR (the Raspberry or ARM / ARM64 library must be installed from the SDRplay website !)
-execute the script:  ./build_SDRplay
+1) a couple of libraries are needed. These libraries are installed if you execute ./prepare_ubuntu in a terminal.
+(php ... sometimes you need to replaced php with php5 or php7 depending on your linux distribution)
 
-or
+2) for SDRplay only: the SDRplay driver from the SDRplay Webpage must be installed. Look for the driver that supports your computer.
 
-build for the RTLSDR
-execute the script:  ./build_RTLSDR
+3) copy this software in any empty directory. Keep the names and contents of the subfolders.
 
-2) start the program:  sudo ./qo100websdr -f RXFREQUENCY
+4) there are three scripts that build the software automatically:
+build_RTLSDR ... build the software for the NB-Transponder and for the RTLsdr ONLY
+build_SDRplay ... build the software for the NB-Transponder and the SDRplay and/or RTLsdr (requires the SDRplay libraries, see above)
+build_SDRplay_WB ... build the software for the SDRplay and the Wideband (DATV) transponder
 
-RXFREQUENCY is the frequency in Hz where you receive the QO100 beacon in Hz minus 25000 Hz
-(Example: 739525000)
+simply run one of these scripts in a terminal i.e.:  ./build_RTLSDR
+when the script finishes without errors then the job is done and you can use the software.
 
-sudo ... this is required only for the first time ! (it copies files into the HTML folder). Then you can run it without sudo.
+# starting the server
+in the termimal enter:
+sudo  ./qo100websdr  -f  frequency
 
-3) open a web browser and open the html web site
-4) if all is ok then the waterfall will be running. Click into the waterfall the select the listening frequency.
-5) click the "Audio ON" button
+('sudo' is only required for the very first start since it has to build_RTLSDRconfigure your webserver. Then you can use it without sudo).
 
-# NEW
-Synchronisation between the waterfall and an ICOM transceiver.
-* the CIV address is set to 0xA2 (IC9700), you can change it in civ.c
-* The kHz must be equal i.e.: 10489.525 MHz must display in the transceiver as 144.525 MHz or similar.
-* enter the Icoms receive frequency in playSDReshail2.h:  TUNED_FREQUENCY, this must be the frequency of the CW beacon minus 25 kHz
+frequency ... this is the frequency where the QO-100 signal is delivered by your LNB.
+NB-Transponder: an unmodified LNB will deliver the signal on 739525000 Hz. This frequency must be the frequency of the CW Beacon minus 25 kHz.
+WB-Transponder: an unmodified LNB will deliver the signal on 745000000 Hz. This frequency must be the middle of the transponder (10495 MHz).
 
-Frequency Adjustment:
-=====================
-first un-select "Sync ON/off"
-now you can correct the SDR tuner frequency manually in the text box below. You can also use the mouse-wheel to set it in 100Hz steps, or enter a value in Hz.
-When the beacon is close to the correct position then select "Sync ON/off" and the software will automatically correct the LNB drift.
+If you use a down-mixer or if you feed the LNB's LO with a different frequency, then calculate the frequency as follows:
 
-This works with the SDRplay hardware because it has a resolution of 1 Hz. It does not work with the RTLsdr sticks (the frequency will jump up and down) but you can give it a try.
+frequency (NB) = 10489525000 - LO of the LNB (Example: 10489525000 - 9750000000 = 739525000 Hz)
+frequency (WB) = 10495000000 - LO of the LNB (Example: 10495000000 - 9750000000 = 745000000 Hz)
 
-RTL-SDR:
-========
-the rtl sdr hardware is automatically detected (librtlsdr must be installed). All works fine, except the auto-beacon-lock which works not as good as with the SDRplay receiver.
+# secure start
+for any reason (i.e. hardware or power failure) the server software may exit or crash sometimes.
+This situation should be handled automatically. Therefore there are two short scripts which start the server automatically after an error.
 
+es ... start the NB narrow band SSB version
+wb ... start the WB wide band DATV version
 
-Prerequisites:
-==============
-these libraries are required:
+instead of starting the software with: ./qo100websdr  -f  frequency
+you better start it with:  ./es   or  ./wb
 
-apt-get update
-apt-get install libasound2-dev libfftw3-dev libgd3 libgd-dev apache2 sndfile-tools libsndfile1-dev php librtlsdr-dev
+Before doing this you will need to enter the correct frequencies delivered by your LNB into these script !!!
 
-above libraries are installed if you execute ./prepare_ubuntu
+# using the web spectrum and waterfall monitor
+open a browser (i.e. firefox, chrome...) and enter the IP address of your computer running the server followd by /nb (Narrowband transponder) or /wb (DATV transponder)
 
-(php ... sometimes this must be replaced with php5 or php7 depending on your linux distribution)
+Example: 
+your computer runs the WB (DATV wideband) version and has the IP address:  192.168.0.55
+to view the DATV transponder enter in your browser:  192.168.0.55/wb
 
-additionally the SDRplay driver from the SDRplay Webpage must be installed if you want to run the SDRplay receiver.
+or if you have compiled this software for the narrow band transponder, then enter in
+your browser: 192.168.0.55/nb
 
-Make the software:
-==================
+# access the website from outside (from the internet)
+in your internet router you need to open three TCP ports for external access:
+1) the port to your webserver: 80
+2) the port to the websocket: 8090 and 8091
 
-make
+# running the NB and WB version of this software simultaneously
+If you want to run the WB monitor with an SDRplay RSPx and also the NB monitor then you can do that simultaneously.
+In this case the RSPx SDR must be used for the WB wide band monitor
+and for the NB monitor you need to use an RTL-SDR.
 
-Run the software:
-=================
+Make two directories, one for WB and the other for NB and copy this software into both.
+In one directory compile the software for WB by running  ./build_SDRplay_WB
+and in the other directory run  ./build_RTLSDR
 
-1) start the software  sudo ./playSDReshail2 -f 144525000 (your CW-beacon RX frequency minus 25 kHz) (sudo is only required for the first time).
-2) open a browser and open the webpage "playSDRweb.html" on your webserver
+you can now start the WB version and the NB version simultaneously. Just be sure that you use the correct frequencies for each version.
 
+The CPU load is quite high if you run both, but is not a problem for a modern PC, and also an Odroid N2 can handle both.
 
-to access the website from outside (from the internet)
-======================================================
-in your internet router you need to open two TCP ports for external access:
-1) the port to your webserver (usually 80)
-2) the port to the websocket: 8090 (can be changed in playSDReshail2.h)
-
-
-​this is a short technical description:
-=====================================
-
-The SDRplay runs with a sample rate of 2.4Ms/s and is decimated by 4 by its driver. An RTLsdr runs with 1.2MS/s and is decimated by 2 in the software.
-The resulting stream has 600 kS/s and is first processed by an FFT every 100ms which gives a resolution of 0-300kHz with 10 Hz/pixel.
-
-
-There are 30.000 pixels available which are converted into two waterfall diagrams. The first with a range of 300kHz to show the complete NB transponder.
-The second with a range of 20 kHz to show the signals around the actual listening frequency.
-
-
-The the 600 kS/s stream is fed into a software down-mixer. The LO (reference frequency) is generated by a NCO software which works very similar to the well knows DDS. The mixing itself is done by a simple multiplication followed by an anti-aliasing filter.
-This mixer shifts the listening frequency into the base band (0 Hz) so it can be directly used to generate the sample for the sound card (after an additional low pass filter).
-
-
-The waterfall lines as well as the audio samples are sent via a WebSocket (port 8090) to the web browser. 
-The web page uses javascript to build the waterfall picture and send the audio samples to the local soundcard.
+vy 73
+de DJ0ABR, Kurt Moraw
+Germany
