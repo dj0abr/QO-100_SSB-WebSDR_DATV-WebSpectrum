@@ -86,6 +86,7 @@ es ... start the NB narrow band SSB version
 wb ... start the WB wide band DATV version
 
 instead of starting the software with: ./qo100websdr  -f  frequency
+
 you better start it with:  ./es   or  ./wb
 
 Before doing this you will need to enter the correct frequencies delivered by your LNB into these script !!!
