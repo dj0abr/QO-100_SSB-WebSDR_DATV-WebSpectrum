@@ -75,6 +75,7 @@ WB-Transponder: an unmodified LNB will deliver the signal on 745000000 Hz. This 
 If you use a down-mixer or if you feed the LNB's LO with a different frequency, then calculate the frequency as follows:
 
 frequency (NB) = 10489525000 - LO of the LNB (Example: 10489525000 - 9750000000 = 739525000 Hz)
+
 frequency (WB) = 10495000000 - LO of the LNB (Example: 10495000000 - 9750000000 = 745000000 Hz)
 
 # secure start
