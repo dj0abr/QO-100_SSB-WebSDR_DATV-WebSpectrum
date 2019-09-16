@@ -72,7 +72,9 @@ sudo  ./qo100websdr  -f  frequency
 ('sudo' is only required for the very first start since it has to build_RTLSDRconfigure your webserver. Then you can use it without sudo).
 
 frequency ... this is the frequency where the QO-100 signal is delivered by your LNB.
+
 NB-Transponder: an unmodified LNB will deliver the signal on 739525000 Hz. This frequency must be the frequency of the CW Beacon minus 25 kHz.
+
 WB-Transponder: an unmodified LNB will deliver the signal on 745000000 Hz. This frequency must be the middle of the transponder (10495 MHz).
 
 If you use a down-mixer or if you feed the LNB's LO with a different frequency, then calculate the frequency as follows:
