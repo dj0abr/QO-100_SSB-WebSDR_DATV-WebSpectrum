@@ -72,8 +72,9 @@ void onopen(int fd);
 void onclose(int fd);
 void onmessage(int fd, unsigned char *message);
 int onwork(int fd, unsigned char *cnt0, unsigned char *cnt1);
-void insert_socket(int fd);
+void insert_socket(int fd, char *cli);
 void remove_socket(int fd);
+int test_socket(char *cli);
 unsigned char *ws_build_txframe(int i, int *plength);
 
 extern WS_SOCK actsock[MAX_CLIENTS];

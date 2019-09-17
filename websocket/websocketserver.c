@@ -49,6 +49,7 @@
 #include "../ssbfft.h"
 
 WS_SOCK actsock[MAX_CLIENTS];
+char clilist[MAX_CLIENTS][50];
 
 void *wsproc(void *pdata);
 
@@ -212,7 +213,7 @@ unsigned char *ws_build_txframe(int i, int *plength)
 }
 
 // insert a socket into the socket-list
-void insert_socket(int fd)
+void insert_socket(int fd, char *cli)
 {
     LOCK;
     for(int i=0; i<MAX_CLIENTS; i++)
@@ -222,6 +223,7 @@ void insert_socket(int fd)
             actsock[i].socket = fd;
             actsock[i].send0 = 0;
             actsock[i].send1 = 0;
+            strcpy(clilist[i],cli);
             UNLOCK;
             return;
         }
@@ -237,7 +239,25 @@ void remove_socket(int fd)
     for(int i=0; i<MAX_CLIENTS; i++)
     {
         if(actsock[i].socket == fd)
+        {
             actsock[i].socket = -1;
+            clilist[i][0] = 0;
+        }
     }
     UNLOCK;
+}
+
+// test if a cli (IP) is already logged in
+// 1=yes, 0=no
+int test_socket(char *cli)
+{
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(!strcmp(cli,clilist[i])) 
+        {
+            printf("%s is already logged in, ignore\n",cli);
+            return 1;
+        }
+    }
+    return 0;
 }

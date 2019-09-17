@@ -47,7 +47,7 @@ void onopen(int fd)
 	cli = ws_getaddress(fd);
     if(cli != NULL)
     {
-        insert_socket(fd);
+        insert_socket(fd,cli);
         printf("Connection opened, client: %d | addr: %s\n", fd, cli);
         connections++;
         printf("%d users logged in\n",connections);
@@ -63,6 +63,18 @@ void onclose(int fd)
     printf("Connection closed, client: %d\n", fd);
     connections--;
     printf("%d users logged in\n",connections);
+}
+
+// test if a cli (IP) is already logged in
+// 1=yes, 0=no
+int check_address(int fd)
+{
+char *cli = ws_getaddress(fd); // get IP address
+
+    int res = test_socket(cli);
+    free(cli);
+    
+    return res;
 }
 
 // if avaiable, send data to a browser

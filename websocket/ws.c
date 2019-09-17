@@ -29,6 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include "websocketserver.h"
 
 extern int usleep (__useconds_t __useconds);
+int check_address(int fd);
+
 
 /* Registered events. */
 struct ws_events events;
@@ -52,6 +54,7 @@ char* ws_getaddress(int fd)
     client = malloc(sizeof(char) * 20);
     if(client == NULL)
         return NULL;
+    
     strcpy(client, inet_ntoa(addr.sin_addr));
     return (client);
 }
@@ -314,16 +317,23 @@ static void* ws_establishconnection(void *vsock)
             /* If not handshaked yet. */
             if (!handshaked)
             {
-                getHSresponse( (char *) frm, &response);
-                handshaked = 1;
-                /*printf("Handshaked, response: \n"
-                    "------------------------------------\n"
-                    "%s"
-                    "------------------------------------\n"
-                    ,response);*/
-                n = write(sock, response, strlen(response));
-                events.onopen(sock);
-                free(response);
+                if(check_address(sock) == 0)
+                {
+                    getHSresponse( (char *) frm, &response);
+                    handshaked = 1;
+                    /*printf("Handshaked, response: \n"
+                        "------------------------------------\n"
+                        "%s"
+                        "------------------------------------\n"
+                        ,response);*/
+                    n = write(sock, response, strlen(response));
+                    events.onopen(sock);
+                    free(response);
+                }
+                else
+                {
+                    continue;   // ignore incoming message
+                }
             }
 
             /* Decode/check type of frame. */
