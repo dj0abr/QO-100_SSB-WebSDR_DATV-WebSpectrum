@@ -531,7 +531,7 @@ var coltab = [
                     myitem.addEventListener("mousemove", MouseMoveHandler, false);
                 }
                 
-                sockintv = setInterval(checkSocket, 5000);
+                sockintv = setInterval(checkSocket, 1000);
             }
             
             var reload = 0;
@@ -549,7 +549,7 @@ var coltab = [
                         websocketclose();
                     openWebSocket();
                 }
-                
+                sockintv = setInterval(checkSocket, 5000);
             }
 
             function websocketclose()
