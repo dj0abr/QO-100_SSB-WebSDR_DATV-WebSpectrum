@@ -531,7 +531,7 @@ var coltab = [
                     myitem.addEventListener("mousemove", MouseMoveHandler, false);
                 }
                 
-                sockintv = setInterval(checkSocket, 1000);
+                sockintv = setInterval(checkSocket, 5000);
             }
             
             var reload = 0;
@@ -546,10 +546,24 @@ var coltab = [
                 if(sockOpen == 0)
                 {
                     if(websocket != null)
-                        websocket.close();
+                        websocketclose();
                     openWebSocket();
                 }
                 
+            }
+
+            function websocketclose()
+            {
+                if(websocket != null)
+                {
+                    //console.log("close websocket");
+                    websocket.close();
+                    websocket = null;
+                }
+                else
+                {
+                    //console.log("close websocket, already closed");
+                }
             }
 
             var pix = new Array();
@@ -1597,7 +1611,8 @@ var coltab = [
                 }
                 var ya = y.split(":");
                 sockurl = "ws://" + ya[0] + ":8090";
-                //console.log(sockurl);
+                //console.log("open websocket");
+                console.log(sockurl);
                 //$('#myinfo').html(sockurl);
                 websocket = new WebSocket(sockurl);
                 websocket.binaryType = "arraybuffer";
@@ -1605,19 +1620,21 @@ var coltab = [
                 websocket.onopen = function () {
                     sockOpen = 1;
                     $("#status").html("Connected to Stream: " + sockurl);
-                    //alert("WebSocket is now OPEN");
+                    //console.log("WebSocket is now OPEN");
                     openintv = setInterval(nowOpen, 500);
                 };
 
                 websocket.onerror = function () {
                     $("#status").html("Error ... reconnecting ...");
-                    websocket.close();
+                    //console.log("Error ... reconnecting ...");
+                    websocketclose();
                     sockOpen = 0;
                 };
                 
                 websocket.onclose = function () {
                     $("#status").html("Disconnected ... connecting ...");
-                    websocket.close();
+                    //console.log("Disconnected ... connecting ...");
+                    websocketclose();
                     sockOpen = 0;
                 };
 

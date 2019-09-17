@@ -605,7 +605,7 @@ var coltab = [
                     myitem.attachEvent("onmousewheel", MouseWheelHandler);
                 }
 
-                sockintv = setInterval(checkSocket, 1000);
+                sockintv = setInterval(checkSocket, 5000);
             }
             
             var reload = 0;
@@ -620,11 +620,25 @@ var coltab = [
                 if(sockOpen == 0)
                 {
                     if(websocket != null)
-                        websocket.close();
+                        websocketclose();
                     openWebSocket();
                 }
                 
                 showLock();
+            }
+            
+            function websocketclose()
+            {
+                if(websocket != null)
+                {
+                    //console.log("close websocket");
+                    websocket.close();
+                    websocket = null;
+                }
+                else
+                {
+                    //console.log("close websocket, already closed");
+                }
             }
 
             var pix = new Array();
@@ -1610,13 +1624,13 @@ var coltab = [
 
                 websocket.onerror = function () {
                     $("#status").html("Error ... reconnecting ...");
-                    websocket.close();
+                    websocketclose();
                     sockOpen = 0;
                 };
                 
                 websocket.onclose = function () {
                     $("#status").html("Disconnected ... connecting ...");
-                    websocket.close();
+                    websocketclose();
                     sockOpen = 0;
                 };
 
