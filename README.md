@@ -25,8 +25,8 @@ for NB-transponder:
 any PC or SBC (Raspberry, Odroid..) running Ubuntu (or compatible like Mint ...)
 
 for WB-transponder:
-due to the high sampling rate of 10MS/s you need a PC (Intel/AMD).
-The only SBC that is able to handle the load is the Odroid-N2.
+due to the high sampling rate of 10MS/s you need a PC (Intel/AMD) or
+a fast SBC like the Odroid-N2, Odroid XU4 or Raspberry PI 4.
 
 This software can be started twice (for NB and WB) on the same computer.
 

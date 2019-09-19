@@ -76,8 +76,11 @@ void init_fssb()
     fftw_export_wisdom_to_filename(fn);
 }
 
-int ssb_gaincorr = 1600; // if wfsamp[] overflows 16 bit then make this value higher
-int small_gaincorr = 1600;
+int ssb_gaincorr_rtl = 2000; // if wfsamp[] overflows 16 bit then make this value higher
+int small_gaincorr_rtl = 2000;
+
+int ssb_gaincorr_sdrplay = 1000;
+int small_gaincorr_sdrplay = 1000;
 
 void fssb_sample_processing(short *xi, short *xq, int numSamples)
 {
@@ -120,8 +123,11 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     //wfsamp[idx] /= 50;
                  }
                  
-                 maxv /= ssb_gaincorr;
-				if(maxv > 65535) printf("maxv overflow, rise ssb_gaincorr %.0f %.0f\n",maxv,maxv*ssb_gaincorr/65535);
+                 if(hwtype == 2)
+                    maxv /= ssb_gaincorr_rtl;
+                 else
+                    maxv /= ssb_gaincorr_sdrplay;
+				if(maxv > 65535) printf("maxv overflow, rise ssb_gaincorr %.0f\n",maxv);
                 wfsamp[idx] = (unsigned short)maxv;
 
 				idx++;
@@ -159,8 +165,12 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 double dm = sqrt((real * real) + (imag * imag));
                 
                 // correct level TODO ???
-                dm /= small_gaincorr;
-				if(dm > 65535) printf("maxv overflow, rise small_gaincorr dm:%.0f %.0f\n",dm,dm*small_gaincorr/65535);
+                
+                if(hwtype == 2)
+                    dm /= small_gaincorr_rtl;
+                 else
+                    dm /= small_gaincorr_sdrplay;
+				if(dm > 65535) printf("maxv overflow, rise small_gaincorr dm:%.0f\n",dm);
 				wfsampsmall[idx] = (unsigned short)dm;
                 
                 idx++;

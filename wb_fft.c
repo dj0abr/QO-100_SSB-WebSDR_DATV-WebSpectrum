@@ -78,8 +78,11 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
             wb_din_idx = 0;
 
             // calc WF only wftimes times to slow down the load
+            // make it as slow as convenient, or it will eat a lot of
+            // CPU in the server and also in the browser
+            // a value between 50 and 100 should be ok
             static int wftimes = 0;
-            if(++wftimes > 5)
+            if(++wftimes > 50)
             {
             
                 // the buffer is full, now lets execute the fft
