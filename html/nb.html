@@ -858,6 +858,9 @@ var coltab = [
             var audiogain = 50;
             var wflevel = 230;
             var wfgain = 50;
+			var bcnarrlen = 200;
+			var beaconarr = new Array(bcnarrlen);
+			var bcnarrempty = 1;
             
             function draw_spec()
             {
@@ -890,7 +893,14 @@ var coltab = [
                 context.moveTo(0, height-1);
                 var maxval = -999999;
                 var minval = 999999;
+				var beacon_maxval = -999999;
+				var beacon_mid_maxval = -999999;
                 var mittel = 0;
+				// NB-Transponder, qrgs to measure CW beacon level
+                var xm1 = cpos(10489547);
+                var xm2 = cpos(10489553);
+                var xm3 = cpos(10489797);
+                var xm4 = cpos(10489803);
                 for(var x=0; x<width; x++)
                 {
                     // shift midarr
@@ -915,10 +925,16 @@ var coltab = [
                             mv += midarr[idx][x];
                     }
                     mv /= specarrlen;
-                    // highest value
-                    if(mv > maxval)
+                    // highest value, excluding the beacons
+                    if(mv > maxval && (x < xm1 || x > xm4 || (x > xm2 && x < xm3)))
                         maxval = mv;
-                        
+
+					// highest beacon value
+					if(mv > beacon_maxval && ((x > xm1 && x < xm2) || (x > xm3 && x < xm4)))
+					{
+						beacon_maxval = mv;
+					}
+					// calc mid value
                     mittel += mv;
                     
                     if(mv < minval)
@@ -933,18 +949,67 @@ var coltab = [
                 }
                 
                 mittel /= width;
-                
+
                 context.lineTo(width-1,height-1);
                 context.fill();
                 context.stroke();
+
+				// draw a red line at highest beacon level of the last bcnarrlen measurements
+				if(beacon_maxval > -200)
+				{
+					if(bcnarrempty == 1)
+					{
+						bcnarrempty = 0;
+						// init beaconarr
+						for(var d=0; d<bcnarrlen; d++)
+						{
+							beaconarr[d] = beacon_maxval;
+						}
+					}
+					else
+					{
+						for(var d=(bcnarrlen-1); d>=1; d--)
+				        {
+			                beaconarr[d] = beaconarr[d-1];
+				        }
+						beaconarr[0] = beacon_maxval;
+					}
+
+					beacon_mid_maxval = -999999;
+					for(var d=0; d<bcnarrlen; d++)
+					{
+						if(beaconarr[d] > beacon_mid_maxval)
+							beacon_mid_maxval = beaconarr[d];
+					}
+
+		            // hor line at beacon value
+					ybcn = scale(beacon_mid_maxval);
+		            context.strokeStyle = '#ff0000';
+		            context.beginPath();
+		            context.moveTo(0, ybcn);
+		            context.lineTo(width-1, ybcn);
+		            context.stroke();
+
+					context.strokeStyle = '#ff0000';
+		            context.beginPath();
+		            context.moveTo(0, ybcn-1);
+		            context.lineTo(width-1, ybcn-1);
+		            context.stroke();
+
+		            var dynrange = beacon_mid_maxval - minval;
+		            context.font = "12px Arial";
+		            context.fillStyle = "#ffc0c0";
+		            context.fillText("+" + dynrange.toFixed(0) + " dB",10,ybcn+10);
+					context.fillText("max. beacon level",10,ybcn-5);
+				}
                 
-                // hor line at highest value
+                // hor line at highest value, except the beacon
                 context.strokeStyle = '#008080';
                 context.beginPath();
                 context.moveTo(0, scale(maxval));
                 context.lineTo(width-1, scale(maxval));
                 context.stroke();
-                
+
                 // hor line at lowest value (between mid value and lowest value)
                 var yvalue = minval+(mittel-minval)*3/4;
                 context.strokeStyle = '#80ff80';
@@ -967,7 +1032,7 @@ var coltab = [
 				{
 					maxv = 0;
 					maxx = 0;
-					for(var x=0; x<width; x++)
+					for(var x=10; x<(width-10); x++) // not at the margins
 					{
 						var dval = pntarr[x] - minval;
 						// seek max. value
@@ -2057,6 +2122,7 @@ var coltab = [
                 <div>
                 </div>
                 <div id="mousepos"></div>
+				<p style="color:red">remote access only for local stations !<br>No access from internet</p>
             </div>
         </div>
         

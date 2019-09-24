@@ -109,6 +109,15 @@ void onmessage(int fd, unsigned char *msg)
 	char *cli = ws_getaddress(fd);
     if(cli != NULL)
     {
+        // check if IP is authorized to control the SDRplay
+        // allow only internal computers
+        if(memcmp(cli,"192.168",7))
+        {
+            printf("ignore remote access %s for %s\n",msg, cli);
+            free(cli);
+            return;
+        }
+        
         printf("user message: %s, from: %s/%d\n", msg, cli, fd);
         
         if(strstr((char *)msg,"mousepo:"))  // mouse click upper WF

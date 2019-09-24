@@ -251,13 +251,33 @@ void remove_socket(int fd)
 // 1=yes, 0=no
 int test_socket(char *cli)
 {
+    LOCK;
     for(int i=0; i<MAX_CLIENTS; i++)
     {
         if(!strcmp(cli,clilist[i])) 
         {
             printf("%s is already logged in, ignore\n",cli);
+            UNLOCK;
             return 1;
         }
     }
+    UNLOCK;
     return 0;
 }
+
+// get IP corresponding to a socket
+char *getSocketIP(int fd)
+{
+    LOCK;
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(actsock[i].socket == fd)
+        {
+            UNLOCK;
+            return clilist[i];
+        }
+    }
+    UNLOCK;
+    return NULL;
+}
+
