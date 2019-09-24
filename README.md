@@ -2,7 +2,7 @@
 a web based SDR program made for the SDRplay RSP1a and RTL-SDR
 uses any Browser in your network or Internet to view / listen your SDR data
   
-# made for LINUX ONLY ! 
+# Server made for LINUX, GUI on any browser on any system.
 
 NEW ! Supports NB and WB transponder !
 

@@ -858,7 +858,7 @@ var coltab = [
             var audiogain = 50;
             var wflevel = 230;
             var wfgain = 50;
-			var bcnarrlen = 200;
+			var bcnarrlen = 500;
 			var beaconarr = new Array(bcnarrlen);
 			var bcnarrempty = 1;
             
@@ -982,8 +982,12 @@ var coltab = [
 							beacon_mid_maxval = beaconarr[d];
 					}
 
-		            // hor line at beacon value
+ 					// range above beacon
 					ybcn = scale(beacon_mid_maxval);
+	                context.fillStyle = '#503030';
+	                context.fillRect(0,0,width,ybcn);
+
+		            // hor line at beacon value
 		            context.strokeStyle = '#ff0000';
 		            context.beginPath();
 		            context.moveTo(0, ybcn);
