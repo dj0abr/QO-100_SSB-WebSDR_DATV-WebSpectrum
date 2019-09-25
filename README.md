@@ -98,14 +98,14 @@ you better start it with:  ./es   or  ./wb
 Before doing this you will need to enter the correct frequencies delivered by your LNB into these script !!!
 
 # using the web spectrum and waterfall monitor
-open a browser (i.e. firefox, chrome...) and enter the IP address of your computer running the server followd by /nb (Narrowband transponder) or /wb (DATV transponder)
+open a browser (i.e. firefox, chrome...) and enter the IP address of your computer running the server followd by /nb.html (Narrowband transponder) or /wb.html (DATV transponder)
 
 Example: 
 your computer runs the WB (DATV wideband) version and has the IP address:  192.168.0.55
-to view the DATV transponder enter in your browser:  192.168.0.55/wb
+to view the DATV transponder enter in your browser:  192.168.0.55/wb.html
 
 or if you have compiled this software for the narrow band transponder, then enter in
-your browser: 192.168.0.55/nb
+your browser: 192.168.0.55/nb.html
 
 # access the website from outside (from the internet)
 in your internet router you need to open three TCP ports for external access:
