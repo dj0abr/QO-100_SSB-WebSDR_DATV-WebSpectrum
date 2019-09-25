@@ -88,6 +88,7 @@ for any reason (i.e. hardware or power failure) the server software may exit or 
 This situation should be handled automatically. Therefore there are two short scripts which start the server automatically after an error.
 
 es ... start the NB narrow band SSB version
+
 wb ... start the WB wide band DATV version
 
 instead of starting the software with: ./qo100websdr  -f  frequency
