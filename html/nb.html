@@ -55,7 +55,7 @@ body {
 
 .rightcell_label_header
 {
-    width: 100px;
+    width: 570px;
     font-weight: 600;
 }
 
@@ -182,7 +182,10 @@ canvas {
 </style>
 
 <script type="text/javascript">
-        
+/*
+QO-100 Java Script
+by DJ0ABR, Kurt Moraw
+*/
 var coltab = [
 [0.0,0.0,0.0],
 [0.6,0.9,1.0],
@@ -605,7 +608,7 @@ var coltab = [
                     myitem.attachEvent("onmousewheel", MouseWheelHandler);
                 }
 
-                sockintv = setInterval(checkSocket, 5000);
+                sockintv = setInterval(checkSocket, 1000);
             }
             
             var reload = 0;
@@ -614,6 +617,8 @@ var coltab = [
             {
                 reload = 1;
             }
+            
+            var intervalset = 0;
             
             function checkSocket()
             {
@@ -625,6 +630,15 @@ var coltab = [
                 }
                 
                 showLock();
+                
+                // set interval to 5s, this ensures that it can reconnect 
+                // if the server was down. This does not work with faster intervals
+                if(intervalset == 0)
+                {
+                    intervalset = 1;
+                    clearInterval(sockintv);
+                    sockintv = setInterval(checkSocket, 5000);
+                }
             }
             
             function websocketclose()
@@ -861,120 +875,146 @@ var coltab = [
 			var bcnarrlen = 500;
 			var beaconarr = new Array(bcnarrlen);
 			var bcnarrempty = 1;
+            var maxval = -999999;
+            var minval = 999999;
             
             function draw_spec()
             {
+                // get the elemt IDs and dimensions
+                var canvas = document.getElementById("spec"); 
+                var context = canvas.getContext("2d");
+                var width = canvas.width;
+                var height = canvas.height;
+                
+                // variables to store min/max values for this single path
+                var n_maxval = -999999;
+                var n_minval = 999999;
+				var beacon_maxval = -999999;
+				var beacon_mid_maxval = -999999;
+				
+				// variable to calculate lowest 0dB position
+				var mittel = 0;
+				
+				// NB-Transponder, position of beacons
+                var xm1 = cpos(10489547);
+                var xm2 = cpos(10489553);
+                var xm3 = cpos(10489797);
+                var xm4 = cpos(10489803);
 
-				var pntarr = new Array(width);
-
+                // storage for the dB value for each horizontal pixel
+                // used for dB label
+                var pntarr = new Array(width);
+                
+                // draw background
+                context.fillStyle = '#404040';
+                context.fillRect(0,0,width,height);
+                
+                // set colors of spectrum lines and fill
+                context.strokeStyle = '#ffffff';
+                context.fillStyle = '#c0c0c0';
+                
+                // midarr is used to calculate the mean value according
+                // to the Average-Slider setting
+                // generate and initialize the array
                 if(arrfirst == 1)
                 {
                     for(var i=0; i<200; i++)
                     {
                         midarr[i] = new Array(width);
+                        for(var x=0; x<width; x++)
+                        {
+                            midarr[i][x] = -pix[x];
+                        }
                     }
+                    arrfirst = 0;
                 }
-            
-                var canvas = document.getElementById("spec"); 
-                var context = canvas.getContext("2d");
-            
-                // Get the canvas dimensions
-                var width = canvas.width;
-                var height = canvas.height;
-                
-                context.fillStyle = '#404040';
-                context.fillRect(0,0,width,height);
-                
-                context.strokeStyle = '#ffffff';
-                context.fillStyle = '#c0c0c0';
-                
+
+                // draw spectrum as a filled area
+				// start drawing in left-bottom corner
                 context.beginPath();
-                
                 context.moveTo(0, height-1);
-                var maxval = -999999;
-                var minval = 999999;
-				var beacon_maxval = -999999;
-				var beacon_mid_maxval = -999999;
-                var mittel = 0;
-				// NB-Transponder, qrgs to measure CW beacon level
-                var xm1 = cpos(10489547);
-                var xm2 = cpos(10489553);
-                var xm3 = cpos(10489797);
-                var xm4 = cpos(10489803);
+
+                // loop through all horizontal pixels
                 for(var x=0; x<width; x++)
                 {
-                    // shift midarr
+                    // calculate the average value, first
+                    // shift the array and put new data at the beginning
                     for(var idx=(specarrlen-1); idx>=1; idx--)
-                    {
-                        if(arrfirst == 1)
-                        {
-                            midarr[idx][x] = -pix[x];
-                        }
-                        else
-                        {
-                            midarr[idx][x] = midarr[idx-1][x];
-                        }
-                    }
+                        midarr[idx][x] = midarr[idx-1][x];
                     // add new value
                     midarr[0][x] = -pix[x];
                     
+                    // calculate the average
                     var mv = 0; // mid value
                     for(var idx=0; idx<specarrlen; idx++)
-                    {
-                        //if(midarr[idx][x] > mv)
-                            mv += midarr[idx][x];
-                    }
+                        mv += midarr[idx][x];
                     mv /= specarrlen;
-                    // highest value, excluding the beacons
-                    if(mv > maxval && (x < xm1 || x > xm4 || (x > xm2 && x < xm3)))
-                        maxval = mv;
+                    // mv is now the dB value of the signal at position x
+                    
+                    // find the highest value, excluding the beacons
+                    // which is the highest user level (n_maxval)
+                    if(mv > n_maxval && (x < xm1 || x > xm4 || (x > xm2 && x < xm3)))
+                        n_maxval = mv;
 
-					// highest beacon value
+					// find the highest value of the beacons
 					if(mv > beacon_maxval && ((x > xm1 && x < xm2) || (x > xm3 && x < xm4)))
-					{
 						beacon_maxval = mv;
-					}
-					// calc mid value
+						
+					// sum all values for the mean value calculation
                     mittel += mv;
                     
-                    if(mv < minval)
-                      minval = mv;
+                    // find the minumim value
+                    if(mv < n_minval)
+                      n_minval = mv;
                         
+                    // draw the spectrum line
                     context.lineTo(x,scale(mv));
 
-					// store value for later use
-					pntarr.push(mv);
-                    
-                    arrfirst = 0;
+					// add value to end of array (used for dB-Labels)
+					pntarr[x] = mv;
+					//pntarr.push(mv);
                 }
                 
+                // mean value calculation
+                // in the NB transponder this value is a little bit over the noise level
                 mittel /= width;
 
+                // finish the spectrum display by closing and filling the area
                 context.lineTo(width-1,height-1);
                 context.fill();
                 context.stroke();
+                
+                // change minval only if bigger difference to old value to avaiod flickering
+                if(Math.abs(minval - n_minval) > 0.6)
+                {
+                    minval = n_minval;
+                }
+                maxval = n_maxval;
+                
+                // now the spectrum is drawn, make the nice features, lables ...
 
+                // maximum allowed power level marker
 				// draw a red line at highest beacon level of the last bcnarrlen measurements
-				if(beacon_maxval > -200)
+				if(beacon_maxval > -200)    // only is valid values are available
 				{
+                    // the beacon level must be stored for a longer time (see bcnarrlen)
+                    // to ignore fading and CW, just find the maximum values
 					if(bcnarrempty == 1)
 					{
 						bcnarrempty = 0;
 						// init beaconarr
 						for(var d=0; d<bcnarrlen; d++)
-						{
 							beaconarr[d] = beacon_maxval;
-						}
 					}
 					else
 					{
+                        // store beacon levels in an array
 						for(var d=(bcnarrlen-1); d>=1; d--)
-				        {
 			                beaconarr[d] = beaconarr[d-1];
-				        }
 						beaconarr[0] = beacon_maxval;
 					}
 
+					// find the maximum beacon level, which is the max. allowed power level
 					beacon_mid_maxval = -999999;
 					for(var d=0; d<bcnarrlen; d++)
 					{
@@ -982,12 +1022,12 @@ var coltab = [
 							beacon_mid_maxval = beaconarr[d];
 					}
 
- 					// range above beacon
+ 					// ybcn is the Y-pixel position of the beacon level
 					ybcn = scale(beacon_mid_maxval);
 	                context.fillStyle = '#503030';
 	                context.fillRect(0,0,width,ybcn);
 
-		            // hor line at beacon value
+		            // double hor red line at beacon value
 		            context.strokeStyle = '#ff0000';
 		            context.beginPath();
 		            context.moveTo(0, ybcn);
@@ -1000,6 +1040,7 @@ var coltab = [
 		            context.lineTo(width-1, ybcn-1);
 		            context.stroke();
 
+		            // label for beacon level
 		            var dynrange = beacon_mid_maxval - minval;
 		            context.font = "12px Arial";
 		            context.fillStyle = "#ffc0c0";
@@ -1008,25 +1049,27 @@ var coltab = [
 				}
                 
                 // hor line at highest value, except the beacon
+                // highest user level
                 context.strokeStyle = '#008080';
                 context.beginPath();
                 context.moveTo(0, scale(maxval));
                 context.lineTo(width-1, scale(maxval));
                 context.stroke();
 
+   				// write dB value to max line
+                var dynrange = maxval - minval;
+                context.font = "12px Arial";
+                context.fillStyle = "#ffc0c0";
+                context.fillText("+" + dynrange.toFixed(0) + " dB",10,scale(maxval)+10);
+
                 // hor line at lowest value (between mid value and lowest value)
+                // the is the bottom noise floor level
                 var yvalue = minval+(mittel-minval)*3/4;
                 context.strokeStyle = '#80ff80';
                 context.beginPath();
                 context.moveTo(0, scale(yvalue));
                 context.lineTo(width-1, scale(yvalue));
                 context.stroke();
-                
-				// write dB value to max line
-                var dynrange = maxval - minval;
-                context.font = "12px Arial";
-                context.fillStyle = "#ffc0c0";
-                context.fillText("+" + dynrange.toFixed(0) + " dB",10,scale(maxval)+10);
 
 				// write dB value to every peak which is > 15dB over min
 				// draw max. 20 peak labels
@@ -1047,7 +1090,6 @@ var coltab = [
 						}
 					}
 					if(maxv < 15) break;	// only values >15dB over minval
-					//console.log("max:" + maxv.toFixed(0) + " " + maxx);
 					// max value is at position maxx
 					// draw the label
 					context.fillText(maxv.toFixed(0) + " dB",maxx,scale(pntarr[maxx]));
@@ -1058,21 +1100,61 @@ var coltab = [
 							pntarr[c] = minval;
 					}
 				}
+
+                // vertical lines for QO-100 mode ranges
+                if(vertlines == 1)
+                {
+                    vertline(10489550);
+                    vertline(10489600);
+                    vertline(10489620);
+                    vertline(10489640);
+                    vertline(10489690);
+                    vertline(10489800);
+                }
                 
+                // the spctrum display is drawn, everything finished
+                
+                // no do the calculations for the automatic level and gain settings
+                var ckb = $("#spekautolevel").is(':checked');
+                if(ckb && minval < 0)    // ignore invalid values
+                {
+                    // calculate speclevel and specgain so that
+                    // minval goes to y=(height-5) and maxval goes to y=15
+                    var ymin = 145; // min/max positions in screen coordinates
+                    var ymax = 15;
+                    var maxv = maxval;
+                    if(beacon_mid_maxval > maxval)
+                        maxv = beacon_mid_maxval;
+                    var a = (height - ymin)/height;
+                    var b = (height - ymax)/height;
+                    specgain =(minval*(b-1)-maxv*(a-1))/(a*(b-1)-b*(a-1));
+                    speclevel = (a*specgain-minval)/(a-1);
+                    
+                    // adjust WF parameters
+                    wflevel = 230;
+                    wfgain = 50;
+
+                    //console.log("speclevel:"+speclevel+" minval:"+minval + "specgain:"+specgain+" maxval:"+maxval);
+                    
+                    var slider_speclevel = document.getElementById("speclevel");
+                    slider_speclevel.value = speclevel;
+                    
+                    var slider_specgain = document.getElementById("specgain");
+                    slider_specgain.value = specgain;
+                    
+                    var slider_wflevel = document.getElementById("wflevel");
+                    slider_wflevel.value = wflevel;
+                    
+                    var slider_wfgain = document.getElementById("wfgain");
+                    slider_wfgain.value = wfgain;
+                }
+
+                // helper functions
                 // scale dBm value to y-pixelpos
                 function scale(v)
                 {
-                    var v = -height*(v-speclevel)/(specgain-speclevel) + height;
-                    
-                    var ckb = $("#spekautolevel").is(':checked');
-                    if(ckb)
-                    {
-                        // auto set min level to bottom of the picture
-                        if(v>(height-10)) speclevel--;
-                        if(v<(height-15)) speclevel++;
-                    }
-                                        
-                    return v;
+                    var y = -height*(v-speclevel)/(specgain-speclevel) + height;
+                    return y;
                 }
                 
                 function vertline(qrg)
@@ -1084,17 +1166,6 @@ var coltab = [
                     context.moveTo(x, 0);
                     context.lineTo(x, height-1);
                     context.stroke();
-                }
-                
-                // vert lines
-                if(vertlines == 1)
-                {
-                    vertline(10489550);
-                    vertline(10489600);
-                    vertline(10489620);
-                    vertline(10489640);
-                    vertline(10489690);
-                    vertline(10489800);
                 }
             }
             
@@ -1877,7 +1948,6 @@ var coltab = [
                 slider_specmid.oninput = function() 
                 {
                     specarrlen = this.value;
-                    //console.log(specarrlen);
                     if(specarrlen <= 0) specarrlen = 1;
                     localStorage.setItem('specmid',specarrlen);
                 }
@@ -2055,11 +2125,17 @@ var coltab = [
             
             <div class="rl_space">
             </div>
-            
             <div class="midside">
                 <div class="rightrow">
-                    <div class="rightcell_label_header">
-                        Spectrum:
+                    <div class="rightcell_label_header" style="display: flex;">
+                        <div style="width:150px;">
+                            Spectrum:
+                        </div>
+                        <div style="width:100px;font-size:14px;font-weight: 300;">
+                            <label for="spekautolevel">
+                                Auto:<input type="checkbox" id="spekautolevel">
+                            </label>
+                        </div>
                     </div>
                     <div class="rightcell_slider">
                     </div>
@@ -2073,7 +2149,7 @@ var coltab = [
                 </div>
                 <div class="rightrow">
                     <div class="rightcell_label">
-                        <input type="checkbox" id="spekautolevel">Level:
+                        Level:
                     </div>
                     <div class="rightcell_slider">
                         <input id="speclevel" type="range" min="-180" max="-20" value="-180" style="direction: rtl;">                        
@@ -2090,7 +2166,7 @@ var coltab = [
                         Gain:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="specgain" type="range" min="-60" max="0" value="-60" style="direction: rtl;">
+                        <input id="specgain" type="range" min="-100" max="0" value="-60" style="direction: rtl;">
                     </div>
                     <div class="rightcell_label">
                         Gain:

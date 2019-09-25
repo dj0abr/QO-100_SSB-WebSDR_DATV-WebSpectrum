@@ -184,6 +184,11 @@ canvas {
 </style>
 
 <script type="text/javascript">
+
+/*
+QO-100 Java Script
+by DJ0ABR, Kurt Moraw
+*/
         
 var coltab = [
 [0.0,0.0,0.0],
@@ -531,7 +536,7 @@ var coltab = [
                     myitem.addEventListener("mousemove", MouseMoveHandler, false);
                 }
                 
-                sockintv = setInterval(checkSocket, 5000);
+                sockintv = setInterval(checkSocket, 1000);
             }
             
             var reload = 0;
@@ -541,6 +546,8 @@ var coltab = [
                 reload = 1;
             }
             
+			var intervalset = 0;
+
             function checkSocket()
             {
                 if(sockOpen == 0)
@@ -548,6 +555,15 @@ var coltab = [
                     if(websocket != null)
                         websocketclose();
                     openWebSocket();
+                }
+
+                // set interval to 5s, this ensures that it can reconnect 
+                // if the server was down. This does not work with faster intervals
+                if(intervalset == 0)
+                {
+                    intervalset = 1;
+                    clearInterval(sockintv);
+                    sockintv = setInterval(checkSocket, 5000);
                 }
             }
 
@@ -956,13 +972,36 @@ var coltab = [
             
             function draw_spec()
             {
+				// variables to store min/max values for this single path
+				// get the elemt IDs and dimensions
                 var canvas = document.getElementById("spec"); 
                 var context = canvas.getContext("2d");
-            
-                // Get the canvas dimensions
                 var width = canvas.width;
                 var height = canvas.height;
 
+				// variables to store min/max values for this single path
+                var n_maxval = -999999;
+                var n_minval = 999999;
+
+                // WB-Transponder, take minval only at specific frequencies                
+                var xm1 = cpos(10493810);
+                var xm2 = cpos(10493910);
+
+                // storage for Y values
+				// used to find rising and falling edges of a signal
+                var yarr = new Array(width);
+
+				// draw background
+                context.fillStyle = '#404040';
+                context.fillRect(0,0,width,height);
+                
+                // set colors of spectrum lines and fill
+                context.strokeStyle = '#ffffff';
+                context.fillStyle = '#c0c0c0';
+
+				// midarr is used to calculate the mean value according
+                // to the Average-Slider setting
+                // generate and initialize the array
                 if(arrfirst == 1)
                 {
                     for(var i=0; i<200; i++)
@@ -977,72 +1016,66 @@ var coltab = [
                     arrfirst = 0;
                 }
                 
-                context.fillStyle = '#404040';
-                context.fillRect(0,0,width,height);
-                
-                context.strokeStyle = '#ffffff';
-                context.fillStyle = '#c0c0c0';
-                
+
+                // draw spectrum as a filled area
+				// start drawing in left-bottom corner
                 context.beginPath();
-                
                 context.moveTo(0, height-1);
                 
-                // WB-Transponder, take minval only at specific frequencies                
-                var xm1 = cpos(10493810);
-                var xm2 = cpos(10493910);
-                
-                // storage for Y values
-                var yarr = new Array(width);
-                
-                var n_maxval = -999999;
-                var n_minval = 999999;
-                
-                // draw spectrum as a filled area
+				// loop through all horizontal pixels
                 for(var x=0; x<width; x++)
                 {
-                    // shift midarr
-                    for(var idx=(specarrlen-1); idx>=1; idx--)
-                    {
-                        midarr[idx][x] = midarr[idx-1][x];
-                    }
-                    
-                    // add new value
-                    
                     // horizontal smoothing
+					// average of "midsize" horizontal pixels
                     var midsize = 5; //smooth value
                     var midv = 0;
                     for(var mz = -midsize; mz <= midsize; mz++)
                         midv += pix[x+mz];
+					midv /= (midsize*2);
+
+					// calculate the average value, first
+                    // shift the array and put new data at the beginning
+					for(var idx=(specarrlen-1); idx>=1; idx--)
+                        midarr[idx][x] = midarr[idx-1][x];
                     
-                    midv /= (midsize*2);
-                    midarr[0][x] = -midv;   // add new value into array
+                    // add new value
+                    midarr[0][x] = -midv;
                     
+					// calculate the average
                     var mv = 0; // mid value
                     for(var idx=0; idx<specarrlen; idx++)
-                    {
                         mv += midarr[idx][x];
-                    }
                     mv /= specarrlen;
+					// mv is now the dB value of the signal at position x
                         
-                    // read minval only between two qrgs
+                    // find the value of the noise
+					// xm1 and xm2 is positioned a little bit right of the DATV beacon
+					// where usually is no signal, so measure the noise level here
+					// it is not possible to measure left of the beacon because the SDRplay
+					// already attenuates the signal left of the beacon (because of 8MHz bandwidth)
                     if(mv < n_minval && x > xm1 && x < xm2)
                       n_minval = mv;
                       
-                    // read maxval
+                    // read the maximum value of the signals into maxval
+					// used for automatic level/gain setting
                     if(mv > n_maxval)
                         n_maxval = mv;
                       
+					// calculate y-pixel position, draw the spectrum point and
+					// store for later use (rising/falling edge detection)
                     var yval = scale(mv);
-                    yarr[x] = yval
+                    yarr[x] = yval;
                     context.lineTo(x,yval);
 
                 }
                
+				// finish the spectrum display by closing and filling the area
                 context.lineTo(width-1,height-1);
                 context.fill();
                 context.stroke();
                 
-                // mark 3dB levels
+                // mark 3dB levels with a line and a label
+				// use the width at +3dB for bandwitch calculation for a signal
                 var y3db = scale(minval + 3);
                 context.strokeStyle = '#ff0000';
                 context.fillStyle = "#ffffff";
@@ -1105,8 +1138,9 @@ var coltab = [
                 {
                     minval = n_minval;
                 }
-                //console.log("minval:"+minval+" n_minval:"+n_minval);
                 maxval = n_maxval;
+				if(maxval < (minval+10))
+					maxval = minval + 10;	// always see minimum 10dB
 
                 // auto set bottom line (noise line) to bottom of spectrum
                 // minval must have a little lower value than
@@ -1115,26 +1149,14 @@ var coltab = [
                 var ckb = $("#spekautolevel").is(':checked');
                 if(ckb && minval < 0 /*ignore if default 999999 */)
                 {
-                    // set 0dB linbe to bottom of spectrum display
-                    var v1 = scale(minval);
-                    var dif = Math.abs(height - v1) / 100;
-                    if(dif<0.1) dif=0.1;
-                    
-                    // auto set min level to bottom of the picture
-                    if(v1>(height-25)) speclevel = parseFloat(speclevel) - dif;
-                    if(v1<(height-5)) speclevel = parseFloat(speclevel) + dif;
-                    
-                    //console.log("dif:"+dif+" v1:" + v1 + " height:" + height + " specl:" + speclevel + "minval:" + minval+ " specgain:" + specgain);
-                    
-                    // change the gain to fit into spectrum display
-                    // max may be 0 or a bit more since 0 is on the top of the display
-                    var v2 = scale(maxval);
-                    var dif = v2 / 100;
-                    if(dif<0.1) dif=0.1;
-                    //console.log("minval:"+minval+" v1:"+v1+" maxval: " + maxval + " v2:" + v2);
-                    // auto set min level to bottom of the picture
-                    if(v2>50) specgain = parseFloat(specgain) - dif;
-                    if(v2<20) specgain = parseFloat(specgain) + dif;
+					// calculate speclevel and specgain so that
+                    // minval goes to y=(height-5) and maxval goes to y=15
+                    var ymin = 330; // min/max positions in screen coordinates
+                    var ymax = 15;
+                    var a = (height - ymin)/height;
+                    var b = (height - ymax)/height;
+                    specgain =(minval*(b-1)-maxval*(a-1))/(a*(b-1)-b*(a-1));
+                    speclevel = (a*specgain-minval)/(a-1);
 
                     // adjust WF parameters
                     wflevel = 230;
@@ -1191,9 +1213,8 @@ var coltab = [
                 // scale dBm value to y-pixelpos
                 function scale(v)
                 {
-                    var v = -height*(v-speclevel)/(specgain-speclevel) + height;
-                                        
-                    return v;
+                    var y = -height*(v-speclevel)/(specgain-speclevel) + height;
+                    return y;
                 }
                 
                 function vertline(qrg, alpha)
