@@ -69,7 +69,7 @@ when the script finishes without errors then the job is done and you can use the
 in the termimal enter:
 sudo  ./qo100websdr  -f  frequency
 
-('sudo' is only required for the very first start since it has to build_RTLSDRconfigure your webserver. Then you can use it without sudo).
+('sudo' is only required for the very first start since it has to configure your webserver. Then you can use it without sudo).
 
 frequency ... this is the frequency where the QO-100 signal is delivered by your LNB.
 
