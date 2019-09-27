@@ -866,6 +866,7 @@ var coltab = [
             
             var specarrlen = 8;
             var midarr = new Array(200);
+            var peakarr;
             var arrfirst = 1;
             var speclevel = -180;
             var specgain = -60;
@@ -918,6 +919,12 @@ var coltab = [
                 // generate and initialize the array
                 if(arrfirst == 1)
                 {
+                    peakarr = new Array(width);
+                    for(var x=0; x<width; x++)
+                    {
+                        peakarr[x] = -200;
+                    }
+                    
                     for(var i=0; i<200; i++)
                     {
                         midarr[i] = new Array(width);
@@ -937,18 +944,34 @@ var coltab = [
                 // loop through all horizontal pixels
                 for(var x=0; x<width; x++)
                 {
-                    // calculate the average value, first
-                    // shift the array and put new data at the beginning
-                    for(var idx=(specarrlen-1); idx>=1; idx--)
-                        midarr[idx][x] = midarr[idx-1][x];
-                    // add new value
-                    midarr[0][x] = -pix[x];
+                    if(trace_mode == 0)
+                    {
+                        // Averaging mode
+                        // calculate the average value, first
+                        // shift the array and put new data at the beginning
+                        for(var idx=(specarrlen-1); idx>=1; idx--)
+                            midarr[idx][x] = midarr[idx-1][x];
+                        // add new value
+                        midarr[0][x] = -pix[x];
+                        
+                        // calculate the average
+                        var mv = 0; // mid value
+                        for(var idx=0; idx<specarrlen; idx++)
+                            mv += midarr[idx][x];
+                        mv /= specarrlen;
+                    }
                     
-                    // calculate the average
-                    var mv = 0; // mid value
-                    for(var idx=0; idx<specarrlen; idx++)
-                        mv += midarr[idx][x];
-                    mv /= specarrlen;
+                    if(trace_mode == 1)
+                    {
+                        // Peak mode
+                        // use only the first cell [0] of midarr
+                        // put the maximum value here
+                        var newval = -pix[x];
+                        if(newval > peakarr[x])
+                            peakarr[x] = newval;
+                        
+                        mv = peakarr[x];
+                    }
                     // mv is now the dB value of the signal at position x
                     
                     // find the highest value, excluding the beacons
@@ -1024,8 +1047,6 @@ var coltab = [
 
  					// ybcn is the Y-pixel position of the beacon level
 					ybcn = scale(beacon_mid_maxval);
-	                context.fillStyle = '#503030';
-	                context.fillRect(0,0,width,ybcn);
 
 		            // double hor red line at beacon value
 		            context.strokeStyle = '#ff0000';
@@ -1894,6 +1915,32 @@ var coltab = [
                     websocket.send("catsetq:0\0");
             }
             
+            var trace_mode = 0; // 0=average, 1=peak
+            
+            function clickAverage()
+            {
+                var ckb = $("#average").is(':checked');
+                if(ckb && trace_mode == 1)
+                {
+                    document.getElementById("peak").checked = false;
+                    trace_mode = 0;
+                    for(var x=0; x<(document.getElementById("spec").width); x++)
+                    {
+                        peakarr[x] = -200;
+                    }
+                }
+            }
+            
+            function clickPeak()
+            {
+                var ckb = $("#peak").is(':checked');
+                if(ckb && trace_mode == 0)
+                {
+                    document.getElementById("average").checked = false;
+                    trace_mode = 1;
+                }
+            }
+            
             function setListboxes()
             {
                 var v = localStorage.getItem('color');
@@ -2189,6 +2236,17 @@ var coltab = [
                         <input id="audiogain" type="range" min="1" max="100" value="50">
                     </div>
                 </div>
+                <div class="rightrow" style="background-color: #e0e0e0;">
+                    <div style="width: 230px;">
+                        spectrum trace mode:
+                    </div>
+                    <div style="width: 150px;">
+                        <input type="checkbox" id="average" onclick="clickAverage()" checked>Average
+                    </div>
+                    <div style="width: 180px;">
+                        <input type="checkbox" id="peak" onclick="clickPeak()">Peak Hold
+                    </div>
+                </div>
             </div>
             <div class="rl_space">
             </div>
@@ -2202,7 +2260,7 @@ var coltab = [
                 <div>
                 </div>
                 <div id="mousepos"></div>
-				<p style="color:red">remote access only for local stations !<br>No access from internet</p>
+				<p style="color:red">remote control only for local stations !<br>No access from internet</p>
             </div>
         </div>
         
