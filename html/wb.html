@@ -479,7 +479,7 @@ var coltab = [
             function MouseMoveHandler(e)
             {
                 var e = window.event || e; // old IE support
-                var mval = tuneqrg/1e3 + (e.pageX * 5250)/1e6;
+                var mval = tuneqrg/1e3 + (e.pageX * 5000)/1e6;
                 mval -= 0.0300; // needed to get right value from mouse pointer, reason unknown
                 
                 var sd = "Mousepos. RX: " + mval.toFixed(6) + " MHz, TX: " + (mval-ftx/1000).toFixed(6) + " MHz";
@@ -1111,7 +1111,7 @@ var coltab = [
                         context.stroke();
                         
                         // description
-                        var bw = ((x-redge)*5333)/1000;
+                        var bw = ((x-redge)*5000)/1000;
                         if(bw > 1900) bw = 2000;
                         else if(bw > 900) bw = 1000;
                         else if(bw > 450) bw = 500;
@@ -1123,7 +1123,7 @@ var coltab = [
                         else bw = "?";
                         context.fillText(bw,(x-redge)/2+redge,y3db-7);
                         
-                        var freq = ((x-redge)/2+redge)*5333 / 1000000;
+                        var freq = ((x-redge)/2+redge)*5000 / 1000000;
                         freq = Number(freq) + 10491;
                         freq = Number(freq) - 10000;
                         context.fillText(freq.toFixed(2) + "0",(x-redge)/2+redge,y3db+15);
