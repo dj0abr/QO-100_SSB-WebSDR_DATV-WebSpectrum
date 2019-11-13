@@ -41,7 +41,6 @@ pthread_t cat_tid;
 int fd_ser = -1; // handle of the ser interface
 char serdevice[20] = {"/dev/ttyUSB0"};
 int ser_command = 0;    // 0=no action 1=queryQRG 2=setPTT 3=releasePTT 4=setQRG
-int setIcomFrequency = 0;   // 0=do nothing, 1= a click in the waterfall sets the icom transceiver frequency
 int useCAT = 0;         // 0= don't use the serial port, 1= use the serial port for Icom CIV
 int trx_frequency = 0;
 int ttynum = 0;

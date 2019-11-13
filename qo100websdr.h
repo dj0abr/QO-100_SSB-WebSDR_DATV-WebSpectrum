@@ -26,113 +26,139 @@
 */
 #include <stdint.h>
 
-
 //#define SOUNDLOCAL    // activate to send the sound to the local sound card (and not to the browser)
 
-// sample rate of the SDR hardware
-// see the possible values in the SDRplay driver
-// high values will generate a high CPU load !
-// its best to keep the default value of 2.4MS/s (which is the maximum for the RTLSDR)
+// the WIDEBAND definition is done in the Makefile
+
+// definitions for the WIDEBAND (DATV) spectrum monitor
 #ifdef WIDEBAND
+    // definitions for the WIDEBAND monitor
+    // SDRplay must be used in wideband mode (RTLsdr is too slow)
 	#ifndef	SDR_PLAY
-		#define SDR_PLAY				// SDRplay must be used in wideband mode
+		#define SDR_PLAY				
 	#endif
-    #define SDR_SAMPLE_RATE 10000000    // 10 MHz sample rate, the maximum of the SDRplay hardware
-#else
-    #define SDR_SAMPLE_RATE 2400000     // 2,4 MHz sample rate (SDRplay and RTLSDR can do that)
-#endif // WIDEBAND
+	
+	// 10 MHz sample rate, the maximum of the SDRplay hardware
+    #define SDR_SAMPLE_RATE 10000000    
+    
+    // rate = 8MHz, which is the max bandwidth of the RSP1a
+    // is a bit small, the left&right margins will be already clipped by the bandwidth,
+    // but it is the maximum the RSP can handle.
+    #define WF_RANGE_HZ 8000000     
+    
+    // width of the waterfall in pixels (must match the graphic width in the HTML file)
+    #define WF_WIDTH    1600            
+    
+    // RX frequency of the left margin of the WF/spectrum picture in kHz
+    #define DISPLAYED_FREQUENCY_KHZ  10491000  
+    
+    // default SDR tuner frequency, which must be the middle of the WB transponder 10495 MHZ
+    // which is 10495 - 9750 = 745 MHz at the LNB output
+    // !!! this value is overwritten by the command line parameter -f !!! (used for non-standard LNB LOs)
+    #define _TUNED_FREQUENCY    745000000
 
-// width of the big waterfall in Hz
-// attention: the expression (SDR_SAMPLE_RATE / 2 / WF_RANGE_HZ) HAS to 
-// be an integer number without decimal places !!!
-// !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!! (see also SSB_RATE below)
-#ifdef WIDEBAND
-    #define WF_RANGE_HZ 8000000     // rate = 8MHz, which is the max bandwidth of the RSP1a
-    #define WF_WIDTH    1600        // width of the waterfall in pixels
-#else
-    #define WF_RANGE_HZ 300000      // (first downsampled rate: 600000 = 2,4MHz / 4)
-    #define WF_WIDTH    1500        // width of the waterfall in pixels
-#endif // WIDEBAND
-
-
-
-// the height of the waterfall picture (ignored in WF_MODE_WEBSOCKET)
-#define WF_HEIGHT   400
-// the height of the SSB waterfall picture (ignored in WF_MODE_WEBSOCKET)
-#define WF_HEIGHT_SMALL   200     
-
-// drawing mode (see waterfall.c), choose FILE or WEBSOCKET mode
-// #define WF_MODE_FILE     // draw a waterfall picture into a file
-#define WF_MODE_WEBSOCKET   // create one line using the actual data and send it to a browser
-
-// tuned frequency, the base frequency where the SDR hardware is tuned
-// this is similar to the left margin of the big waterfall picture
-// and therefore should be the lowest frequency of interest (i.e. beginning of a band)
-// for the Sat es'hail 2 this should be: 10489250000 Hz (= 10.48925 GHz)
-
-#define _TUNED_FREQUENCY    739525000       // default SDR's RX frequency (direct LNB reception) is overwritten by the command line parameter -f
-#define TRANSMIT_FREQUENCY  435025000       // only used to calculate ICOM's TX qrg in satellite mode, if an ICOM is connected via CIV
-#ifdef WIDEBAND
-    #define DISPLAYED_FREQUENCY_KHZ  (10490000 + 1000)   // RX frequency of the left margin in kHz
-#else
-    #define DISPLAYED_FREQUENCY_KHZ  10489525   // RX frequency of the left margin in kHz
-#endif // WIDEBAND
-
-// Websocket Port
-// the computer running this software must be reachable under this port
-// (i.e. open this TCP port in the internet router)
-#ifdef WIDEBAND
+    // this port must be opened in the router in order to use this software from the internet
+    // (the usual web port 80 must also be open)
     #define WEBSOCK_PORT    8090
-#else
+
+#else  
+    // definitions for the NARROWBAND monitor
+    
+    // definitions which may be modified to adapt the monitor to your needs
+    // ====================================================================
+    
+    // width of the waterfall/spectrum display in Hz
+    // if modified: check the SSB and AUDIO rate assignments below, and
+    // check if the default rates are integer parts (see below: SSB_RATE and AUDIO_RATE)
+    #define WF_RANGE_HZ 300000 
+    
+    // set the multiplier to 2,4,8,16 or 32 so that
+    // for SDRplay:
+    //    WF_RANGE_HZ * 2 * SR_MULTIPLIER is a value between 2M and 10M
+    // for RTLsdr:
+    //    WF_RANGE_HZ * 2 * SR_MULTIPLIER is a value between 900k and 2.4M
+    #define SR_MULTIPLIER   4
+    
+    // add a correction value to the SDR tuner frequency to compensate frequency
+    // errors of the SDR hardware's crystal oscillator ( 0 = no correction)
+    // this value is "ppm". 
+    // usual values for the RTLsdr between -100 and +100 ppm
+    // !!! this setting depends on the individual SDR hardware. First set it to 0, then enter a value !!!
+    // small differences compensate with the AUTO-LOCK function in the browser
+    // use the CW beacon for orientation
+    // (not required for the SDRplay)
+    #define RTL_TUNER_CORRECTION        -51
+    
+    // RX frequency of the left margin of the waterfall/spectrum picture in kHz
+    #define DISPLAYED_FREQUENCY_KHZ  10489525  
+    
+    // Frequency of the CW Beacon which is used for automatic freq correction, in Hz
+    #define CW_BEACON   10489550000
+    
+    // default SDR tuner frequency in Hz, which must be the left margin of the NB transponder
+    // which is 10489.55 (CW Beacon) minus 25 KHz for a little left margin
+    // 10489.525 - 9750 = 739.525 MHz
+    // !!! this value is overwritten by the command line parameter -f !!! (used for non-standard LNB LOs)
+    #define _TUNED_FREQUENCY    739525000       
+    
+    // this port must be opened in the router in order to use this software from the internet
+    // (the usual web port 80 must also be open)
     #define WEBSOCK_PORT    8091
+    
+    
+    // fixed values DO NOT change !
+    // ============================
+	
+	// SDR receiver's capture rate
+	// we use twice the bandwidth, so the FFT will return the requested bandwidth in the lower half of the FFT data
+	// the upper half (which contains the same bandwidth of below the tuner frequency) is not used to get a cleaner display
+	// (the WB monitor uses both halfs)
+    #define NB_SAMPLE_RATE     (WF_RANGE_HZ * 2)
+	#define SDR_SAMPLE_RATE    (NB_SAMPLE_RATE * SR_MULTIPLIER)
+	
+	// we need one FFT value every 10Hz for the lower waterfall and the SSB demodulator
+	// the Waterfall speed will be NB_RESOLUTION lines/s
+	// if this is modified, the lower WF resolution must be also modified and the SSB demodulator may sound different
+    #define NB_RESOLUTION   10  
+    
+    // width of the waterfall in pixels (must match the graphic width in the HTML file)
+    #define WF_WIDTH    1500            
+    
+    
+    // calculated values DO NOT change !
+    // =================================
+    
+    // number of input and output data of the FFT
+    // we will only use the lower half of the output data
+    // i.e.: 600.000 / 10 = 60.000 samples input and 60.000 bins FFT output, where 30.000 are used
+    // these 30.000 bins show the spectrum of 300kHz with a resolution of 10 Hz
+    #define NB_FFT_LENGTH   (NB_SAMPLE_RATE / NB_RESOLUTION)
+    
+    // we have more FFT data as we can show in the display (display resolution: WF_WIDTH)
+    // this value is the oversampling and MUST be an integer number !!!
+    // i.e.: NB_FFT_LENGTH/2 = 30.000 divided by WF_WIDTH=1500 is 20
+    // so we will use 20 FFT values for one screen pixel
+    #define NB_OVERSAMPLING ((NB_FFT_LENGTH/2) / WF_WIDTH)
+    
+    // Hz per screen pixel
+    // NB_OVERSAMPLING shows the FFT values per pixel, but one 
+    // FFT value is for NB_RESOLUTION Hz, so we multiply them
+    #define NB_HZ_PER_PIXEL (NB_OVERSAMPLING * NB_RESOLUTION)
+
+    // the SSB rate must be an integer part of NB_SAMPLE_RATE and must be <= 48k
+    // AUDIO rate must be an integer part of SSB rate
+    // recalculate and add values for non-standard ranges WF_RANGE_HZ
+
+    #if WF_RANGE_HZ == 150000
+        #define SSB_RATE 37500
+        #define AUDIO_RATE 7500
+    #else
+        #define SSB_RATE 40000  // use default rate if possible
+        #define AUDIO_RATE 8000
+    #endif
+
 #endif // WIDEBAND
 
-// ==========================================================================================
-// calculations according to above values
-// do NOT change !
-// ==========================================================================================
-
-#define SAMPLERATE_FIRST    (WF_RANGE_HZ * 2)                       // sample rate after the first down-sampling
-#define DECIMATERATE        (SDR_SAMPLE_RATE / SAMPLERATE_FIRST)    // i.e 2.4M / 600k = 4 ... decimation factor
-#define FFT_RESOLUTION      (WF_RANGE_HZ / WF_WIDTH)                // frequency step from one FFT value to the next
-#define SAMPLES_FOR_FFT     (SAMPLERATE_FIRST / FFT_RESOLUTION)     // required samples for the FFT to generate to requested resolution
-
-// the SSB audio rate must be an integer part of SAMPLERATE_FIRST
-// and must be <= 48k
-// and must be an integer value
-// assign the SSB audio rate for above WF_RANGE_HZ values
-// !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!!
-#define DEFAULT_SSB_RATE    48000
-#define DEFAULT_AUDIO_RATE  8000
-
-#if WF_RANGE_HZ == 400000
-    #define SSB_RATE 40000
-    #define AUDIO_RATE 8000
-    
-#elif WF_RANGE_HZ == 300000
-    #define SSB_RATE 40000
-    #define AUDIO_RATE 8000
-    
-#elif WF_RANGE_HZ == 200000
-    #define SSB_RATE 40000
-    #define AUDIO_RATE 8000
-    
-#elif WF_RANGE_HZ == 150000
-    #define SSB_RATE 37500
-    #define AUDIO_RATE 7500
-    
-#elif WF_RANGE_HZ == 100000
-    #define SSB_RATE 40000
-    #define AUDIO_RATE 8000
-#else
-    #define SSB_RATE DEFAULT_SSB_RATE  // use default rate if possible
-    #define AUDIO_RATE DEFAULT_AUDIO_RATE
-#endif
-
-#define SSB_DECIMATE            (SAMPLERATE_FIRST / SSB_RATE)
-#define FFT_RESOLUTION_SMALL    (SSB_RATE / 2 / WF_WIDTH)
-#define SAMPLES_FOR_FFT_SMALL   (SSB_RATE / FFT_RESOLUTION_SMALL)
-#define AUDIO_DECIMATE          (SSB_RATE / AUDIO_RATE)
 
 // for the RTLSDR only !
 // samples per callback

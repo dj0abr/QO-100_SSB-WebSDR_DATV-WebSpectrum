@@ -57,14 +57,16 @@ unsigned int frdiff;
                 #ifdef WIDEBAND
                     foffset = freqval * 5250;
                 #else
-                    foffset = freqval * FFT_RESOLUTION; // resolution: 200Hz per pixel
+                    foffset = freqval * (WF_RANGE_HZ / WF_WIDTH);
+                    downmixer_setFrequency(foffset);
                 #endif
                 printf("new QRG offset: %d\n",foffset);
-                downmixer_setFrequency(foffset);
                 break;
                 
         case 2: foffset += (freqval * 10);
+                #ifndef WIDEBAND
                 downmixer_setFrequency(foffset);
+                #endif
                 break;
         
         case 4: ssbmode = freqval;
@@ -86,7 +88,8 @@ unsigned int frdiff;
                 printf("auto beacon lock: %d\n",autosync);
                 break; 
                 
-        case 8: newrf = TUNED_FREQUENCY - freqval;
+        case 8: // Browser sends a new tuner frequency
+                newrf = TUNED_FREQUENCY - freqval;
                 printf("set tuner qrg: %d (%d)\n",newrf,TUNED_FREQUENCY - newrf);
                 setrfoffset = 1;
                 break;
@@ -94,19 +97,17 @@ unsigned int frdiff;
         case 9: // mouse click lower WF 0..1500
                 // actual qrg is in the middle at pos=750
                 // resolution: 15kHz (10 Hz/pixel)
-                foffset += ((freqval * 10) - 7500);
+                //foffset += ((freqval * NB_RESOLUTION) - (WF_WIDTH/2)*NB_RESOLUTION);
+                #ifndef WIDEBAND
+                foffset += (freqval - WF_WIDTH/2) * NB_RESOLUTION;
                 printf("new QRG offset: %d\n",foffset);
                 downmixer_setFrequency(foffset);
+                #endif
                 break;
                 
         case 10:// activate icom CAT interface (open/close serial port)
                 useCAT = freqval;
                 break;
-
-        case 11:// set TRX via CAT if WF clicked
-                setIcomFrequency = freqval;
-                break;
-
     }
     setfreq = 0;
     
@@ -121,7 +122,9 @@ unsigned int frdiff;
         
         if(hwtype == 2)
         {
+            #ifndef WIDEBAND
             rtlsetTunedQrgOffset(newrf);
+            #endif
         }
         setrfoffset = 0;
     }

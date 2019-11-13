@@ -29,6 +29,7 @@
 * 
 */
 
+
 #include <fftw3.h>
 #include <math.h>
 #include <stdlib.h>
@@ -46,11 +47,6 @@
 
 void beaconLock(double val, int pos);
 
-#define FSSB_SRATE          600000
-#define FSSB_RESOLUTION     10
-#define FSSB_FFT_LENGTH     (FSSB_SRATE / FSSB_RESOLUTION)  // = 60.000
-#define FSSB_NUM_BINS       (FSSB_FFT_LENGTH / 2)           // = 30.000 (the last one is on nyquist freq, there for it should not be used)
-
 fftw_complex *din = NULL;				// input data for  fft, output data from ifft
 fftw_complex *cpout = NULL;	            // ouput data from fft, input data to ifft
 fftw_complex *cpssb = NULL;             // converted cpout, used as input for the inverse fft
@@ -58,6 +54,7 @@ fftw_plan plan = NULL, iplan = NULL;
 int din_idx = 0;
 int rflock = 0;
 
+#ifndef WIDEBAND
 
 void init_fssb()
 {
@@ -66,19 +63,22 @@ void init_fssb()
 
 	fftw_import_wisdom_from_filename(fn);
   
-    din   = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * FSSB_FFT_LENGTH);
-	cpout = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * FSSB_FFT_LENGTH);
-    cpssb = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * FSSB_FFT_LENGTH);
+    din   = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
+	cpout = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
+    cpssb = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
 
-    plan = fftw_plan_dft_1d(FSSB_FFT_LENGTH, din, cpout, FFTW_FORWARD, FFTW_MEASURE);
-	iplan = fftw_plan_dft_1d(FSSB_FFT_LENGTH, cpssb, din, FFTW_BACKWARD, FFTW_MEASURE);
+    plan = fftw_plan_dft_1d(NB_FFT_LENGTH, din, cpout, FFTW_FORWARD, FFTW_MEASURE);
+	iplan = fftw_plan_dft_1d(NB_FFT_LENGTH, cpssb, din, FFTW_BACKWARD, FFTW_MEASURE);
 
     fftw_export_wisdom_to_filename(fn);
 }
 
+// gain correction
+// opper big waterfall
 int ssb_gaincorr_rtl = 2000; // if wfsamp[] overflows 16 bit then make this value higher
 int small_gaincorr_rtl = 2000;
 
+// lower waterfall
 int ssb_gaincorr_sdrplay = 1000;
 int small_gaincorr_sdrplay = 1000;
 
@@ -92,7 +92,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
         din_idx++;
         
         // check if the fft input buffer is filled
-        if(din_idx >= FSSB_FFT_LENGTH)
+        if(din_idx >= NB_FFT_LENGTH)
         {
             din_idx = 0;
             
@@ -104,44 +104,48 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             int idx = 0;
             double real,imag;
             int wfbins;
+            
+            // we do not use the possible lower/upper half of the FFT because the Nyquist frequency
+            // is in the middle and makes an awful line in the middle of the waterfall
+            // therefore we use the double sampling frequency and display to lower half only
 
-            // for the BIG waterfall we need 1500 (WF_WIDTH) bins, so take every 20th
-            // take the loudest of the ten bins
-            // create waterfall line and send to the client through a web socket
-            int picture_div = 20;
-            for(wfbins=0; wfbins<FSSB_NUM_BINS; wfbins+=picture_div)
+            for(wfbins=0; wfbins<(NB_FFT_LENGTH/2); wfbins+=NB_OVERSAMPLING)
             {
-				double maxv = -99999;
-                for(int bin10=0; bin10<picture_div; bin10++)
+                if(idx >= WF_WIDTH) break; // all wf pixels are filled
+                
+                double maxv = -99999;
+                for(int bin10=0; bin10<NB_OVERSAMPLING; bin10++)
                 {
                     real = cpout[wfbins+bin10][0];
                     imag = cpout[wfbins+bin10][1];
                     double v = sqrt((real * real) + (imag * imag));
                     beaconLock(v,wfbins+bin10);
                     if(v > maxv) maxv = v;
-                    // correct level TODO ???
-                    //wfsamp[idx] /= 50;
-                 }
-                 
-                 if(hwtype == 2)
+                }
+
+                // level correction
+                if(hwtype == 2)
                     maxv /= ssb_gaincorr_rtl;
                  else
                     maxv /= ssb_gaincorr_sdrplay;
-				if(maxv > 65535) printf("maxv overflow, rise ssb_gaincorr %.0f\n",maxv);
+                 
+                if(maxv > 65535) 
+                {
+                    //printf("maxv overflow, rise gaincorr\n");
+                    maxv = 65535;
+                }
                 wfsamp[idx] = (unsigned short)maxv;
 
-				idx++;
+                idx++;
             }
             
             unsigned int realrf = TUNED_FREQUENCY - newrf;
             
-            //drawWF(WFID_BIG,wfsamp, WF_WIDTH, WF_WIDTH, 1, realrf, FSSB_SRATE/2, FSSB_RESOLUTION*picture_div, DISPLAYED_FREQUENCY_KHZ, "\0");
-
 			drawWF( WFID_BIG,                   // Waterfall ID
                     wfsamp,                     // FFT output data
                     realrf,            			// frequency of the SDR 
-                    FSSB_SRATE/2,               // total width of the fft data in Hz (in this case 8.000.000)
-                    FSSB_RESOLUTION*picture_div,// Hz/pixel
+                    WF_RANGE_HZ,                // total width of the fft data in Hz
+                    NB_HZ_PER_PIXEL,            // Hz/pixel
                     DISPLAYED_FREQUENCY_KHZ);   // frequency of the left margin of the waterfall
             
             // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
@@ -153,7 +157,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             int end = ((foffset+0)/10) + 750;
 
 			if(start < 0) start = 0;
-			if(end >= FSSB_FFT_LENGTH) end = FSSB_FFT_LENGTH-1;
+			if(end >= NB_FFT_LENGTH) end = NB_FFT_LENGTH-1;
             
             unsigned short wfsampsmall[WF_WIDTH];
             idx = 0;
@@ -170,22 +174,22 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     dm /= small_gaincorr_rtl;
                  else
                     dm /= small_gaincorr_sdrplay;
-				if(dm > 65535) printf("maxv overflow, rise small_gaincorr dm:%.0f\n",dm);
+				if(dm > 65535) 
+                {
+                    //printf("maxv overflow, rise small_gaincorr dm:%.0f\n",dm);
+                    dm = 65535;
+                }
 				wfsampsmall[idx] = (unsigned short)dm;
                 
                 idx++;
             }
 
-			// void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, unsigned int _realqrg, int _rightqrg, int res, int _tunedQRG, char *_fn)
-            //drawWF(WFID_SMALL,wfsampsmall, WF_WIDTH, WF_WIDTH, 1, realrf, 15000, FSSB_RESOLUTION, DISPLAYED_FREQUENCY_KHZ + (foffset)/1000, "\0");
-
 			drawWF( WFID_SMALL,                 // Waterfall ID
                     wfsampsmall,                // FFT output data
                     realrf,            			// frequency of the SDR 
                     15000,               		// total width of the fft data in Hz (in this case 8.000.000)
-                    FSSB_RESOLUTION,			// Hz/pixel
+                    10,			                // Hz/pixel
                     DISPLAYED_FREQUENCY_KHZ + (foffset)/1000);   // frequency of the left margin of the waterfall
-
         }
         
         // SSB Decoding and Audio Output
@@ -194,7 +198,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
         
         // here we have the samples with rate of 600.000
         // we need 8.000 for the sound card
-        // lets decimate by 75 (FSSB_SRATE / 8000)
+        // lets decimate by 75 (WF_RANGE_HZ / 8000)
         static int audio_cnt = 0;
         static short b16samples[AUDIO_RATE];
         static int audio_idx = 0;
@@ -235,10 +239,17 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
 }
 
 #define CHECKPOS 3
+
+// calculate the position (offset in the FFT output values) of the CW beacon
+// NB_FFT_LENGTH/2 goes over a range of WF_RANGE_HZ Hz starting at DISPLAYED_FREQUENCY_KHZ
+// with a resolution of 10Hz per FFT value
+#define BEACON_OFFSET   ((CW_BEACON - DISPLAYED_FREQUENCY_KHZ * 1000L) / NB_RESOLUTION)
+#define BEACON_LOCKRANGE    1000    // check beacon QRG +- lockrange
+    
+    
 void beaconLock(double val, int pos)
 {
     if(autosync == 0) return;
-    
     
 static double max = -9999999999;
 static int lastts = 0;
@@ -246,12 +257,16 @@ static int maxpos;
 static int bigstepdet = 0;
 static int lastmaxpos = 0;
 static int lastpos[CHECKPOS];
+
+    // we lock to the CW Beacon
+    
+
     // the CW beacon is 25kHz above the left edge
     // this is at bin 2500
     
     // between bin 1500 and 3500 measure the maximum
     // this give a lock range of 20 kHz
-    if(pos >= 1500 && pos <= 3500)
+    if(pos >= (BEACON_OFFSET-BEACON_LOCKRANGE) && pos <= (BEACON_OFFSET+BEACON_LOCKRANGE))
     {
         // measure the peak value for 1s
         if(fabs(val) > max)
@@ -355,3 +370,4 @@ static int lastpos[CHECKPOS];
     }
 }
 
+#endif

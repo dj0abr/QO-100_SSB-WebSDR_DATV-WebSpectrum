@@ -103,10 +103,8 @@ int debug = 0;
 			rx_freq = bcdToint32(civRXdata+1,4);
 		}
 		
-		if( rx_freq < 0 || 
-            rx_freq > (TUNED_FREQUENCY+10000000) || 
-            rx_freq < (TUNED_FREQUENCY-10000000)) 
-                rx_freq = 0;    // remove invalid values 
+		if(rx_freq < 0) 
+           rx_freq = 0;    // remove invalid values 
 		
 		//printf("CIV: frequency = %d\n",rx_freq);
         if(rx_freq != 0)

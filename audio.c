@@ -28,6 +28,8 @@
 * 
 */
 
+#ifndef WIDEBAND
+
 #include <pthread.h>
 #include <alsa/asoundlib.h>
 #include <sndfile.h>
@@ -57,19 +59,18 @@ void init_soundprocessing()
 
 void *audioproc(void *pdata)
 {
-short samples[AUDIO_RATE*2];
-
     // this thread must terminate itself because
     // the parent does not want to wait
     pthread_detach(pthread_self()); 
     
+short samples[AUDIO_RATE*2];
+
     while(1)
     {
         int len = read_pipe_wait(FIFO_AUDIO, (unsigned char *)samples, AUDIO_RATE*2);
         expand_stereo(samples, len/2);
         play_samples(samples, len/2);
     }
-    
     pthread_exit(NULL); // self terminate this thread
 }
 
@@ -191,3 +192,5 @@ int init_soundcard(char *sndcard)
     }
     return 1;
 }
+
+#endif

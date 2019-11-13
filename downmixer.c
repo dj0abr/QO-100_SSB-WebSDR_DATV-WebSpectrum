@@ -63,6 +63,8 @@
  * 
  * */
 
+#ifndef WIDEBAND
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -85,7 +87,7 @@ unsigned int fcw;               // frequency control word, used to set the NCOs 
 // initialize the mixer, must be called once at program start
 void downmixer_init()
 {
-    samplerate = SAMPLERATE_FIRST;
+    samplerate = NB_SAMPLE_RATE;
 
     // fill the sinewave lookup table
     double v = 0;
@@ -150,3 +152,4 @@ void downmixer_process(short *pisample , short *pqsample)
     *pqsample = (short)(qx >> 15);
 }
 
+#endif

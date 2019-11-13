@@ -46,6 +46,8 @@ void *rtlproc(void *pdata);
 
 static rtlsdr_dev_t *dev;
 
+#ifndef WIDEBAND
+
 int init_rtlsdr()
 {
     int rtldevicenumber = 0;
@@ -62,14 +64,18 @@ int init_rtlsdr()
 
     // open the first device
     int retval = rtlsdr_open(&dev, rtldevicenumber);
-    printf("open returned: %d\n",retval);
     
     // configure the device
-    int samprate = 1200000;
+    int samprate = SDR_SAMPLE_RATE;
     retval = rtlsdr_set_sample_rate(dev, samprate);
-    if(retval != 0) printf("Sample rate %d set= %d\n",samprate,retval);
+    if(retval != 0) 
+    {
+        printf("requested sample rate %d is invalid, result= %d\n",samprate,retval);
+        exit(0);
+    }
     
-    retval = rtlsdr_set_center_freq(dev, TUNED_FREQUENCY);
+    unsigned long tqrg = (TUNED_FREQUENCY * (1000000L+RTL_TUNER_CORRECTION))/1000000L;
+    retval = rtlsdr_set_center_freq(dev, (unsigned long)tqrg);
     if(retval != 0) printf("freqset= %d\n",retval);
     
     // gain mode: 0=auto, 1=manual
@@ -116,10 +122,11 @@ int init_rtlsdr()
 
 void rtlsetTunedQrgOffset(unsigned int hz)
 {
-    unsigned int qrg = TUNED_FREQUENCY - hz;
-    int retval = rtlsdr_set_center_freq(dev, qrg);
+    unsigned long qrg = TUNED_FREQUENCY - hz;
+    qrg = (qrg * (1000000L+RTL_TUNER_CORRECTION))/1000000L;
+    int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
     if(retval != 0) printf("freqset= %d\n",retval);
-    printf("rtl rf : %d\n",qrg);
+    printf("rtl rf : %ld\n",qrg);
 }
 
 void rtlsdrCallback(unsigned char *buf, uint32_t len, void *ctx)
@@ -164,8 +171,8 @@ int ret;
         if(ret)
         {
             int dstlen = 0;
-            // incr by 4: 2 because MSB and LSB, and 2 for decimation from 1M2 to 600k
-            for(int i=0; i<SAMPLES_PER_PASS; i+=4)
+            // incr by 2 because MSB and LSB, and also by SR_MULTIPLIER
+            for(int i=0; i<SAMPLES_PER_PASS; i+=(2*SR_MULTIPLIER))
             {
                 double fi = buf[i];
                 fi -= 127.4;
@@ -188,3 +195,5 @@ int ret;
     // never comes here
     pthread_exit(NULL);
 }
+
+#endif

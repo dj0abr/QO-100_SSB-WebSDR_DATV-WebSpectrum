@@ -208,10 +208,7 @@ void installHTMLfiles()
 void usage()
 {
     printf("\nusage:\n");
-    printf("./playSDReshail2  -f  frequency\n");
-    printf("frequency ... frequency of the CW beacon minus 25 kHz\n");
-    printf("using a normal LNB the frequency is 739525000\n");
-    printf("using a down mixer: enter the output frequency of the down mixer, i.e.: 144525000\n");
+    printf("./playSDReshail2  -f  tunerfrequency\n");
 }
 
 int main(int argc, char *argv[])
@@ -235,12 +232,6 @@ int c;
         }
     }
     
-    if(argc == 1)
-    {
-        usage();
-        return 1;
-    }
-    
     // check if it is already running, if yes then exit
     isRunning();
     
@@ -250,7 +241,7 @@ int c;
     // Install or Update the html files
     installHTMLfiles();
     
-    // make signal handler, mainly use if the user presses Ctrl-C
+    // signal handler, mainly used if the user presses Ctrl-C
     struct sigaction sigact;
     sigact.sa_handler = sighandler;
 	sigemptyset(&sigact.sa_mask);
@@ -270,35 +261,32 @@ int c;
 	sigact_mem.sa_flags = 0;
     sigaction(SIGSEGV, &sigact_mem, NULL);*/
     
-    printf("\nplaySDRweb parameters:\n\n");
+    printf("\nSDR parameters:\n\n");
     printf("SDR base QRG:    %d Hz\n",TUNED_FREQUENCY);
     printf("SDR sample rate: %d S/s\n",SDR_SAMPLE_RATE);
     printf("WF width:        %d Hz\n",WF_RANGE_HZ);
     printf("WF width:        %d pixel\n",WF_WIDTH);
-    printf("1st downsampling:%d S/s\n",SAMPLERATE_FIRST);
-    printf("1st decim. rate: %d\n",DECIMATERATE);
-    printf("1st FFT resol.:  %d Hz\n",FFT_RESOLUTION);
-    printf("1st FTT smp/pass:%d\n",SAMPLES_FOR_FFT);
+    printf("1st downsampling:%d S/s\n",(WF_RANGE_HZ * 2));
+    printf("1st decim. rate: %d\n",SDR_SAMPLE_RATE / (WF_RANGE_HZ * 2));
+    printf("1st FFT resol.:  %d Hz\n",WF_RANGE_HZ / WF_WIDTH);
+    printf("1st FTT smp/pass:%d\n",((WF_RANGE_HZ * 2) / (WF_RANGE_HZ / WF_WIDTH)));
+    #ifndef WIDEBAND
     printf("SSB audio rate  :%d\n",SSB_RATE);
-    printf("SSB audio decim :%d\n",SSB_DECIMATE);
-    printf("2nd FFT resol.  :%d\n",FFT_RESOLUTION_SMALL);
-    printf("2nd FTT smp/pass:%d\n",SAMPLES_FOR_FFT_SMALL);
+    printf("SSB audio decim :%d\n",(NB_SAMPLE_RATE / SSB_RATE));
+    printf("2nd FFT resol.  :%d\n",(SSB_RATE / 2 / WF_WIDTH));
+    printf("2nd FTT smp/pass:%d\n",(SSB_RATE / (SSB_RATE / 2 / WF_WIDTH)));
+    #endif
     
     
     #ifdef WIDEBAND
         init_fwb();
     #else
         init_fssb();
+        downmixer_init();
     #endif // WIDEBAND
-
-    
-    downmixer_init();
     
     // init the FIFO
     initpipe();
-    
-    // init waterfall drawing
-    init_wf_univ();
     
     // init the Websocket Server
     ws_init();
@@ -336,7 +324,7 @@ int c;
 		        hwtype = 1;
 		    }
     	#endif
-	#endif // WIDEBAND
+	#endif
        
 
     if(hwtype == 0)

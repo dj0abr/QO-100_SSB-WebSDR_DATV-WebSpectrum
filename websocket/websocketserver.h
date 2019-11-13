@@ -29,6 +29,10 @@
 
 #define WS_FR_OP_UNSUPPORTED 0xF
 
+#ifdef WIDEBAND
+    #define AUDIO_RATE 1 // dummy, not used for WB mode
+#endif
+
 // list of sockets, -1=inactive
 typedef struct {
     int socket;     // socket id

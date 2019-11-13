@@ -23,12 +23,12 @@
 * wf_univ.c ... drawing routines for waterfalls, using gdlib
 * 
 * usage:
-* drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, int _rightqrg, int res, int _tunedQRG, char *fn);
+* drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, int picwidthHz, int res, int _tunedQRG, char *fn);
 * 
 * id ... a unique number (used to create a temporary file name, see wf_univ.h)
 * fdata ... a double array containing the FFT result
 * _leftqrg ... frequency offset of the left margin of the bitmap (usually 0, the first FFT value)
-* _rightqrg ... frequency offset of the right margin of the bitmap (usually: FFTRESOLUTION in Hz * width in pixels)
+* picwidthHz ... frequency offset of the right margin of the bitmap (usually: FFTRESOLUTION in Hz * width in pixels)
 * res ... FFT resolution in Hz per FFT value (= Hz per pixel)
 * _tunedQRG ... frequency where the SDR receivers is tuned (used for displaying the frequncy in the title)
 * 
@@ -59,21 +59,17 @@ void drawFFTline(int id, gdImagePtr dst);
 void drawQrgTitles(int id, gdImagePtr dst);
 void scaleSamples(double *samples, int numSamples);
 
-void init_wf_univ()
-{
-}
-
-void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int _rightqrg, int res, int _tunedQRG)
+void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz, int res, int _tunedQRG)
 {
     // 1 byte: ID counter
     // 1 byte: waterfall ID
-    // 4 byte: eal qrg of the SDR's hardware tuner in Hz
+    // 4 byte: real qrg of the SDR's hardware tuner in Hz
     // 4 byte: right margin frequency in Hz
     // 4 byte: tuner frequency in Hz
     // 4 byte: resolution Hz per pixel
     // 4 byte: offset to tuner frequency in Hz
     // followed by the dBm data, 1 byte per pixel holding the dBm value
-    int right = _rightqrg / res;
+    int right = picwidthHz / res;
     unsigned char wfdata[right*2+22];
     int idx = 0;
     static unsigned char idcnt = 0;
@@ -84,19 +80,21 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int _rightqrg,
     wfdata[idx++] = id;
     
     // real qrg of the SDR's hardware tuner in Hz
-    wfdata[idx++] = _realqrg >> 24;
+     wfdata[idx++] = _realqrg >> 24;
     wfdata[idx++] = _realqrg >> 16;
     wfdata[idx++] = _realqrg >> 8;
     wfdata[idx++] = _realqrg;
     
     // offset of the right margin of the picture in Hz
-    wfdata[idx++] = _rightqrg >> 24;
-    wfdata[idx++] = _rightqrg >> 16;
-    wfdata[idx++] = _rightqrg >> 8;
-    wfdata[idx++] = _rightqrg;
+    // which is the width of the picture in Hz (600000)
+    wfdata[idx++] = picwidthHz >> 24;
+    wfdata[idx++] = picwidthHz >> 16;
+    wfdata[idx++] = picwidthHz >> 8;
+    wfdata[idx++] = picwidthHz;
     
     // frequency where the SDR is tuned in Hz
     int tqrg = _tunedQRG;
+
     wfdata[idx++] = tqrg >> 24;
     wfdata[idx++] = tqrg >> 16;
     wfdata[idx++] = tqrg >> 8;
@@ -109,11 +107,14 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int _rightqrg,
     wfdata[idx++] = res;
 
     // offset of the RX frequency to the tuner frequency in Hz
-    // which is 10489.525 MHz (DISPLAYED_FREQUENCY_KHZ)
+    // which is 10489.450 MHz (DISPLAYED_FREQUENCY_KHZ)
     // if a freq was recved via CIV, enter it here
     if(useCAT != 0 && civ_freq != 0)
     {
-        foffset = civ_freq - TUNED_FREQUENCY;
+		// if civ and sdr are on different band, we need to compensate by just using the kHz
+		int tf = (TUNED_FREQUENCY / 1000000) * 1000000;	// tf is the tunded qrg, only MHz
+		int kHz = civ_freq - ((civ_freq / 1000000) * 1000000); // only kHz
+		foffset = tf + kHz- TUNED_FREQUENCY;
     }
     
     wfdata[idx++] = foffset >> 24;

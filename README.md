@@ -4,7 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
-NEW ! Supports NB and WB transponder !
+Update V1.5:
+- totally new frequency calculations. Now it's possible to configure the NB monitor by just modifying the values in qo100websdr.h
+- frequency correction value in qo100websdr.h to compensate the bad crystals in most RTLsdr sticks.
 
 # NB-Transponder
 * Spectrum

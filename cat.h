@@ -3,6 +3,5 @@ int cat_init();
 
 extern int ser_command;
 extern int trx_frequency;
-extern int setIcomFrequency;
 extern int useCAT;
 

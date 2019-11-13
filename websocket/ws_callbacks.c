@@ -38,6 +38,7 @@
 #include "../setqrg.h"
 #include "../fifo.h"
 
+extern int useCAT;
 int connections = 0;
 
 // a new browser connected
@@ -111,7 +112,7 @@ void onmessage(int fd, unsigned char *msg)
     {
         // check if IP is authorized to control the SDRplay
         // allow only internal computers
-        if(memcmp(cli,"192.168",7))
+        if(useCAT && memcmp(cli,"192.168",7))
         {
             printf("ignore remote access %s for %s\n",msg, cli);
             free(cli);
@@ -157,6 +158,7 @@ void onmessage(int fd, unsigned char *msg)
         }
         if(strstr((char *)msg,"tunervl:"))
         {
+            // Browser sends a new tuner frequency
             freqval = atoi((char *)msg+8);
             setfreq = 8;
         }
@@ -170,8 +172,9 @@ void onmessage(int fd, unsigned char *msg)
             freqval = atoi((char *)msg+8);
             setfreq = 10;
         }
-        if(strstr((char *)msg,"catsetq:"))
+        if(strstr((char *)msg,"catsetq:") && !memcmp(cli,"192.168",7))
         {
+            // allow only local stations to activate CAT control
             freqval = atoi((char *)msg+8);
             setfreq = 11;
         }

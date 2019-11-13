@@ -475,7 +475,7 @@ var coltab = [
             function MouseMoveHandler(e)
             {
                 var e = window.event || e; // old IE support
-                var mval = tuneqrg/1e3 + (e.pageX * 200)/1e6;
+                var mval = tuneqrg/1e3 + (e.pageX * resolution)/1e6;
                 mval -= 0.001200; // needed to get right value from mouse pointer, reason unknown
                 $('#mousepos').html("mouse pointer: " + mval.toFixed(6) + " MHz");
             }
@@ -1133,9 +1133,9 @@ var coltab = [
                     vertline(10489800);
                 }
                 
-                // the spctrum display is drawn, everything finished
+                // the spctrum display is drawn
                 
-                // no do the calculations for the automatic level and gain settings
+                // do the calculations for the automatic level and gain settings
                 var ckb = $("#spekautolevel").is(':checked');
                 if(ckb && minval < 0)    // ignore invalid values
                 {
@@ -1674,11 +1674,12 @@ var coltab = [
                 {
                     var idx = pos+2;
                     rflock = arr[pos];
-                    tunerqrg = get32(arr.slice(idx));
-                    end = get32(arr.slice(idx+4));
-                    tuneqrg = get32(arr.slice(idx+8));
-                    resolution = get32(arr.slice(idx+12));
-                    foffset = get32(arr.slice(idx+16));
+                    tunerqrg = get32(arr.slice(idx));       // real qrg of the SDR's hardware tuner in Hz
+                    end = get32(arr.slice(idx+4));          // total width of the WF in Hz
+                    //console.log("Breite:" + end);
+                    tuneqrg = get32(arr.slice(idx+8));      // QRG of the left margin of the picture
+                    resolution = get32(arr.slice(idx+12));  // Hz per pixel
+                    foffset = get32(arr.slice(idx+16));     // offset of the RX (lower WF) freq to the SDR tuned freq
                     rxpix  = arr.slice(idx+20);
 					scaledBm();
                     pixwidth = end / resolution;
@@ -1731,7 +1732,7 @@ var coltab = [
             function showLock()
             {
                 lk = "sync-ing ............";
-                if(rflock == 1) lk = "LOCKED to PSK beacon";
+                if(rflock == 1) lk = "LOCKED to CW beacon";
                 if($("#sync").is(':checked') == false) lk = "off";
                 $("#lockstat").html(lk);
             }
@@ -1904,15 +1905,6 @@ var coltab = [
                     websocket.send("catonof:1\0");
                 else
                     websocket.send("catonof:0\0");
-            }
-            
-            function CATsetTRXonoff()
-            {
-                var ckb = $("#catsetqrgonoff").is(':checked');
-                if(ckb == true)
-                    websocket.send("catsetq:1\0");
-                else
-                    websocket.send("catsetq:0\0");
             }
             
             var trace_mode = 0; // 0=average, 1=peak
@@ -2109,7 +2101,7 @@ var coltab = [
         </head>
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V1.4</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V1.5</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2255,12 +2247,11 @@ var coltab = [
                     <input type="checkbox" id="catonoff" onclick="CATonoff()">Icom CAT
                 </div>
                 <div>
-                    <input type="checkbox" id="catsetqrgonoff" onclick="CATsetTRXonoff()">WF click sets TRX QRG
                 </div>
                 <div>
                 </div>
                 <div id="mousepos"></div>
-				<p style="color:red">remote control only for local stations !<br>No access from internet</p>
+				<p style="color:red">if Icom CAT active:<br>remote control only for local stations !<br>No access from internet</p>
             </div>
         </div>
         

@@ -50,7 +50,7 @@ int gainR = 50;
 #ifdef WIDEBAND
     int bwkHz = 8000;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
 #else
-    int bwkHz = 600;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
+    int bwkHz = 1536;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
 #endif // WIDEBAND
 
 int ifkHz = 0;      // 0 is used in this software
@@ -119,11 +119,10 @@ int init_SDRplay()
     grMode = mir_sdr_USE_RSP_SET_GR;
     if(devModel == 1) grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 
-    r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), ((double)TUNED_FREQUENCY/1e6),
+    double dqrg = TUNED_FREQUENCY;
+    r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), dqrg/1e6,
         (mir_sdr_Bw_MHzT)bwkHz, (mir_sdr_If_kHzT)ifkHz, rspLNA, &gRdBsystem,
         grMode, &samplesPerPacket, streamCallback, gainCallback, &cbContext);
-    
-    //printf("Delivering %d samples per streamCallback\n",samplesPerPacket);
 
 	if (r != mir_sdr_Success) {
 		printf("Failed to start SDRplay RSP device.\n");
@@ -131,8 +130,9 @@ int init_SDRplay()
 	}
 	
 	#ifndef WIDEBAND
-	// reduce the sample rate to 600kHz
-	mir_sdr_DecimateControl(1,4,0);
+	// narrow band
+	// reduce the sample rate
+	mir_sdr_DecimateControl(1,SR_MULTIPLIER,0);
     #endif
 
     mir_sdr_AgcControl(agcControl, setPoint, 0, 0, 0, 0, rspLNA);
@@ -168,8 +168,9 @@ void remove_SDRplay()
 
 void setTunedQrgOffset(unsigned int hz)
 {
-    mir_sdr_SetRf((double)(TUNED_FREQUENCY - hz),1,0);
-    //printf("rf : %.6f MHz\n",((double)(TUNED_FREQUENCY - hz))/1e6);
+    double dqrg = TUNED_FREQUENCY - hz;
+    mir_sdr_SetRf(dqrg,1,0);
+    printf("rf : %.6f MHz\n",dqrg/1e6);
 }
 
 /*
