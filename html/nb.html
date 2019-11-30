@@ -1657,7 +1657,7 @@ var coltab = [
                     // reconstruct the fft value
                     var fftval = rxpix1[idx++];
                     fftval <<= 8;
-                    fftval += rxpix[idx++];
+                    fftval += rxpix1[idx++];
                     
                     // calculate the dBm value
                     if (fftval < 1) fftval = 1;    
@@ -1713,7 +1713,7 @@ var coltab = [
                     foffset1 = get32(arr.slice(idx+16));
                     rxpix1  = arr.slice(idx+20);
 					scaledBm1();
-                    pixwidth1 = end / resolution;
+                    pixwidth1 = end1 / resolution1;
                     
                     drawWF1();
                     drawConnect();
