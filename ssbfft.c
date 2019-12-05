@@ -243,9 +243,10 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
 // calculate the position (offset in the FFT output values) of the CW beacon
 // NB_FFT_LENGTH/2 goes over a range of WF_RANGE_HZ Hz starting at DISPLAYED_FREQUENCY_KHZ
 // with a resolution of 10Hz per FFT value
-#define BEACON_OFFSET   ((CW_BEACON - DISPLAYED_FREQUENCY_KHZ * 1000L) / NB_RESOLUTION)
-#define BEACON_LOCKRANGE    1000    // check beacon QRG +- lockrange
+#define BEACON_OFFSET   (((long long)CW_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / (long long)NB_RESOLUTION)
+#define BEACON_LOCKRANGE    (long long)1000    // check beacon QRG +- lockrange
     
+//#define DIAGLOCK
     
 void beaconLock(double val, int pos)
 {
@@ -283,6 +284,9 @@ static int lastpos[CHECKPOS];
 
     if((ts % 2)==0 && (lastts != ts))
     {
+		#ifdef DIAGLOCK
+		printf("test lock. maxpos:%d searching:%lld to %lld\n",maxpos,(BEACON_OFFSET-BEACON_LOCKRANGE),(BEACON_OFFSET+BEACON_LOCKRANGE));
+		#endif
         lastts = ts;
         max = -9999999999;
         
@@ -293,14 +297,25 @@ static int lastpos[CHECKPOS];
         }
         lastpos[0] = maxpos;
         
-        // check if all pos ar identical
+        // check if all pos are identical
         for(int i=1; i<CHECKPOS; i++)
         {
             if(lastpos[i] != lastpos[0])
+			{
+				#ifdef DIAGLOCK
+				printf("not all %d measurements are identical\n",CHECKPOS);
+				#endif
                 return;
+			}
         }
 
-        if(maxpos == 0) return;
+        if(maxpos == 0) 
+		{
+			#ifdef DIAGLOCK
+			printf("maxpos is 0\n");
+			#endif
+			return;
+		}
         
         if(lastmaxpos != 0 && abs(lastmaxpos-maxpos) > 300 && bigstepdet < 4) 
         {
@@ -364,6 +379,9 @@ static int lastpos[CHECKPOS];
         }
         else
         {
+			#ifdef DIAGLOCK
+			printf("already equal position\n");
+			#endif
             rflock = 1;
         }
         lastmaxpos = maxpos;
