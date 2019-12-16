@@ -219,6 +219,12 @@ int c;
     {
         switch (c) {
             case 'f':
+                #ifdef WIDEBAND
+                printf("\n the option -f is not valid in wideband mode, adjust qo100websdr.h instead\n");
+                printf("see LNB_CRYSTAL and LNB_MULTIPLIER\n\n");
+                return 1;
+                #endif
+                
                 TUNED_FREQUENCY = strtod(optarg,NULL); // in Hz
                 if(TUNED_FREQUENCY < 100000 || TUNED_FREQUENCY > 1500000000)
                 {

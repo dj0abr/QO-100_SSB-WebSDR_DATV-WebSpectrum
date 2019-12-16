@@ -37,7 +37,23 @@
 	#ifndef	SDR_PLAY
 		#define SDR_PLAY				
 	#endif
-	
+    
+    // definitions which may be modified to adapt the monitor to your needs
+    // ====================================================================
+    
+    // default SDR tuner frequency, which must be the middle of the WB transponder 10495 MHZ
+    // enter the LNB crystal frequency and choose the multiplier for a 25 or 27 MHz LNB
+    #define LNB_CRYSTAL		24	    // enter the Crystal or external ref. frequency of your LNB in MHz
+    #define LNB_MULTIPLIER	390000	// enter the multiplier*1000 wich is 390 for a 25 MHz LNB
+    //#define LNB_MULTIPLIER	361112	// enter the multiplier*1000 wich is 361,112 for a 27 MHz LNB 
+
+    // this port must be opened in the router in order to use this software from the internet
+    // (the usual web port 80 must also be open)
+    #define WEBSOCK_PORT    8090
+
+    
+    // fixed values DO NOT change !
+    // ============================
 	// 10 MHz sample rate, the maximum of the SDRplay hardware
     #define SDR_SAMPLE_RATE 10000000    
     
@@ -50,16 +66,13 @@
     #define WF_WIDTH    1600            
     
     // RX frequency of the left margin of the WF/spectrum picture in kHz
-    #define DISPLAYED_FREQUENCY_KHZ  10491000  
-    
-    // default SDR tuner frequency, which must be the middle of the WB transponder 10495 MHZ
-    // which is 10495 - 9750 = 745 MHz at the LNB output
-    // !!! this value is overwritten by the command line parameter -f !!! (used for non-standard LNB LOs)
-    #define _TUNED_FREQUENCY    745000000
+    #define DISPLAYED_FREQUENCY_KHZ  10491550  
 
-    // this port must be opened in the router in order to use this software from the internet
-    // (the usual web port 80 must also be open)
-    #define WEBSOCK_PORT    8090
+    
+    // calculated values DO NOT change !
+    // =================================
+    #define LNB_LO		(LNB_CRYSTAL * LNB_MULTIPLIER)
+    #define _TUNED_FREQUENCY    (((DISPLAYED_FREQUENCY_KHZ + 4000) - LNB_LO) * 1000)
 
 #else  
     // definitions for the NARROWBAND monitor
@@ -157,7 +170,7 @@
         #define AUDIO_RATE 8000
     #endif
 
-#endif // WIDEBAND
+#endif
 
 
 // for the RTLSDR only !

@@ -648,6 +648,9 @@ var coltab = [
                 
                 var qrg = 10498000;
                 ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+                
+                var qrg = 10499000;
+                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
             }
             
             function drawWFtitle_eshail_tx(id)
@@ -681,6 +684,9 @@ var coltab = [
                 ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
                 var qrg = 10498000;
+                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+
+                var qrg = 10499000;
                 ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
             }
             
@@ -745,7 +751,7 @@ var coltab = [
                 ctx.fillRect(x1,1,x2-x1,19);
                 
                 ctx.fillStyle = "#ffffff";
-                ctx.fillText("Simplex 1MS1",cpos(10491500),15);
+                ctx.fillText("Simplex 1MS1",cpos(10491700),15);
                 ctx.fillText("Simplex 1MS2",cpos(10493000),15);
                 
                 // Simplex DATV
@@ -807,15 +813,25 @@ var coltab = [
                 var x2 = cpos(10498990);
                 ctx.fillRect(x1,1,x2-x1,19);
                 
+                var x1 = cpos(10499010);
+                var x2 = cpos(10499240);
+                ctx.fillRect(x1,1,x2-x1,19);
+                
+                var x1 = cpos(10499260);
+                var x2 = cpos(10499490);
+                ctx.fillRect(x1,1,x2-x1,19);
+                
                 ctx.fillStyle = "#ffffff";
-                ctx.fillText("125S1",cpos(10497030),15);
-                ctx.fillText("125S2",cpos(10497280),15);
-                ctx.fillText("125S3",cpos(10497530),15);
-                ctx.fillText("125S4",cpos(10497780),15);
-                ctx.fillText("125S5",cpos(10498030),15);
-                ctx.fillText("125S6",cpos(10498280),15);
-                ctx.fillText("125S7",cpos(10498530),15);
-                ctx.fillText("125S8",cpos(10498780),15);
+                ctx.fillText("125S1", cpos(10497030),15);
+                ctx.fillText("125S2", cpos(10497280),15);
+                ctx.fillText("125S3", cpos(10497530),15);
+                ctx.fillText("125S4", cpos(10497780),15);
+                ctx.fillText("125S5", cpos(10498030),15);
+                ctx.fillText("125S6", cpos(10498280),15);
+                ctx.fillText("125S7", cpos(10498530),15);
+                ctx.fillText("125S8", cpos(10498780),15);
+                ctx.fillText("125S9", cpos(10499030),15);
+                ctx.fillText("125S10",cpos(10499280),15);
             }
 
             function drawMODEtitle2(id)
@@ -842,7 +858,7 @@ var coltab = [
                 ctx.fillRect(x1,1,x2-x1,19);
                 
                 ctx.fillStyle = "#ffffff";
-                ctx.fillText("Narrow Beacon",cpos(10491500),15);
+                ctx.fillText("Narrow Beacon",cpos(10491700),15);
                 ctx.fillText("Simplex 1MS2",cpos(10493000),15);
                 
                 // Simplex DATV
@@ -912,12 +928,17 @@ var coltab = [
                 var x2 = cpos(10498990);
                 ctx.fillRect(x1,1,x2-x1,19);
                 
+                var x1 = cpos(10499010);
+                var x2 = cpos(10499490);
+                ctx.fillRect(x1,1,x2-x1,19);
+                
                 ctx.fillStyle = "#ffffff";
                 ctx.font = "bold 14px Arial";
                 ctx.fillText("333KS1",cpos(10497110),15);
                 ctx.fillText("333KS2",cpos(10497610),15);
                 ctx.fillText("333KS3",cpos(10498110),15);
                 ctx.fillText("333KS4",cpos(10498610),15);
+                ctx.fillText("333KS5",cpos(10499110),15);
             }
 
             function drawMODEtitle4(id)
@@ -1238,6 +1259,7 @@ var coltab = [
                     vertline(10495000,0.2);
                     vertline(10496000,0.2);
                     vertline(10498000,0.2);
+                    vertline(10499000,0.2);
                     
                     vertline(10494000,1);
                     vertline(10497000,1);

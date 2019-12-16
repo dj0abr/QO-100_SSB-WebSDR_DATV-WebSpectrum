@@ -107,7 +107,8 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                 * 
                 */
                 
-                for(wfbins=(WB_FFT_LENGTH/2+1000); wfbins<(WB_FFT_LENGTH); wfbins+=picture_div)
+                int minleft = WB_FFT_LENGTH/2+1000;
+                for(wfbins=minleft; wfbins<(WB_FFT_LENGTH); wfbins+=picture_div)
                 {
                     if(idx >= WF_WIDTH) break; // all wf pixels are filled
                     
@@ -119,6 +120,16 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                         double v = sqrt((real * real) + (imag * imag));
                         if(v > maxv) maxv = v;
                     }
+                    
+                    // the edges of the spectrum are in the SDRs filter range already
+                    // compensate by raising the level at the edges
+                    if(wfbins < (minleft+400))
+                    {
+                        int ap = 400 - (wfbins - minleft);
+                        ap /= 6;
+                        maxv *= (210 + ap);
+                        maxv /= 200;
+                    }
 
                     // level correction
                     maxv /= gaincorr;
@@ -128,7 +139,8 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                     idx++;
                 }
 
-                for(wfbins=0; wfbins<(WB_FFT_LENGTH/2-1000); wfbins+=picture_div)
+                int maxright = WB_FFT_LENGTH/2-1000;
+                for(wfbins=0; wfbins<maxright; wfbins+=picture_div)
                 {
                     if(idx >= WF_WIDTH) break; // all wf pixels are filled
                     
@@ -139,6 +151,16 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                         imag = wb_cpout[wfbins+bin10][1];
                         double v = sqrt((real * real) + (imag * imag));
                         if(v > maxv) maxv = v;
+                    }
+                    
+                    // the edges of the spectrum are in the SDRs filter range already
+                    // compensate by raising the level at the edges
+                    if(wfbins > (maxright-400))
+                    {
+                        int ap = wfbins - (maxright-400);
+                        ap /= 6;
+                        maxv *= (210 + ap);
+                        maxv /= 200;
                     }
 
                     // level correction
