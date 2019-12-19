@@ -66,7 +66,7 @@
     #define WF_WIDTH    1600            
     
     // RX frequency of the left margin of the WF/spectrum picture in kHz
-    #define DISPLAYED_FREQUENCY_KHZ  10491550  
+    #define DISPLAYED_FREQUENCY_KHZ  10491500  
 
     
     // calculated values DO NOT change !

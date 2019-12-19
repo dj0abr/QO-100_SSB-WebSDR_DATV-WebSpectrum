@@ -722,7 +722,7 @@ var coltab = [
                 // RB-TV
                 ctx.fillStyle = "#6f2f9f";
                 var x1 = cpos(10497000);
-                var x2 = cpos(10499000);
+                var x2 = cpos(10499500);
                 ctx.fillRect(x1,1,x2-x1,19);
                 ctx.fillStyle = "#ffffff";
                 ctx.fillText("RB-TV",cpos(10498000),15);
@@ -1134,6 +1134,7 @@ var coltab = [
                         // description
                         var bw = ((x-redge)*5000)/1000;
                         if(bw > 1900) bw = 2000;
+                        else if(bw > 1400) bw = 1500;
                         else if(bw > 900) bw = 1000;
                         else if(bw > 450) bw = 500;
                         else if(bw > 300) bw = 333;
@@ -1145,7 +1146,7 @@ var coltab = [
                         context.fillText(bw,(x-redge)/2+redge,y3db-7);
                         
                         var freq = ((x-redge)/2+redge)*5000 / 1000000;
-                        freq = Number(freq) + 10491;
+                        freq = Number(freq) + tuneqrg/1000;
                         freq = Number(freq) - 10000;
                         context.fillText(freq.toFixed(2) + "0",(x-redge)/2+redge,y3db+15);
                         
