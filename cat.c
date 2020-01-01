@@ -5,7 +5,7 @@
  * 
  * cat.c ... Transceiver CAT interface
  * 
- * mainly handles the serial interfaceand routes commends to the CAT modules
+ * mainly handles the serial interface and routes commends to the CAT modules
  * 
  * */
 

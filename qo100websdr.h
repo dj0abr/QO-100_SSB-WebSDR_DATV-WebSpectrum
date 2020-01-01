@@ -28,11 +28,24 @@
 
 //#define SOUNDLOCAL    // activate to send the sound to the local sound card (and not to the browser)
 
-// the WIDEBAND definition is done in the Makefile
+// ====================================================
+// global definitions describing the LNB/Hardware/Mixer
+// ====================================================
+// enter the LNB crystal frequency and choose the multiplier for a 25 or 27 MHz LNB
+#define LNB_CRYSTAL		24	    // enter the Crystal or external ref. frequency of your LNB in MHz
+#define LNB_MULTIPLIER	390000	// enter the multiplier*1000 wich is 390 for a 25 MHz LNB
+//#define LNB_MULTIPLIER	361112	// enter the multiplier*1000 wich is 361,112 for a 27 MHz LNB 
 
-// definitions for the WIDEBAND (DATV) spectrum monitor
+// global calculations, DO NOT change !
+// LO of the LNB's internal mixer in kHz
+#define LNB_LO		(LNB_CRYSTAL * LNB_MULTIPLIER)
+
+// =====================================================
+// definitions für the QO-100 wide band transponder mode
+// =====================================================
+// "WIDEBAND" is defined in the Makefile
+
 #ifdef WIDEBAND
-    // definitions for the WIDEBAND monitor
     // SDRplay must be used in wideband mode (RTLsdr is too slow)
 	#ifndef	SDR_PLAY
 		#define SDR_PLAY				
@@ -40,20 +53,17 @@
     
     // definitions which may be modified to adapt the monitor to your needs
     // ====================================================================
-    
-    // default SDR tuner frequency, which must be the middle of the WB transponder 10495 MHZ
-    // enter the LNB crystal frequency and choose the multiplier for a 25 or 27 MHz LNB
-    #define LNB_CRYSTAL		24	    // enter the Crystal or external ref. frequency of your LNB in MHz
-    #define LNB_MULTIPLIER	390000	// enter the multiplier*1000 wich is 390 for a 25 MHz LNB
-    //#define LNB_MULTIPLIER	361112	// enter the multiplier*1000 wich is 361,112 for a 27 MHz LNB 
 
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)
     #define WEBSOCK_PORT    8090
-
+    
+    // RX frequency of the left margin of the WF/spectrum picture in kHz
+    #define DISPLAYED_FREQUENCY_KHZ  10491500  
     
     // fixed values DO NOT change !
     // ============================
+    
 	// 10 MHz sample rate, the maximum of the SDRplay hardware
     #define SDR_SAMPLE_RATE 10000000    
     
@@ -65,20 +75,23 @@
     // width of the waterfall in pixels (must match the graphic width in the HTML file)
     #define WF_WIDTH    1600            
     
-    // RX frequency of the left margin of the WF/spectrum picture in kHz
-    #define DISPLAYED_FREQUENCY_KHZ  10491500  
-
-    
     // calculated values DO NOT change !
     // =================================
-    #define LNB_LO		(LNB_CRYSTAL * LNB_MULTIPLIER)
-    #define _TUNED_FREQUENCY    (((DISPLAYED_FREQUENCY_KHZ + 4000) - LNB_LO) * 1000)
+    
+    #define _TUNED_FREQUENCY    (((DISPLAYED_FREQUENCY_KHZ + (WF_RANGE_HZ / 2)) - LNB_LO) * 1000)
 
 #else  
-    // definitions for the NARROWBAND monitor
-    
+
+    // =======================================================
+    // definitions für the QO-100 narrow band transponder mode
+    // =======================================================
+
     // definitions which may be modified to adapt the monitor to your needs
     // ====================================================================
+    
+    // RX frequency of the left margin of the waterfall/spectrum picture in kHz
+    // the complete picture goes from DISPLAYED_FREQUENCY_KHZ to DISPLAYED_FREQUENCY_KHZ+(WF_RANGE_HZ/1000)
+    #define DISPLAYED_FREQUENCY_KHZ  10489525  
     
     // width of the waterfall/spectrum display in Hz
     // if modified: check the SSB and AUDIO rate assignments below, and
@@ -92,6 +105,16 @@
     //    WF_RANGE_HZ * 2 * SR_MULTIPLIER is a value between 900k and 2.4M
     #define SR_MULTIPLIER   4
     
+    #ifdef SDR_PLAY
+        #if (((WF_RANGE_HZ * 2 * SR_MULTIPLIER)<2000000) || ((WF_RANGE_HZ * 2 * SR_MULTIPLIER)>10000000))
+            #warning SDRplay: CHOOSE OTHER SR_MULTIPLIER
+        #endif
+    #else
+        #if (((WF_RANGE_HZ * 2 * SR_MULTIPLIER)<900000) || ((WF_RANGE_HZ * 2 * SR_MULTIPLIER)>2400000))
+            #warning RTLSDR: CHOOSE OTHER SR_MULTIPLIER
+        #endif
+    #endif
+    
     // add a correction value to the SDR tuner frequency to compensate frequency
     // errors of the SDR hardware's crystal oscillator ( 0 = no correction)
     // this value is "ppm". 
@@ -100,19 +123,7 @@
     // small differences compensate with the AUTO-LOCK function in the browser
     // use the CW beacon for orientation
     // (not required for the SDRplay)
-    #define RTL_TUNER_CORRECTION        -51
-    
-    // RX frequency of the left margin of the waterfall/spectrum picture in kHz
-    #define DISPLAYED_FREQUENCY_KHZ  10489525  
-    
-    // Frequency of the CW Beacon which is used for automatic freq correction, in Hz
-    #define CW_BEACON   10489550000
-    
-    // default SDR tuner frequency in Hz, which must be the left margin of the NB transponder
-    // which is 10489.55 (CW Beacon) minus 25 KHz for a little left margin
-    // 10489.525 - 9750 = 739.525 MHz
-    // !!! this value is overwritten by the command line parameter -f !!! (used for non-standard LNB LOs)
-    #define _TUNED_FREQUENCY    739525000       
+    #define RTL_TUNER_CORRECTION        0
     
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)
@@ -121,7 +132,15 @@
     
     // fixed values DO NOT change !
     // ============================
-	
+
+    // default SDR tuner frequency in Hz, which must be the left margin of the spectrum
+    // default: 10489.55 (CW Beacon) minus 25 KHz for a little left margin:
+    // (10489525 - 9750000)*1000 = 739525000 Hz
+    #define _TUNED_FREQUENCY    ((DISPLAYED_FREQUENCY_KHZ - LNB_LO) * 1000)       
+
+    // Frequency of the CW Beacon which is used for automatic freq correction, in Hz
+    #define CW_BEACON   10489550000
+
 	// SDR receiver's capture rate
 	// we use twice the bandwidth, so the FFT will return the requested bandwidth in the lower half of the FFT data
 	// the upper half (which contains the same bandwidth of below the tuner frequency) is not used to get a cleaner display
