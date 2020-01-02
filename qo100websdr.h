@@ -115,6 +115,10 @@
         #endif
     #endif
     
+    #if (DISPLAYED_FREQUENCY_KHZ > 10489535)
+        #warning DISPLAYED_FREQUENCY_KHZ too high, there must be a marging of at least 15kHz to the beacon
+    #endif
+    
     // add a correction value to the SDR tuner frequency to compensate frequency
     // errors of the SDR hardware's crystal oscillator ( 0 = no correction)
     // this value is "ppm". 

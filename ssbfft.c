@@ -259,11 +259,7 @@ static int bigstepdet = 0;
 static int lastmaxpos = 0;
 static int lastpos[CHECKPOS];
 
-    // we lock to the CW Beacon
-    
-
-    // the CW beacon is 25kHz above the left edge
-    // this is at bin 2500
+    // lock to the CW Beacon
     
     // between bin 1500 and 3500 measure the maximum
     // this give a lock range of 20 kHz
@@ -329,34 +325,34 @@ static int lastpos[CHECKPOS];
         
         // correction step
         int cneg = 0, cpos = 0;
-        int mini = 2495, maxi=2505;
+        int mini = BEACON_OFFSET-5, maxi=BEACON_OFFSET+5;
         if(hwtype == 1)
         {
             // SDRPLAY
-            cpos = (2500-maxpos);
-            cneg = (maxpos-2500);
+            cpos = (BEACON_OFFSET-maxpos);
+            cneg = (maxpos-BEACON_OFFSET);
         }
         
         if(hwtype == 2)
         {
             // RTL-sdr
-            cpos = (2500-maxpos);
-            cneg = (maxpos-2500);
-            mini = 2477;
-            maxi = 2523;
+            cpos = (BEACON_OFFSET-maxpos);
+            cneg = (maxpos-BEACON_OFFSET);
+            mini = BEACON_OFFSET-23;
+            maxi = BEACON_OFFSET+23;
         }
         
-        if(maxpos > 2650 || maxpos < 2350)
+        if(maxpos > (BEACON_OFFSET+150) || maxpos < (BEACON_OFFSET-150))
         {
             cpos *= 5;
             cneg *= 5;
         }
-        else if(maxpos > 2600 || maxpos < 2400)
+        else if(maxpos > (BEACON_OFFSET+100) || maxpos < (BEACON_OFFSET-100))
         {
             cpos *= 3;
             cneg *= 3;
         }
-        else if(maxpos > 2550 || maxpos < 2450)
+        else if(maxpos > (BEACON_OFFSET+50) || maxpos < (BEACON_OFFSET-50))
         {
             cpos *= 2;
             cneg *= 2;

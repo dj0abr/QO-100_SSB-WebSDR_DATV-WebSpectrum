@@ -889,9 +889,12 @@ var coltab = [
                 
                 // variables to store min/max values for this single path
                 var n_maxval = -999999;
-                var n_minval = 999999;
-				var beacon_maxval = -999999;
+                var beacon_maxval = -999999;
 				var beacon_mid_maxval = -999999;
+				var n_minval_1 = 999999;
+				var n_minval_2 = 999999;
+				var n_minval_3 = 999999;
+				var n_minval_4 = 999999;
 				
 				// variable to calculate lowest 0dB position
 				var mittel = 0;
@@ -901,6 +904,13 @@ var coltab = [
                 var xm2 = cpos(10489553);
                 var xm3 = cpos(10489797);
                 var xm4 = cpos(10489803);
+                
+                // NB-Transponder, frequencies to measure transponder noise 
+                // close to the beacon and outside band, usually there is nobody transmitting
+                var tn1 = cpos(10489545);
+                var tn2 = cpos(10489540);
+                var tn3 = cpos(10489805);
+                var tn4 = cpos(10489810);
 
                 // storage for the dB value for each horizontal pixel
                 // used for dB label
@@ -986,16 +996,17 @@ var coltab = [
 					// sum all values for the mean value calculation
                     mittel += mv;
                     
-                    // find the minumim value
-                    if(mv < n_minval)
-                      n_minval = mv;
+                    // store four minumim values
+                    if(x == tn1 && mv < n_minval_1) n_minval_1 = mv;
+                    if(x == tn2 && mv < n_minval_2) n_minval_2 = mv;
+                    if(x == tn3 && mv < n_minval_3) n_minval_3 = mv;
+                    if(x == tn4 && mv < n_minval_4) n_minval_4 = mv;
                         
                     // draw the spectrum line
                     context.lineTo(x,scale(mv));
 
 					// add value to end of array (used for dB-Labels)
 					pntarr[x] = mv;
-					//pntarr.push(mv);
                 }
                 
                 // mean value calculation
@@ -1008,10 +1019,17 @@ var coltab = [
                 context.stroke();
                 
                 // change minval only if bigger difference to old value to avaiod flickering
-                if(Math.abs(minval - n_minval) > 0.6)
+                // get the minimum level close to the beacon freq tn1-tn4
+                // only use the value if these four values are close together
+                // to avoid triggering on a TX signal
+                var valtn = getTransponderNoiselevel(n_minval_1,n_minval_2,n_minval_3,n_minval_4);
+                if(valtn > -200)
                 {
-                    minval = n_minval;
+                    // only if valid
+                    minval = valtn;
                 }
+
+                // take the max value
                 maxval = n_maxval;
                 
                 // now the spectrum is drawn, make the nice features, lables ...
@@ -1133,7 +1151,7 @@ var coltab = [
                     vertline(10489800);
                 }
                 
-                // the spctrum display is drawn
+                // the spectrum display is drawn
                 
                 // do the calculations for the automatic level and gain settings
                 var ckb = $("#spekautolevel").is(':checked');
@@ -1141,7 +1159,7 @@ var coltab = [
                 {
                     // calculate speclevel and specgain so that
                     // minval goes to y=(height-5) and maxval goes to y=15
-                    var ymin = 145; // min/max positions in screen coordinates
+                    var ymin = 140; // min/max positions in screen coordinates
                     var ymax = 15;
                     var maxv = maxval;
                     if(beacon_mid_maxval > maxval)
@@ -1187,6 +1205,56 @@ var coltab = [
                     context.moveTo(x, 0);
                     context.lineTo(x, height-1);
                     context.stroke();
+                }
+                
+                function getTransponderNoiselevel(v1, v2, v3, v4)
+                {
+                    //console.log("Noise:"+v1+" "+v2+" "+v3+" "+v4);
+                    var arr = new Array(4);
+                    arr[0] = v1;
+                    arr[1] = v2;
+                    arr[2] = v3;
+                    arr[3] = v4;
+                    // v1-4 are the measured levels at 4 frequencies where usually nobody transmits
+                    // check if the values are close together, then return mean value
+                    // if the values are not close somebody is transmitting and the values are invalid
+                    
+                    // measure max and min level
+                    var min = 9999;
+                    var max = -9999;
+                    for(var i=0; i<4; i++)
+                    {
+                        if(min > arr[i]) min = arr[i];
+                        if(max < arr[i]) max = arr[i];
+                        
+                    }
+                    
+                    // remove the lowest and highest value
+                    var cnt = 0;
+                    for(var i=0; i<4; i++)
+                    {
+                        if(arr[i] == min) {arr[i] = -200;cnt++}
+                        if(arr[i] == max) {arr[i] = -200;cnt++}
+                        if(cnt==2) break;   // stop after two checks
+                    }
+                    
+                    // get the two available values
+                    var valarr = new Array(2);
+                    var vidx = 0;
+                    for(var i=0; i<4; i++)
+                    {
+                        if(arr[i] != -200) valarr[vidx++] = arr[i];
+                    }
+                    
+                    // check if the two values are within a range of 5 dB
+                    var diff = valarr[0] - valarr[1];
+                    if(diff < 0) diff = -diff;
+                    if(diff >= 5) return -200;  // measurement is invalid
+                    
+                    // return the mean value of both levels
+                    var nbnoise = (valarr[0] + valarr[1]) / 2;
+                    //console.log("res:" + nbnoise);
+                    return nbnoise;
                 }
             }
             
