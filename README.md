@@ -6,6 +6,7 @@ uses any Browser in your network or Internet to view / listen your SDR data
 
 Update V1.6:
 - prepared for the new upcoming NB bandplan
+- new 500kHz segment in WB bandplan included
 - automatically measures transponder noise (nice for comparing dishes and receivers)
 
 Update V1.5:
