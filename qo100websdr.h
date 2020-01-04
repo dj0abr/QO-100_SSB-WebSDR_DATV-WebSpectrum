@@ -32,13 +32,22 @@
 // global definitions describing the LNB/Hardware/Mixer
 // ====================================================
 // enter the LNB crystal frequency and choose the multiplier for a 25 or 27 MHz LNB
-#define LNB_CRYSTAL		24	    // enter the Crystal or external ref. frequency of your LNB in MHz
+#define LNB_CRYSTAL		24	    // enter the crystal or external ref. frequency of your LNB in MHz
 #define LNB_MULTIPLIER	390000	// enter the multiplier*1000 wich is 390 for a 25 MHz LNB
 //#define LNB_MULTIPLIER	361112	// enter the multiplier*1000 wich is 361,112 for a 27 MHz LNB 
 
+// if a downmixer is used, enter the mixer's output frequency here (only MHz, i.e.: 439)
+// if no downmixer is used, enter 0
+#define DOWNMIXER_OUTQRG       0       
+
 // global calculations, DO NOT change !
-// LO of the LNB's internal mixer in kHz
-#define LNB_LO		(LNB_CRYSTAL * LNB_MULTIPLIER)
+#if DOWNMIXER_OUTQRG == 0
+    // LO of the LNB's internal mixer in kHz
+    #define LNB_LO		(LNB_CRYSTAL * LNB_MULTIPLIER)
+#else
+    // sum-LO of the complet chain: LNB and Downmixer in DISPLAYED_FREQUENCY_KHZ
+    #define LNB_LO		((10489 - DOWNMIXER_OUTQRG)*1000)
+#endif
 
 // =====================================================
 // definitions für the QO-100 wide band transponder mode
@@ -85,25 +94,62 @@
     // =======================================================
     // definitions für the QO-100 narrow band transponder mode
     // =======================================================
+    
+    // these values may be changed according to the users needs
+    // ========================================================
+    
+    // add a correction value to the SDR tuner frequency to compensate frequency
+    // errors of the SDR hardware's crystal oscillator ( 0 = no correction)
+    // this value is "ppm". 
+    // usual values for the RTLsdr between -100 and +100 ppm
+    // !!! this setting depends on the individual SDR hardware. First set it to 0, then enter a value !!!
+    // small differences compensate with the AUTO-LOCK function in the browser
+    // use the CW beacon for orientation
+    #define RTL_TUNER_CORRECTION        0
+    #define SDRPLAY_TUNER_CORRECTION    -15
+    
+    // this port must be opened in the router in order to use this software from the internet
+    // (the usual web port 80 must also be open)
+    #define WEBSOCK_PORT    8091
+    
+    
+    // fixed values DO NOT change !
+    // ============================
 
-    // definitions which may be modified to adapt the monitor to your needs
-    // ====================================================================
+    // we always capture the complete NB transponder over its total size
+    // beginning at 10489,250 MHz with a range of 900kHz to 10490,150 MHz
+    // the selection of a part of these data are done in the browser
     
-    // RX frequency of the left margin of the waterfall/spectrum picture in kHz
-    // the complete picture goes from DISPLAYED_FREQUENCY_KHZ to DISPLAYED_FREQUENCY_KHZ+(WF_RANGE_HZ/1000)
-    #define DISPLAYED_FREQUENCY_KHZ  10489525  
+    // RX frequency of the left margin of the waterfall/spectrum in kHz
+    // the complete samples go from DISPLAYED_FREQUENCY_KHZ to DISPLAYED_FREQUENCY_KHZ+(WF_RANGE_HZ/1000)
+    #define DISPLAYED_FREQUENCY_KHZ  10489250  
     
-    // width of the waterfall/spectrum display in Hz
+    // width of the waterfall/spectrum in Hz
     // if modified: check the SSB and AUDIO rate assignments below, and
     // check if the default rates are integer parts (see below: SSB_RATE and AUDIO_RATE)
-    #define WF_RANGE_HZ 300000 
+    #define WF_RANGE_HZ 900000 
     
-    // set the multiplier to 2,4,8,16 or 32 so that
+    // Frequency of the CW Beacon which is used for automatic freq correction, in Hz
+    #define CW_BEACON   10489550000
+
+   	// we need one FFT value every 10Hz for the lower waterfall and the SSB demodulator
+	// the Waterfall speed will be NB_RESOLUTION lines/s
+	// if this is modified, the lower WF resolution must be also modified and the SSB demodulator may sound different
+    #define NB_RESOLUTION   10  
+    
+    // width of the waterfall in pixels (must match the graphic width in the HTML file)
+    #define WF_WIDTH    1500            
+
+    // set the multiplier to 1(only RTLsdr),2,4,8,16 or 32 so that
     // for SDRplay:
     //    WF_RANGE_HZ * 2 * SR_MULTIPLIER is a value between 2M and 10M
     // for RTLsdr:
     //    WF_RANGE_HZ * 2 * SR_MULTIPLIER is a value between 900k and 2.4M
-    #define SR_MULTIPLIER   4
+    #ifdef SDR_PLAY
+        #define SR_MULTIPLIER   2   // default sample rate: 0.9 * 2 * 2 = 3.6M
+    #else
+        #define SR_MULTIPLIER   1   // default sample rate: 0.9 * 2 * 1 = 1.8M
+    #endif
     
     #ifdef SDR_PLAY
         #if (((WF_RANGE_HZ * 2 * SR_MULTIPLIER)<2000000) || ((WF_RANGE_HZ * 2 * SR_MULTIPLIER)>10000000))
@@ -114,67 +160,33 @@
             #warning RTLSDR: CHOOSE OTHER SR_MULTIPLIER
         #endif
     #endif
-    
-    #if (DISPLAYED_FREQUENCY_KHZ > 10489535)
-        #warning DISPLAYED_FREQUENCY_KHZ too high, there must be a marging of at least 15kHz to the beacon
-    #endif
-    
-    // add a correction value to the SDR tuner frequency to compensate frequency
-    // errors of the SDR hardware's crystal oscillator ( 0 = no correction)
-    // this value is "ppm". 
-    // usual values for the RTLsdr between -100 and +100 ppm
-    // !!! this setting depends on the individual SDR hardware. First set it to 0, then enter a value !!!
-    // small differences compensate with the AUTO-LOCK function in the browser
-    // use the CW beacon for orientation
-    // (not required for the SDRplay)
-    #define RTL_TUNER_CORRECTION        0
-    
-    // this port must be opened in the router in order to use this software from the internet
-    // (the usual web port 80 must also be open)
-    #define WEBSOCK_PORT    8091
-    
-    
-    // fixed values DO NOT change !
-    // ============================
+
+    // calculated values DO NOT change !
+    // =================================
 
     // default SDR tuner frequency in Hz, which must be the left margin of the spectrum
     // default: 10489.55 (CW Beacon) minus 25 KHz for a little left margin:
     // (10489525 - 9750000)*1000 = 739525000 Hz
     #define _TUNED_FREQUENCY    ((DISPLAYED_FREQUENCY_KHZ - LNB_LO) * 1000)       
 
-    // Frequency of the CW Beacon which is used for automatic freq correction, in Hz
-    #define CW_BEACON   10489550000
-
 	// SDR receiver's capture rate
 	// we use twice the bandwidth, so the FFT will return the requested bandwidth in the lower half of the FFT data
 	// the upper half (which contains the same bandwidth of below the tuner frequency) is not used to get a cleaner display
 	// (the WB monitor uses both halfs)
-    #define NB_SAMPLE_RATE     (WF_RANGE_HZ * 2)
+    #define NB_SAMPLE_RATE     (WF_RANGE_HZ * 2)                // 900000*2= 1.800.000
 	#define SDR_SAMPLE_RATE    (NB_SAMPLE_RATE * SR_MULTIPLIER)
-	
-	// we need one FFT value every 10Hz for the lower waterfall and the SSB demodulator
-	// the Waterfall speed will be NB_RESOLUTION lines/s
-	// if this is modified, the lower WF resolution must be also modified and the SSB demodulator may sound different
-    #define NB_RESOLUTION   10  
-    
-    // width of the waterfall in pixels (must match the graphic width in the HTML file)
-    #define WF_WIDTH    1500            
-    
-    
-    // calculated values DO NOT change !
-    // =================================
     
     // number of input and output data of the FFT
     // we will only use the lower half of the output data
-    // i.e.: 600.000 / 10 = 60.000 samples input and 60.000 bins FFT output, where 30.000 are used
-    // these 30.000 bins show the spectrum of 300kHz with a resolution of 10 Hz
-    #define NB_FFT_LENGTH   (NB_SAMPLE_RATE / NB_RESOLUTION)
+    // i.e.: 1.800.000 / 10 = 180.000 samples input and 180.000 bins FFT output, where 90.000 are used
+    // these 90.000 bins show the spectrum of 900kHz with a resolution of 10 Hz
+    #define NB_FFT_LENGTH   (NB_SAMPLE_RATE / NB_RESOLUTION)    // 1.800.000/10 = 180.000
     
     // we have more FFT data as we can show in the display (display resolution: WF_WIDTH)
     // this value is the oversampling and MUST be an integer number !!!
-    // i.e.: NB_FFT_LENGTH/2 = 30.000 divided by WF_WIDTH=1500 is 20
-    // so we will use 20 FFT values for one screen pixel
-    #define NB_OVERSAMPLING ((NB_FFT_LENGTH/2) / WF_WIDTH)
+    // the minimum bandwidth that we want to display with full resolution (WF_WIDTH) is 150kHz
+    // which are 15.000 fft-bins, so we have 10 fft-bins per pixel
+    #define NB_OVERSAMPLING 10
     
     // Hz per screen pixel
     // NB_OVERSAMPLING shows the FFT values per pixel, but one 

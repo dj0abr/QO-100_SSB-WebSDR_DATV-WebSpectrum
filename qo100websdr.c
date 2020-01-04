@@ -213,31 +213,6 @@ void usage()
 
 int main(int argc, char *argv[])
 {
-int c;
-
-    while((c = getopt(argc, argv, "f:")) !=-1) 
-    {
-        switch (c) {
-            case 'f':
-                #ifdef WIDEBAND
-                printf("\n the option -f is not valid in wideband mode, adjust qo100websdr.h instead\n");
-                printf("see LNB_CRYSTAL and LNB_MULTIPLIER\n\n");
-                return 1;
-                #endif
-                
-                TUNED_FREQUENCY = strtod(optarg,NULL); // in Hz
-                if(TUNED_FREQUENCY < 100000 || TUNED_FREQUENCY > 1500000000)
-                {
-                    printf("\nenter QRG in Hz. i.e.: 144525000 or 739525000 or similar\n\n");
-                    return 1;
-                }
-                break;
-            case '?':
-                usage();
-                return 1;
-        }
-    }
-    
     // check if it is already running, if yes then exit
     isRunning();
     

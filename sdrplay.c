@@ -50,7 +50,7 @@ int gainR = 50;
 #ifdef WIDEBAND
     int bwkHz = 8000;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
 #else
-    int bwkHz = 1536;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
+    int bwkHz = 5000;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
 #endif // WIDEBAND
 
 int ifkHz = 0;      // 0 is used in this software
@@ -119,7 +119,7 @@ int init_SDRplay()
     grMode = mir_sdr_USE_RSP_SET_GR;
     if(devModel == 1) grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 
-    double dqrg = TUNED_FREQUENCY;
+    double dqrg = (TUNED_FREQUENCY * (1000000L+SDRPLAY_TUNER_CORRECTION))/1000000L;
     r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), dqrg/1e6,
         (mir_sdr_Bw_MHzT)bwkHz, (mir_sdr_If_kHzT)ifkHz, rspLNA, &gRdBsystem,
         grMode, &samplesPerPacket, streamCallback, gainCallback, &cbContext);
@@ -169,6 +169,7 @@ void remove_SDRplay()
 void setTunedQrgOffset(unsigned int hz)
 {
     double dqrg = TUNED_FREQUENCY - hz;
+    dqrg = (dqrg * (1000000L+SDRPLAY_TUNER_CORRECTION))/1000000L;
     mir_sdr_SetRf(dqrg,1,0);
     printf("rf : %.6f MHz\n",dqrg/1e6);
 }
@@ -184,9 +185,8 @@ void streamCallback(short *xi, short *xq, unsigned int firstSampleNum,
     unsigned int reset, unsigned int hwRemoved, void *cbContext)
 {   
     /*
-     * Testfunction for the sample rate 
-     * after a minute the printed value should
-     * be close to 2.40 MS/s
+     * Testfunction to measure the sample rate 
+     * give it one minute for measurement
      * 
      * uncomment this function to check if the SDR hardware 
      * delivers samples in the right speed

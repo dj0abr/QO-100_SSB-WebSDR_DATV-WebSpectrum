@@ -57,7 +57,8 @@ unsigned int frdiff;
                 #ifdef WIDEBAND
                     foffset = freqval * 5250;
                 #else
-                    foffset = freqval * (WF_RANGE_HZ / WF_WIDTH);
+                    foffset = freqval;
+                    printf("freqval:%d foffset:%d\n",freqval,foffset);
                     downmixer_setFrequency(foffset);
                 #endif
                 printf("new QRG offset: %d\n",foffset);

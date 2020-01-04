@@ -81,7 +81,7 @@ int small_gaincorr_rtl = 2000;
 // lower waterfall
 int ssb_gaincorr_sdrplay = 1000;
 int small_gaincorr_sdrplay = 1000;
-
+int ex=0;
 void fssb_sample_processing(short *xi, short *xq, int numSamples)
 {
     // copy the samples into the FFT input buffer
@@ -99,8 +99,9 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // the buffer is full, now lets execute the fft
             fftw_execute(plan);
             
-            // this fft has generated FSSB_NUM_BINS (= 30.000) bins in cpout
-            unsigned short wfsamp[WF_WIDTH];
+            // this fft has generated FSSB_NUM_BINS bins in cpout
+            #define DATASIZE ((NB_FFT_LENGTH/2)/NB_OVERSAMPLING)    // (180.000/2)/10 = 9000 final values
+            unsigned short wfsamp[DATASIZE];
             int idx = 0;
             double real,imag;
             int wfbins;
@@ -111,7 +112,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
 
             for(wfbins=0; wfbins<(NB_FFT_LENGTH/2); wfbins+=NB_OVERSAMPLING)
             {
-                if(idx >= WF_WIDTH) break; // all wf pixels are filled
+                if(idx >= DATASIZE) break; // all wf pixels are filled
                 
                 double maxv = -99999;
                 for(int bin10=0; bin10<NB_OVERSAMPLING; bin10++)
@@ -139,13 +140,16 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 idx++;
             }
             
+            // here war have wfsamp filled with DATASIZE values
+            // showing the spectrum from 0-900.000 Hz with a resolution of 10 Hz
+            
             unsigned int realrf = TUNED_FREQUENCY - newrf;
             
 			drawWF( WFID_BIG,                   // Waterfall ID
                     wfsamp,                     // FFT output data
                     realrf,            			// frequency of the SDR 
-                    WF_RANGE_HZ,                // total width of the fft data in Hz
-                    NB_HZ_PER_PIXEL,            // Hz/pixel
+                    WF_RANGE_HZ,                // total width of the fft data in Hz (900.000)
+                    NB_HZ_PER_PIXEL,            // Hz/pixel (100)
                     DISPLAYED_FREQUENCY_KHZ);   // frequency of the left margin of the waterfall
             
             // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
@@ -153,8 +157,8 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // starting at the current RX frequency - 15kHz/2 (so the RX qrg is in the middle)
             // foffset is the RX qrg in Hz
             // so we need the bins from (foffset/10) - 750 to (foffset/10) + 750
-            int start = ((foffset+0)/10) - 750;
-            int end = ((foffset+0)/10) + 750;
+            int start = ((foffset)/10) - 750;
+            int end = ((foffset)/10) + 750;
 
 			if(start < 0) start = 0;
 			if(end >= NB_FFT_LENGTH) end = NB_FFT_LENGTH-1;
@@ -168,7 +172,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 imag = cpout[wfbins][1];
                 double dm = sqrt((real * real) + (imag * imag));
                 
-                // correct level TODO ???
+                // correct level
                 
                 if(hwtype == 2)
                     dm /= small_gaincorr_rtl;

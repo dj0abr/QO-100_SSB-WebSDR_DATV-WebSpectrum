@@ -102,6 +102,7 @@ void downmixer_init()
 }
 
 // calculate the fcw from the wanted frequency
+// fr = offset to tuner qrg
 void downmixer_setFrequency(int fr)
 {
     printf("set mixer qrg: %d\n",fr);

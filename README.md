@@ -4,6 +4,10 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V1.6:
+- prepared for the new upcoming NB bandplan
+- automatically measures transponder noise (nice for comparing dishes and receivers)
+
 Update V1.5:
 - totally new frequency calculations. Now it's possible to configure the NB monitor by just modifying the values in qo100websdr.h
 - frequency correction value in qo100websdr.h to compensate the bad crystals in most RTLsdr sticks.
@@ -23,14 +27,10 @@ Update V1.5:
 * for SDRplay RSPx only (since we need 10MS/s sampling rate)
 
 # required computer
-for NB-transponder: 
-any PC or SBC (Raspberry, Odroid..) running Ubuntu (or compatible like Mint ...)
-
-for WB-transponder:
-due to the high sampling rate of 10MS/s you need a PC (Intel/AMD) or
+a PC (Intel/AMD) or
 a fast SBC like the Odroid-N2, Odroid XU4 or Raspberry PI 4.
 
-This software can be started twice (for NB and WB) on the same computer.
+may also run on slower computers, not guaranteed, try it.
 
 # General function of the server
 * capturing samples from the SDR receiver
