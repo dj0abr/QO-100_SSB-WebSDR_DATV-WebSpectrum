@@ -1,1 +1,1 @@
-while true; do ./qo100websdr; sleep 1; done;
+while true; do ./qo100websdr; sleep 1;  done;
