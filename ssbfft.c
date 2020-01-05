@@ -200,13 +200,13 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
         // shift the needed frequency to baseband
         downmixer_process(xi+i,xq+i);
         
-        // here we have the samples with rate of 600.000
-        // we need 8.000 for the sound card
-        // lets decimate by 75 (WF_RANGE_HZ / 8000)
+        // here we have the samples with rate of 1.800.000
+        // we need 7.500 for the sound card
+        // lets decimate by 240 (2*WF_RANGE_HZ / 8000)
         static int audio_cnt = 0;
         static short b16samples[AUDIO_RATE];
         static int audio_idx = 0;
-        if(++audio_cnt >= 75)
+        if(++audio_cnt >= 225)
         {
             audio_cnt = 0;
             

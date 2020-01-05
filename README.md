@@ -4,7 +4,8 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
-# !!!! SSB-Demodulation not working in V1.6, if required, wait for a fix !!!!
+Update V1.7:
+- fixed SSB demodulation
 
 Update V1.6:
 - prepared for the new upcoming NB bandplan

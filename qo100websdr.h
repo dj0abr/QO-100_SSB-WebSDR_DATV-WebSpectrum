@@ -193,16 +193,13 @@
     // FFT value is for NB_RESOLUTION Hz, so we multiply them
     #define NB_HZ_PER_PIXEL (NB_OVERSAMPLING * NB_RESOLUTION)
 
-    // the SSB rate must be an integer part of NB_SAMPLE_RATE and must be <= 48k
-    // AUDIO rate must be an integer part of SSB rate
+    // the AUDIO rate must be an integer part of NB_SAMPLE_RATE and must be <= 48k
     // recalculate and add values for non-standard ranges WF_RANGE_HZ
 
     #if WF_RANGE_HZ == 150000
-        #define SSB_RATE 37500
         #define AUDIO_RATE 7500
     #else
-        #define SSB_RATE 40000  // use default rate if possible
-        #define AUDIO_RATE 8000
+        #define AUDIO_RATE 8000 // use default rate if possible
     #endif
 
 #endif

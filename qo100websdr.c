@@ -251,13 +251,6 @@ int main(int argc, char *argv[])
     printf("1st decim. rate: %d\n",SDR_SAMPLE_RATE / (WF_RANGE_HZ * 2));
     printf("1st FFT resol.:  %d Hz\n",WF_RANGE_HZ / WF_WIDTH);
     printf("1st FTT smp/pass:%d\n",((WF_RANGE_HZ * 2) / (WF_RANGE_HZ / WF_WIDTH)));
-    #ifndef WIDEBAND
-    printf("SSB audio rate  :%d\n",SSB_RATE);
-    printf("SSB audio decim :%d\n",(NB_SAMPLE_RATE / SSB_RATE));
-    printf("2nd FFT resol.  :%d\n",(SSB_RATE / 2 / WF_WIDTH));
-    printf("2nd FTT smp/pass:%d\n",(SSB_RATE / (SSB_RATE / 2 / WF_WIDTH)));
-    #endif
-    
     
     #ifdef WIDEBAND
         init_fwb();
