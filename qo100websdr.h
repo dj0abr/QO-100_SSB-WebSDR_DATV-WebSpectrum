@@ -106,7 +106,7 @@
     // small differences compensate with the AUTO-LOCK function in the browser
     // use the CW beacon for orientation
     #define RTL_TUNER_CORRECTION        0
-    #define SDRPLAY_TUNER_CORRECTION    -15
+    #define SDRPLAY_TUNER_CORRECTION    0
     
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)

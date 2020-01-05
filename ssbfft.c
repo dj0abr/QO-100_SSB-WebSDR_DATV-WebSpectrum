@@ -45,7 +45,7 @@
 #include "antialiasing.h"
 #include "timing.h"
 
-void beaconLock(double val, int pos);
+void bcnLock(unsigned short *vals, int len);
 
 fftw_complex *din = NULL;				// input data for  fft, output data from ifft
 fftw_complex *cpout = NULL;	            // ouput data from fft, input data to ifft
@@ -120,7 +120,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     real = cpout[wfbins+bin10][0];
                     imag = cpout[wfbins+bin10][1];
                     double v = sqrt((real * real) + (imag * imag));
-                    beaconLock(v,wfbins+bin10);
+                    //beaconLock(v,wfbins+bin10);
                     if(v > maxv) maxv = v;
                 }
 
@@ -141,6 +141,10 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             }
             
             // here war have wfsamp filled with DATASIZE values
+            
+            // make Beacon Lock
+            bcnLock(wfsamp,DATASIZE);
+            
             // showing the spectrum from 0-900.000 Hz with a resolution of 10 Hz
             
             unsigned int realrf = TUNED_FREQUENCY - newrf;
@@ -242,149 +246,65 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
     }
 }
 
-#define CHECKPOS 3
-
 // calculate the position (offset in the FFT output values) of the CW beacon
 // NB_FFT_LENGTH/2 goes over a range of WF_RANGE_HZ Hz starting at DISPLAYED_FREQUENCY_KHZ
 // with a resolution of 10Hz per FFT value
-#define BEACON_OFFSET   (((long long)CW_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / (long long)NB_RESOLUTION)
-#define BEACON_LOCKRANGE    (long long)1000    // check beacon QRG +- lockrange
-    
-//#define DIAGLOCK
-    
-void beaconLock(double val, int pos)
-{
-    if(autosync == 0) return;
-    
-static double max = -9999999999;
-static int lastts = 0;
-static int maxpos;
-static int bigstepdet = 0;
-static int lastmaxpos = 0;
-static int lastpos[CHECKPOS];
+#define BEACON_OFFSET   (((long long)CW_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / ((long long)NB_HZ_PER_PIXEL))
+#define BEACON_LOCKRANGE        (long long)1000     // check beacon QRG +- lockrange
 
-    // lock to the CW Beacon
-    
-    // between bin 1500 and 3500 measure the maximum
-    // this give a lock range of 20 kHz
-    if(pos >= (BEACON_OFFSET-BEACON_LOCKRANGE) && pos <= (BEACON_OFFSET+BEACON_LOCKRANGE))
+void bcnLock(unsigned short *vals, int len)
+{
+unsigned short max = 0;
+int maxpos = 0;
+static int oldmaxpos = 0;
+static int maxcnt = 0;
+
+    //printf("captured %d vals, check %ld with offset:%lld\n",len,CW_BEACON,BEACON_OFFSET);
+    //printf("search peak in: %lld %lld\n",BEACON_OFFSET-BEACON_LOCKRANGE,BEACON_OFFSET+BEACON_LOCKRANGE);
+    for(int pos=0; pos<len; pos++)
     {
-        // measure the peak value for 1s
-        if(fabs(val) > max)
+        if(pos >= (BEACON_OFFSET-BEACON_LOCKRANGE) && pos <= (BEACON_OFFSET+BEACON_LOCKRANGE))
         {
-            max = fabs(val);
-            maxpos = pos;
+            // measure the peak value for 1s
+            if(vals[pos] > max)
+            {
+                max = vals[pos];
+                maxpos = pos;
+            }
         }
     }
+    //printf("Maximum found at idx: %d\n",maxpos);
     
-    struct timeval  tv;
-    gettimeofday(&tv, NULL);  
-    
-    int ts = (tv.tv_sec % 60) * 10 + (tv.tv_usec / 100000);
-
-    if((ts % 2)==0 && (lastts != ts))
+    // check if same position is detected for x times
+    if(maxpos != oldmaxpos)
     {
-		#ifdef DIAGLOCK
-		printf("test lock. maxpos:%d searching:%lld to %lld\n",maxpos,(BEACON_OFFSET-BEACON_LOCKRANGE),(BEACON_OFFSET+BEACON_LOCKRANGE));
-		#endif
-        lastts = ts;
-        max = -9999999999;
-        
-        // insert actual position into array
-        for(int i=(CHECKPOS-1); i>0; i--)
+        oldmaxpos = maxpos;
+        maxcnt = 0;
+    }
+    else
+    {
+        maxcnt++;
+        if(maxcnt >= 40)
         {
-            lastpos[i] = lastpos[i-1];
+            // diff to expected position
+            int diff = BEACON_OFFSET - maxpos;
+            int qrgoffset = diff * NB_HZ_PER_PIXEL;
+            
+            if(autosync == 1)
+            {
+                if(qrgoffset != 0)
+                {
+                    printf("Beacon found at pos:%d diff:%d -> %d. Retuning data\n",maxpos,diff,qrgoffset); 
+                    newrf = qrgoffset;
+                    setrfoffset = 1;
+                    rflock = 0;
+                }
+                else
+                {
+                    rflock = 1;
+                }
+            }
         }
-        lastpos[0] = maxpos;
-        
-        // check if all pos are identical
-        for(int i=1; i<CHECKPOS; i++)
-        {
-            if(lastpos[i] != lastpos[0])
-			{
-				#ifdef DIAGLOCK
-				printf("not all %d measurements are identical\n",CHECKPOS);
-				#endif
-                return;
-			}
-        }
-
-        if(maxpos == 0) 
-		{
-			#ifdef DIAGLOCK
-			printf("maxpos is 0\n");
-			#endif
-			return;
-		}
-        
-        if(lastmaxpos != 0 && abs(lastmaxpos-maxpos) > 300 && bigstepdet < 4) 
-        {
-            printf("step too large: %d\n",maxpos);
-            bigstepdet++;
-            return;
-        }
-        bigstepdet = 0;
-        
-        //printf("%d\n",maxpos);
-        
-        // correction step
-        int cneg = 0, cpos = 0;
-        int mini = BEACON_OFFSET-5, maxi=BEACON_OFFSET+5;
-        if(hwtype == 1)
-        {
-            // SDRPLAY
-            cpos = (BEACON_OFFSET-maxpos);
-            cneg = (maxpos-BEACON_OFFSET);
-        }
-        
-        if(hwtype == 2)
-        {
-            // RTL-sdr
-            cpos = (BEACON_OFFSET-maxpos);
-            cneg = (maxpos-BEACON_OFFSET);
-            mini = BEACON_OFFSET-23;
-            maxi = BEACON_OFFSET+23;
-        }
-        
-        if(maxpos > (BEACON_OFFSET+150) || maxpos < (BEACON_OFFSET-150))
-        {
-            cpos *= 5;
-            cneg *= 5;
-        }
-        else if(maxpos > (BEACON_OFFSET+100) || maxpos < (BEACON_OFFSET-100))
-        {
-            cpos *= 3;
-            cneg *= 3;
-        }
-        else if(maxpos > (BEACON_OFFSET+50) || maxpos < (BEACON_OFFSET-50))
-        {
-            cpos *= 2;
-            cneg *= 2;
-        }
-        
-        // we had 2x the same value
-        if(maxpos > maxi)
-        {
-            printf("Auto-tuning pos:%d, corr:%d\n",maxpos,cneg);
-            newrf -= cneg;
-            setrfoffset = 1;
-            rflock = 0;
-        }
-        else if(maxpos < mini)
-        {
-            printf("Auto-tuning pos:%d, corr:%d\n",maxpos,cpos);
-            newrf += cpos;
-            setrfoffset = 1;
-            rflock = 0;
-        }
-        else
-        {
-			#ifdef DIAGLOCK
-			printf("already equal position\n");
-			#endif
-            rflock = 1;
-        }
-        lastmaxpos = maxpos;
     }
 }
 
