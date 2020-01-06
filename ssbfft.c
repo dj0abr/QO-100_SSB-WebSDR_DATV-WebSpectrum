@@ -246,11 +246,18 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
     }
 }
 
+// CW Beacon
 // calculate the position (offset in the FFT output values) of the CW beacon
 // NB_FFT_LENGTH/2 goes over a range of WF_RANGE_HZ Hz starting at DISPLAYED_FREQUENCY_KHZ
 // with a resolution of 10Hz per FFT value
 #define BEACON_OFFSET   (((long long)CW_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / ((long long)NB_HZ_PER_PIXEL))
-#define BEACON_LOCKRANGE        (long long)1000     // check beacon QRG +- lockrange
+#define BEACON_LOCKRANGE        (long long)200     // check beacon QRG +- lockrange (1=100Hz)
+
+// PSK Beacon
+// has a width of +-600Hz
+#define PSK_BEACON_OFFSET   (((long long)PSK_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / ((long long)NB_HZ_PER_PIXEL))
+#define PSK_BEACON_LOCKRANGE        (long long)6     // check beacon QRG +- lockrange (1=100Hz)
+#define PSK_CW_OFFSET (PSK_BEACON_OFFSET - BEACON_OFFSET)
 
 void bcnLock(unsigned short *vals, int len)
 {
@@ -258,25 +265,53 @@ unsigned short max = 0;
 int maxpos = 0;
 static int oldmaxpos = 0;
 static int maxcnt = 0;
+static int lastdiff = 0;
+int pskfound=0;
+static int swait = 0;
+
+    if(swait > 0)
+    {
+        swait--;
+        return;
+    }
 
     //printf("captured %d vals, check %ld with offset:%lld\n",len,CW_BEACON,BEACON_OFFSET);
     //printf("search peak in: %lld %lld\n",BEACON_OFFSET-BEACON_LOCKRANGE,BEACON_OFFSET+BEACON_LOCKRANGE);
-    for(int pos=0; pos<len; pos++)
+    for(int pos=(BEACON_OFFSET-BEACON_LOCKRANGE); pos<(BEACON_OFFSET+BEACON_LOCKRANGE); pos++)
     {
-        if(pos >= (BEACON_OFFSET-BEACON_LOCKRANGE) && pos <= (BEACON_OFFSET+BEACON_LOCKRANGE))
+        // measure the peak value for 1s
+        if(vals[pos] > max)
         {
-            // measure the peak value for 1s
-            if(vals[pos] > max)
-            {
-                max = vals[pos];
-                maxpos = pos;
-            }
+            max = vals[pos];
+            maxpos = pos;
         }
     }
     //printf("Maximum found at idx: %d\n",maxpos);
     
+    int pskcenter = maxpos + PSK_CW_OFFSET;
+    int lowsig = 0;
+    int highsig = 0;
+    int sig = 0;
+    // measure the central signal and the lower and upper range of the PSK beacon
+    for(int pos=(pskcenter-PSK_BEACON_LOCKRANGE); pos<(pskcenter-1); pos++)
+        lowsig += vals[pos];
+    lowsig /= (PSK_BEACON_LOCKRANGE-1);
+    
+    for(int pos=(pskcenter+1); pos<(pskcenter+PSK_BEACON_LOCKRANGE); pos++)
+        highsig += vals[pos];
+    highsig /= (PSK_BEACON_LOCKRANGE-1);
+    
+    sig = vals[pskcenter];
+    
+    // we see the PSK beacon, if lowsig and highsig is at least double of sig
+    if((lowsig/2) > sig && (highsig/2) > sig)
+    {
+        //printf("%05d %05d %05d  PSK Beacon found\n",lowsig,sig,highsig);
+        pskfound = 1;
+    }
+    
     // check if same position is detected for x times
-    if(maxpos != oldmaxpos)
+    if(maxpos != oldmaxpos || pskfound == 0)
     {
         oldmaxpos = maxpos;
         maxcnt = 0;
@@ -284,25 +319,28 @@ static int maxcnt = 0;
     else
     {
         maxcnt++;
-        if(maxcnt >= 40)
+        if(maxcnt >= 2)
         {
             // diff to expected position
             int diff = BEACON_OFFSET - maxpos;
-            int qrgoffset = diff * NB_HZ_PER_PIXEL;
             
-            if(autosync == 1)
+            if(diff != 0 && autosync == 1)
             {
-                if(qrgoffset != 0)
-                {
-                    printf("Beacon found at pos:%d diff:%d -> %d. Retuning data\n",maxpos,diff,qrgoffset); 
-                    newrf = qrgoffset;
-                    setrfoffset = 1;
-                    rflock = 0;
-                }
-                else
-                {
-                    rflock = 1;
-                }
+                lastdiff += diff;
+                int qrgoffset = lastdiff * NB_HZ_PER_PIXEL;
+                
+                printf("Beacon found at pos:%d diff:%d lastdiff:%d -> %d. Retuning data\n",maxpos,diff,lastdiff,qrgoffset);
+                
+                newrf = qrgoffset;
+                setrfoffset = 1;
+                rflock = 0;
+                
+                // wait a bit for next beacon check to give the SDR a chance to set the new qrg
+                swait = 10;
+            }
+            else
+            {
+                rflock = 1;
             }
         }
     }

@@ -131,6 +131,7 @@
     
     // Frequency of the CW Beacon which is used for automatic freq correction, in Hz
     #define CW_BEACON   10489550000
+    #define PSK_BEACON   10489800000
 
    	// we need one FFT value every 10Hz for the lower waterfall and the SSB demodulator
 	// the Waterfall speed will be NB_RESOLUTION lines/s
