@@ -4,6 +4,10 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V1.8:
+- many fixes for 32bit computers like Raspberry PI
+- new beacon lock algorithm
+
 Update V1.7:
 - fixed SSB demodulation
 
