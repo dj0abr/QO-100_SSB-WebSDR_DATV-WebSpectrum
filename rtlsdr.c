@@ -44,9 +44,9 @@
 void *rtldevproc(void *pdata);
 void *rtlproc(void *pdata);
 
-static rtlsdr_dev_t *dev;
 
 #ifndef WIDEBAND
+static rtlsdr_dev_t *dev;
 
 int init_rtlsdr()
 {

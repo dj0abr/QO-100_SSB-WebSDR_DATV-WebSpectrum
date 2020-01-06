@@ -40,9 +40,19 @@
 // if no downmixer is used, enter 0
 #define DOWNMIXER_OUTQRG       0       
 
+// add a correction value to the SDR tuner frequency to compensate frequency
+// errors of the SDR hardware's crystal oscillator ( 0 = no correction)
+// this value is "ppm". 
+// usual values for the RTLsdr between -100 and +100 ppm
+// !!! this setting depends on the individual SDR hardware. First set it to 0, then enter a value !!!
+// small differences compensate with the AUTO-LOCK function in the browser
+// use the CW beacon for orientation
+#define RTL_TUNER_CORRECTION        0
+#define SDRPLAY_TUNER_CORRECTION    0
+
 // global calculations, DO NOT change !
 #if DOWNMIXER_OUTQRG == 0
-    // LO of the LNB's internal mixer in kHz
+    // LO of the LNB's internalDISPLAYED_FREQUENCY_KHZ mixer in kHz
     #define LNB_LO		(LNB_CRYSTAL * LNB_MULTIPLIER)
 #else
     // sum-LO of the complet chain: LNB and Downmixer in DISPLAYED_FREQUENCY_KHZ
@@ -87,7 +97,7 @@
     // calculated values DO NOT change !
     // =================================
     
-    #define _TUNED_FREQUENCY    (((DISPLAYED_FREQUENCY_KHZ + (WF_RANGE_HZ / 2)) - LNB_LO) * 1000)
+    #define _TUNED_FREQUENCY    (((DISPLAYED_FREQUENCY_KHZ + ((WF_RANGE_HZ/1000) / 2)) - LNB_LO) * 1000)
 
 #else  
 
@@ -97,16 +107,6 @@
     
     // these values may be changed according to the users needs
     // ========================================================
-    
-    // add a correction value to the SDR tuner frequency to compensate frequency
-    // errors of the SDR hardware's crystal oscillator ( 0 = no correction)
-    // this value is "ppm". 
-    // usual values for the RTLsdr between -100 and +100 ppm
-    // !!! this setting depends on the individual SDR hardware. First set it to 0, then enter a value !!!
-    // small differences compensate with the AUTO-LOCK function in the browser
-    // use the CW beacon for orientation
-    #define RTL_TUNER_CORRECTION        0
-    #define SDRPLAY_TUNER_CORRECTION    0
     
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)

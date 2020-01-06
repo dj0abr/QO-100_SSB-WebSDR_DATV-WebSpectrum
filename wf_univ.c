@@ -41,23 +41,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <gd.h>
-#include "gdfontt.h"
-#include "gdfonts.h"
-#include "gdfontmb.h"
-#include "gdfontl.h"
-#include "gdfontg.h"
 #include "wf_univ.h"
-#include "color.h"
 #include "websocketserver.h"
 #include "setqrg.h"
 #include "civ.h"
 #include "cat.h"
-
-void drawWFimage(int id, gdImagePtr im, char *fn);
-void drawFFTline(int id, gdImagePtr dst);
-void drawQrgTitles(int id, gdImagePtr dst);
-void scaleSamples(double *samples, int numSamples);
 
 void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz, int res, int _tunedQRG)
 {
