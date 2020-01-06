@@ -124,7 +124,7 @@ void onmessage(int fd, unsigned char *msg)
         if(strstr((char *)msg,"mousepo:"))  // mouse click upper WF
         {
             long long v1 = atol((char *)msg+8);   // full qrg from browser
-            long long v2 = v1 - (long long)LNB_LO*(long long)1000;
+            long long v2 = v1 - LNB_LO;
             long long v = v2 - (long long)TUNED_FREQUENCY;        // we need the offset only
             freqval = (int)v;
             setfreq = 1;

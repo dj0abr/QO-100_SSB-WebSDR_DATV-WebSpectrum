@@ -32,9 +32,9 @@
 // global definitions describing the LNB/Hardware/Mixer
 // ====================================================
 // enter the LNB crystal frequency and choose the multiplier for a 25 or 27 MHz LNB
-#define LNB_CRYSTAL		24	    // enter the crystal or external ref. frequency of your LNB in MHz
-#define LNB_MULTIPLIER	390000	// enter the multiplier*1000 wich is 390 for a 25 MHz LNB
-//#define LNB_MULTIPLIER	361112	// enter the multiplier*1000 wich is 361,112 for a 27 MHz LNB 
+#define LNB_CRYSTAL		24000000	  // enter the crystal or external ref. frequency of your LNB in Hz
+#define LNB_MULTIPLIER	390000	      // enter the multiplier*1000 which is 390 for a 25 MHz LNB
+//#define LNB_MULTIPLIER	361111	// enter the multiplier*1000 wich is 361,111 for a 27 MHz LNB 
 
 // if a downmixer is used, enter the mixer's output frequency here (only MHz, i.e.: 439)
 // if no downmixer is used, enter 0
@@ -52,11 +52,11 @@
 
 // global calculations, DO NOT change !
 #if DOWNMIXER_OUTQRG == 0
-    // LO of the LNB's internalDISPLAYED_FREQUENCY_KHZ mixer in kHz
-    #define LNB_LO		(LNB_CRYSTAL * LNB_MULTIPLIER)
+    // LO of the LNB's internalDISPLAYED_FREQUENCY_KHZ mixer in Hz
+    #define LNB_LO		(((long long)LNB_CRYSTAL * (long long)LNB_MULTIPLIER)/(long long)1000)
 #else
-    // sum-LO of the complet chain: LNB and Downmixer in DISPLAYED_FREQUENCY_KHZ
-    #define LNB_LO		((10489 - DOWNMIXER_OUTQRG)*1000)
+    // sum-LO of the complete chain: LNB and Downmixer in Hz
+    #define LNB_LO		(((long long)10489 - (long long)DOWNMIXER_OUTQRG)*(long long)1000000)
 #endif
 
 // =====================================================
@@ -97,7 +97,7 @@
     // calculated values DO NOT change !
     // =================================
     
-    #define _TUNED_FREQUENCY    (((DISPLAYED_FREQUENCY_KHZ + ((WF_RANGE_HZ/1000) / 2)) - LNB_LO) * 1000)
+    #define _TUNED_FREQUENCY    ((int)((((long long)DISPLAYED_FREQUENCY_KHZ + (((long long)WF_RANGE_HZ/(long long)1000) / (long long)2)) * (long long)1000) - LNB_LO))
 
 #else  
 
@@ -168,7 +168,7 @@
     // default SDR tuner frequency in Hz, which must be the left margin of the spectrum
     // default: 10489.55 (CW Beacon) minus 25 KHz for a little left margin:
     // (10489525 - 9750000)*1000 = 739525000 Hz
-    #define _TUNED_FREQUENCY    ((DISPLAYED_FREQUENCY_KHZ - LNB_LO) * 1000)       
+    #define _TUNED_FREQUENCY    (((long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000) - LNB_LO)
 
 	// SDR receiver's capture rate
 	// we use twice the bandwidth, so the FFT will return the requested bandwidth in the lower half of the FFT data

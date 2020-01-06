@@ -14,7 +14,9 @@ body {
 
 .leftside
 {
+    position: relative;
     width: 620px;
+    height: 150px;
     background-color: #f0f0f0;
 }
 
@@ -26,14 +28,39 @@ body {
 
 .midside
 {
+    position: relative;
     width: 560px;
+    height: 150px;
     background-color: #f0f0f0;
 }
 
 .rightside
 {
+    position: relative;
     width: 300px;
+    height: 140px;
     background-color: #f0f0f0;
+}
+
+.leftrow_menuline
+{
+    background-color: #e0e0e0;
+    font-size:16px;
+    font-weight: 500;
+    width: 620px;
+    display: flex;
+    position: absolute;
+    bottom: 0px;
+}
+
+.midrow_menuline
+{
+    font-size:16px;
+    font-weight: 500;
+    width: 560px;
+    display: flex;
+    position: absolute;
+    bottom: 0px;
 }
 
 .rightrow
@@ -172,7 +199,15 @@ body {
 }
 
 .qrg {
-width:100px;
+    width:100px;
+    font-size: 12px;
+    
+    box-sizing: border-box;
+    height: 18px;
+    line-height: 12px;
+    padding: 2px;
+    border: 1px solid gray;
+    border-radius: 2px;
 }
 
 .measurements {
@@ -298,32 +333,56 @@ canvas {
     
     function filter18()
     {
-        websocket.send("filterw:0\0");
         filter_cutoff = 1800;
+        sendFilter();
     }
     
     function filter24()
     {
-        websocket.send("filterw:1\0");
         filter_cutoff = 2400;
+        sendFilter();
     }
     
     function filter28()
     {
-        websocket.send("filterw:2\0");
         filter_cutoff = 2800;
+        sendFilter();
     }
 
     function filter30()
     {
-        websocket.send("filterw:3\0");
         filter_cutoff = 3000;
+        sendFilter();
     }
 
     function filter36()
     {
-        websocket.send("filterw:4\0");
         filter_cutoff = 3600;
+        sendFilter();
+    }
+    
+    function sendFilter()
+    {
+        localStorage.setItem('filter',filter_cutoff);
+        
+        switch(filter_cutoff)
+        {
+        case 1800:  
+            websocket.send("filterw:0\0");
+            break;
+        case 2400:  
+            websocket.send("filterw:1\0");
+            break;
+        case 2800:  
+            websocket.send("filterw:2\0");
+            break;
+        case 3000:  
+            websocket.send("filterw:3\0");
+            break;
+        case 3600:  
+            websocket.send("filterw:4\0");
+            break;
+        }
     }
     
     function onstart()
@@ -1564,20 +1623,25 @@ canvas {
         $("#lockstat").html(lk);
     }
     
+    // send initial values to the server as soon as the websocket is open
     var openintv;
     var openints = 0;
     function nowOpen()
     {
+        var clear = 0;
+        
         switch(openints)
         {
             case 0: websocket.send("ssbmode:1\0"); 
                     break;
             case 1: checkQRG();
                     break;
+            default: clear = 1;
+                    break;
         }
         
         openints++;
-        if(openints == 2)
+        if(clear == 1)
             clearInterval(openintv);
     }
 
@@ -1721,9 +1785,15 @@ canvas {
         var ckb = $("#sync").is(':checked');
         $('#qrg').attr('disabled', ckb);
         if(ckb == true)
+        {
             websocket.send("autosyn:1\0");
+            localStorage.setItem('sync',"1");
+        }
         else
+        {
             websocket.send("autosyn:0\0");
+            localStorage.setItem('sync',"0");
+        }
     }
     
     function CATonoff()
@@ -1800,6 +1870,18 @@ canvas {
     
     function setListboxes()
     {
+        var v = localStorage.getItem('filter');
+        if(v != null)
+        {
+            filter_cutoff = parseInt(v);
+        }
+        
+        var v = localStorage.getItem('sync');
+        if(v != null)
+        {
+            $('#sync').attr('checked', v=="1");
+        }
+        
         var v = localStorage.getItem('bandplan');
         if(v != null)
         {
@@ -2040,7 +2122,7 @@ canvas {
                 <div>
                 .
                 </div>
-                <div class="rightrow" style="background-color: #e0e0e0; width: 630px;">
+                <div class="leftrow_menuline">
                     <div style="width: 210px;">
                         bandwidth:
                     </div>
@@ -2122,7 +2204,7 @@ canvas {
                         <input id="audiogain" type="range" min="1" max="100" value="50">
                     </div>
                 </div>
-                <div class="rightrow" style="background-color: #e0e0e0;">
+                <div class="midrow_menuline" style="background-color: #e0e0e0;">
                     <div style="width: 230px;">
                         spectrum trace mode:
                     </div>
