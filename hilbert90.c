@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include "qo100websdr.h"
+#include "websocket/websocketserver.h"
 
 /*
 * designed with Iowa Hills Hilbert Filter Designer
@@ -73,26 +74,26 @@ double FIR_Hilbert_45[tabsHILB] = {
 -0.00177030669016904	
 };
 
-double BandPass45deg(double sample)
+double BandPass45deg(double sample, int client)
 {
-static double circular_buffer[tabsHILB];
+static double circular_buffer[MAX_CLIENTS][tabsHILB];
 double *pcoeff = FIR_Hilbert_45;
-static int wr_idx = 0;
+static int wr_idx[MAX_CLIENTS];
 double y;
 
     // write value to buffer
-    circular_buffer[wr_idx] = sample;
+    circular_buffer[client][wr_idx[client]] = sample;
     
     // increment write index
-    wr_idx++;
-    wr_idx %= tabsHILB;
+    wr_idx[client]++;
+    wr_idx[client] %= tabsHILB;
     
     // calculate new value
     y = 0;
-    int idx = wr_idx;
+    int idx = wr_idx[client];
     for(int i = 0; i < tabsHILB; i++)
     {
-        y += (*pcoeff++ * circular_buffer[idx++]);
+        y += (*pcoeff++ * circular_buffer[client][idx++]);
         if(idx >= tabsHILB) idx=0;
     }
 
@@ -100,26 +101,26 @@ double y;
 }
 
 // -45 deg uses the same coeff table, but in reverse order
-double BandPassm45deg(double sample)
+double BandPassm45deg(double sample, int client)
 {
-static double circular_buffer[tabsHILB];
+static double circular_buffer[MAX_CLIENTS][tabsHILB];
 double *pcoeff = FIR_Hilbert_45 + tabsHILB - 1; // goto the last value in the table
-static int wr_idx = 0;
+static int wr_idx[MAX_CLIENTS];
 double y;
 
     // write value to buffer
-    circular_buffer[wr_idx] = sample;
+    circular_buffer[client][wr_idx[client]] = sample;
     
     // increment write index
-    wr_idx++;
-    wr_idx %= tabsHILB;
+    wr_idx[client]++;
+    wr_idx[client] %= tabsHILB;
     
     // calculate new value
     y = 0;
-    int idx = wr_idx;
+    int idx = wr_idx[client];
     for(int i = 0; i < tabsHILB; i++)
     {
-        y += (*pcoeff-- * circular_buffer[idx++]);
+        y += (*pcoeff-- * circular_buffer[client][idx++]);
         if(idx >= tabsHILB) idx=0;
     }
 

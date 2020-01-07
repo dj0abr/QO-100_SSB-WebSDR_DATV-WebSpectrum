@@ -1276,6 +1276,21 @@ canvas {
                 return val;
             }
             
+            function get16(myarr)
+            {
+                var val = myarr[0];
+                val <<= 8;
+                val += myarr[1];
+                return val;
+            }
+            
+            function get8(myarr)
+            {
+                var val = myarr[0];
+                return val;
+            }
+
+            
             var ftx = 8089500;
             var rflock = 0;
             
@@ -1286,6 +1301,7 @@ canvas {
             var rxpix = new Array();
             var log1122 = Math.log(1.122);
             var db_maxval = Math.log(32768.0*1600) / log1122;
+            var fusers = 0;
 
             // fill pix with dBm values
             function scaledBm()
@@ -1318,7 +1334,11 @@ canvas {
                     tuneqrg = get32(arr.slice(idx+8));
                     resolution = get32(arr.slice(idx+12));
                     foffset = get32(arr.slice(idx+16));
-                    rxpix  = arr.slice(idx+20);
+                    fusers = get8(arr.slice(idx+20));       // number of logged in users
+                    var fspare1 = get8(arr.slice(idx+21));
+                    var fspare2 = get8(arr.slice(idx+22));
+                    var fspare3 = get8(arr.slice(idx+23));
+                    rxpix  = arr.slice(idx+24);
                     scaledBm();
                     pixwidth = end / resolution;
                     
@@ -1670,7 +1690,7 @@ canvas {
         </head>
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 Wideband DATV Live Spectrum</div>
-        <div class="header_subtitle" id="header_subtitle">SDRplay RSP1a by DJ0ABR V1.5</div>
+        <div class="header_subtitle" id="header_subtitle">SDRplay RSP1a by DJ0ABR V1.9</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">

@@ -110,6 +110,8 @@ void onmessage(int fd, unsigned char *msg)
 	char *cli = ws_getaddress(fd);
     if(cli != NULL)
     {
+        fclient = get_socket_idx(fd);
+        
         // check if IP is authorized to control the SDRplay
         // allow only internal computers
         if(useCAT && memcmp(cli,"192.168",7))

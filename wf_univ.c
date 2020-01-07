@@ -42,12 +42,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include "wf_univ.h"
-#include "websocketserver.h"
+#include "websocket/websocketserver.h"
 #include "setqrg.h"
 #include "civ.h"
 #include "cat.h"
 
-void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz, int res, int _tunedQRG)
+void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz, int res, int _tunedQRG, int client)
 {
     // 1 byte: ID counter
     // 1 byte: waterfall ID
@@ -58,7 +58,7 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
     // 4 byte: offset to tuner frequency in Hz
     // followed by the dBm data, 1 byte per pixel holding the dBm value
     int right = picwidthHz / res;
-    unsigned char wfdata[right*2+22];
+    unsigned char wfdata[right*2+50];
     int idx = 0;
     static unsigned char idcnt = 0;
     
@@ -102,13 +102,18 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
 		// if civ and sdr are on different band, we need to compensate by just using the kHz
 		int tf = (TUNED_FREQUENCY / 1000000) * 1000000;	// tf is the tunded qrg, only MHz
 		int kHz = civ_freq - ((civ_freq / 1000000) * 1000000); // only kHz
-		foffset = tf + kHz- TUNED_FREQUENCY;
+		foffset[client] = tf + kHz- TUNED_FREQUENCY;
     }
     
-    wfdata[idx++] = foffset >> 24;
-    wfdata[idx++] = foffset >> 16;
-    wfdata[idx++] = foffset >> 8;
-    wfdata[idx++] = foffset;
+    wfdata[idx++] = foffset[client] >> 24;
+    wfdata[idx++] = foffset[client] >> 16;
+    wfdata[idx++] = foffset[client] >> 8;
+    wfdata[idx++] = foffset[client];
+    
+    wfdata[idx++] = get_useranz();  // number of users logged in
+    wfdata[idx++] = 0;  // spare
+    wfdata[idx++] = 0;  // spare
+    wfdata[idx++] = 0;  // spare
 
     // draw pixel per pixel
     for(int i=0; i<right; i++)
@@ -126,5 +131,5 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
     
     // wfdata with length cnt is now filled with data
     // give it to the WebSocket Server
-    ws_send(wfdata,idx,id);
+    ws_send(wfdata,idx,id, client);
 }

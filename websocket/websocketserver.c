@@ -101,13 +101,13 @@ pthread_mutex_t crit_sec;
 #define LOCK	pthread_mutex_lock(&crit_sec)
 #define UNLOCK	pthread_mutex_unlock(&crit_sec)
 
-void ws_send(unsigned char *pwfdata, int idx, int wf_id)
+void ws_send(unsigned char *pwfdata, int idx, int wf_id, int client)
 {
     // insert the new message into the buffer of each active client
     LOCK;
     for(int i=0; i<MAX_CLIENTS; i++)
     {
-        if(actsock[i].socket != -1)
+        if(actsock[i].socket != -1 && i == client)
         {
             if(wf_id == 0 && actsock[i].send0 == 0)
             {
@@ -126,14 +126,15 @@ void ws_send(unsigned char *pwfdata, int idx, int wf_id)
     }
     
     // if we have audio samples in the fifo, then copy it to each clients audio buffer
-    unsigned char samples[AUDIO_RATE*2];
-    int len = read_pipe(FIFO_AUDIOWEBSOCKET, samples, AUDIO_RATE*2);
-    if(len)
+    for(int i=0; i<MAX_CLIENTS; i++)
     {
-        for(int i=0; i<MAX_CLIENTS; i++)
+        unsigned char samples[AUDIO_RATE*2];
+        int len = read_pipe(FIFO_AUDIOWEBSOCKET + i, samples, AUDIO_RATE*2);
+        if(len)
         {
             if(actsock[i].socket != -1)
             {
+                //printf("Audio %d %d for %d %d\n",actsock[i].samples[0],actsock[i].samples[1],i,actsock[i].socket);
                 memcpy(actsock[i].samples,samples,AUDIO_RATE*2);
                 actsock[i].sendaudio = 1;
             }
@@ -224,6 +225,7 @@ void insert_socket(int fd, char *cli)
             actsock[i].send0 = 0;
             actsock[i].send1 = 0;
             strcpy(clilist[i],cli);
+            printf("accepted client %d %d\n",i,fd);
             UNLOCK;
             return;
         }
@@ -254,15 +256,45 @@ int test_socket(char *cli)
     LOCK;
     for(int i=0; i<MAX_CLIENTS; i++)
     {
-        if(!strcmp(cli,clilist[i])) 
+        // if active: only one connection per IP allowed
+        /*if(!strcmp(cli,clilist[i])) 
         {
             printf("%s is already logged in, ignore\n",cli);
             UNLOCK;
             return 1;
-        }
+        }*/
     }
     UNLOCK;
     return 0;
+}
+
+int get_socket_idx(int fd)
+{
+    LOCK;
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(actsock[i].socket == fd)
+        {
+            UNLOCK;
+            return i;
+        }
+    }
+    UNLOCK;
+    return -1;
+}
+
+int get_useranz()
+{
+int us=0;
+
+    LOCK;
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(actsock[i].socket != -1)
+            us++;
+    }
+    UNLOCK;
+    return us;
 }
 
 // get IP corresponding to a socket

@@ -3,6 +3,7 @@
 // =================================================================================
 
 #include "antialiasing.h"
+#include "websocketserver.h"
 
 /*
  * three different anti aliasing filters
@@ -23,138 +24,88 @@
  * 
  */
 
-int fir_filter_i_ssb_opt(double sample);
-
 extern double dm_coef_299[299];
 
 #define DM_COEFLEN 299
 double *dm_coef = dm_coef_299;
 
-double i_ssb_circular_buffer[DM_COEFLEN];
-double q_ssb_circular_buffer[DM_COEFLEN];
-int i_ssb_wr_idx = 0;
-int q_ssb_wr_idx = 0;
+double i_ssb_circular_buffer[MAX_CLIENTS][DM_COEFLEN];
+double q_ssb_circular_buffer[MAX_CLIENTS][DM_COEFLEN];
+int i_ssb_wr_idx[MAX_CLIENTS];
+int q_ssb_wr_idx[MAX_CLIENTS];
 
-void fir_filter_i_ssb_inc(double sample)
+void fir_filter_i_ssb_inc(double sample, int client)
 {
-    i_ssb_circular_buffer[i_ssb_wr_idx++] = sample;
-    i_ssb_wr_idx %= DM_COEFLEN;
+    i_ssb_circular_buffer[client][i_ssb_wr_idx[client]++] = sample;
+    i_ssb_wr_idx[client] %= DM_COEFLEN;
 }
-/*
-int _fir_filter_i_ssb(double sample)
-{
-double *pcoeff = dm_coef;
-double y;
 
-    // write value to buffer
-    i_ssb_circular_buffer[i_ssb_wr_idx] = sample;
-    
-    // increment write index
-    i_ssb_wr_idx++;
-    i_ssb_wr_idx %= DM_COEFLEN;
-    
-    // calculate new value
-    y = 0;
-    int idx = i_ssb_wr_idx;
-    for(int i = 0; i < DM_COEFLEN; i++)
-    {
-        //printf("%d: %f -> %f\n",idx,*pcoeff,i_ssb_circular_buffer[idx]);
-        y += (*pcoeff++ * i_ssb_circular_buffer[idx++]);
-        if(idx >= DM_COEFLEN) idx=0;
-    }
-
-    return (int)y;
-}
-*/
 /*
  * this FIR filter is optimized for symmetric FIR coeffs with odd length, i.e.: 299
  * it calculates lower and upper part simultaneous and reduces the multiplications by 50%
  */
-int fir_filter_i_ssb(double sample)
+int fir_filter_i_ssb(double sample, int client)
 {
 double *pcoeff = dm_coef;
 double y;
 
     // write value to buffer
-    i_ssb_circular_buffer[i_ssb_wr_idx] = sample;
+    i_ssb_circular_buffer[client][i_ssb_wr_idx[client]] = sample;
     
     // increment write index
-    i_ssb_wr_idx++;
-    i_ssb_wr_idx %= DM_COEFLEN;
+    i_ssb_wr_idx[client]++;
+    i_ssb_wr_idx[client] %= DM_COEFLEN;
     
     // calculate new value
     y = 0;
-    int idxl = i_ssb_wr_idx;
-    int idxh = i_ssb_wr_idx-1;
+    int idxl = i_ssb_wr_idx[client];
+    int idxh = i_ssb_wr_idx[client]-1;
     for(int i = 0; i < (DM_COEFLEN/2); i++)
     {
-        y += (*pcoeff++ * (i_ssb_circular_buffer[idxl++] + i_ssb_circular_buffer[idxh--]));
+        y += (*pcoeff++ * (i_ssb_circular_buffer[client][idxl++] + i_ssb_circular_buffer[client][idxh--]));
         
         if(idxl >= DM_COEFLEN) idxl=0;
         if(idxh < 0) idxh = DM_COEFLEN-1;
     }
     
     // and the middle value
-    y += (*pcoeff * i_ssb_circular_buffer[idxl]);
+    y += (*pcoeff * i_ssb_circular_buffer[client][idxl]);
 
     return (int)y;
 }
 
-void fir_filter_q_ssb_inc(double sample)
+void fir_filter_q_ssb_inc(double sample, int client)
 {
-    q_ssb_circular_buffer[q_ssb_wr_idx++] = sample;
-    q_ssb_wr_idx %= DM_COEFLEN;
+    q_ssb_circular_buffer[client][q_ssb_wr_idx[client]++] = sample;
+    q_ssb_wr_idx[client] %= DM_COEFLEN;
 }
-/*
-int _fir_filter_q_ssb(double sample)
-{
-double *pcoeff = dm_coef;
 
-    // write value to buffer
-    q_ssb_circular_buffer[q_ssb_wr_idx] = sample;
-    
-    // increment write index
-    q_ssb_wr_idx++;
-    q_ssb_wr_idx %= DM_COEFLEN;
-    
-    // calculate new value
-    double y = 0;
-    int idx = q_ssb_wr_idx;
-    for(int i = 0; i < DM_COEFLEN; i++)
-    {
-        y += (*pcoeff++ * q_ssb_circular_buffer[idx++]);
-        if(idx >= DM_COEFLEN) idx=0;
-    }
-
-    return (int)y;
-}
-*/
-int fir_filter_q_ssb(double sample)
+int fir_filter_q_ssb(double sample, int client)
 {
 double *pcoeff = dm_coef;
 double y;
 
     // write value to buffer
-    q_ssb_circular_buffer[q_ssb_wr_idx] = sample;
+    q_ssb_circular_buffer[client][q_ssb_wr_idx[client]] = sample;
     
     // increment write index
-    q_ssb_wr_idx++;
-    q_ssb_wr_idx %= DM_COEFLEN;
+    q_ssb_wr_idx[client]++;
+    q_ssb_wr_idx[client] %= DM_COEFLEN;
     
     // calculate new value
     y = 0;
-    int idxl = q_ssb_wr_idx;
-    int idxh = q_ssb_wr_idx-1;
+    int idxl = q_ssb_wr_idx[client];
+    int idxh = q_ssb_wr_idx[client]-1;
     for(int i = 0; i < (DM_COEFLEN/2); i++)
     {
-        y += (*pcoeff++ * (q_ssb_circular_buffer[idxl++] + q_ssb_circular_buffer[idxh--]));
+        y += (*pcoeff++ * (q_ssb_circular_buffer[client][idxl++] + q_ssb_circular_buffer[client][idxh--]));
         
         if(idxl >= DM_COEFLEN) idxl=0;
         if(idxh < 0) idxh = DM_COEFLEN-1;
     }
     
     // and the middle value
-    y += (*pcoeff * q_ssb_circular_buffer[idxl]);
+    y += (*pcoeff * q_ssb_circular_buffer[client][idxl]);
 
     return (int)y;
 }

@@ -72,17 +72,15 @@
 #include "qo100websdr.h"
 #include "downmixer.h"
 #include "fir_table_calc.h"
-#include "setqrg.h"
 #include "cat.h"
-
-void init_downmixer_fir_filters();
-int fir_filter_i_ssb(double sample);
-int fir_filter_q_ssb(double sample);
+#include "websocket/websocketserver.h"
+#include "setqrg.h"
 
 #define SINETABSIZE 65536
 short sinetable[SINETABSIZE];   // 16 bit sine wave lookup table, each value is a signed short, like the soundcard samples
 int samplerate;
-unsigned int fcw;               // frequency control word, used to set the NCOs frequency
+unsigned int fcw[MAX_CLIENTS];  // frequency control word, used to set the NCOs frequency
+unsigned int accu[MAX_CLIENTS];
 
 // initialize the mixer, must be called once at program start
 void downmixer_init()
@@ -98,34 +96,36 @@ void downmixer_init()
     }
     
     // set a default frequency of 10kHz
-    downmixer_setFrequency(10000);
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        downmixer_setFrequency(10000,i);
+        accu[i] = 0;
+    }
 }
 
 // calculate the fcw from the wanted frequency
 // fr = offset to tuner qrg
-void downmixer_setFrequency(int fr)
+void downmixer_setFrequency(int fr, int client_no)
 {
-    printf("set mixer qrg: %d\n",fr);
+    printf("set mixer qrg: %d for Client: %d\n",fr,client_no);
     
     // set in TRX via CAT
     trx_frequency = fr + TUNED_FREQUENCY;
     ser_command = 2;
     
-    fcw = (unsigned int)((double)fr * pow(2,32) / (double)samplerate);
+    fcw[client_no] = (unsigned int)((double)fr * pow(2,32) / (double)samplerate);
 }
 
 // get next NCO sine wave value
 // this increments the NCO to the next step
 // do this for every sample
-short increment_NCO()
+short increment_NCO(int client_no)
 {
-static unsigned int accu = 0;
-
     // advance the NCO to the next step
     // accu automatically overflows at 2^32 
-    accu += fcw;
-    accu &= 0xffffffff;     // if uint has > 32 bits, just to be sure
-    return sinetable[accu >> 16];
+    accu[client_no] += fcw[client_no];
+    accu[client_no] &= 0xffffffff;     // if uint has > 32 bits, just to be sure
+    return sinetable[accu[client_no] >> 16];
 }
 
 // does the mixer job
@@ -137,11 +137,11 @@ static unsigned int accu = 0;
 // then we need also a cosine table to generate the q channel)
 // isample, qsample ... input, original sample from SDR hardware
 // *pi, *pq ... downmixed result
-//int xx=0,xxo=0;
-void downmixer_process(short *pisample , short *pqsample)
+
+void downmixer_process(short *pisample ,short *pqsample, int client)
 {
     // get the LO
-    int lo = increment_NCO();
+    int lo = increment_NCO(client);
     
     // mixing
     int ix = (int)(*pisample) * lo;

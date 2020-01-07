@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "audio_bandpass.h"
+#include "websocketserver.h"
 #include "setqrg.h"
 
 double audio_3k6[AUDIO_COFLEN] = {
@@ -270,17 +271,17 @@ double audio_2k8[AUDIO_COFLEN] = {
 // FIR filters used by the down mixer
 // =================================================================================
 
-short audio_circular_buffer[AUDIO_COFLEN];
-int audio_wr_idx = 0;
+short audio_circular_buffer[MAX_CLIENTS][AUDIO_COFLEN];
+int audio_wr_idx[MAX_CLIENTS];
 
-short audio_filter(short sample)
+short audio_filter(short sample, int client)
 {
     // write value to buffer
-    audio_circular_buffer[audio_wr_idx] = sample;
+    audio_circular_buffer[client][audio_wr_idx[client]] = sample;
     
     // increment write index
-    audio_wr_idx++;
-    audio_wr_idx %= AUDIO_COFLEN;
+    audio_wr_idx[client]++;
+    audio_wr_idx[client] %= AUDIO_COFLEN;
     
     // calculate new value
     double *pcoeff = audio_1k8;
@@ -289,10 +290,10 @@ short audio_filter(short sample)
     if(filtermode == 3) pcoeff = audio_3k0;
     if(filtermode == 4) pcoeff = audio_3k6;
     double y = 0;
-    int idx = audio_wr_idx;
+    int idx = audio_wr_idx[client];
     for(int i = 0; i < AUDIO_COFLEN; i++)
     {
-        y += (*pcoeff++ * (double)audio_circular_buffer[idx++]);
+        y += (*pcoeff++ * (double)audio_circular_buffer[client][idx++]);
         if(idx >= AUDIO_COFLEN) idx=0;
     }
 

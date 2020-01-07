@@ -25,25 +25,26 @@
 */
 
 #include <stdio.h>
-#include "setqrg.h"
 #include "qo100websdr.h"
 #include "sdrplay.h"
 #include "rtlsdr.h"
 #include "downmixer.h"
 #include "cat.h"
+#include "websocket/websocketserver.h"
+#include "setqrg.h"
 
 // 0=do nothing, 1=set to mouse pos 2=increment/decrement
 // 3=set a band, 4=set LSB/USB
 int setfreq = 0;    
 int freqval;        // value for above command
 
-int foffset = 0;    // audio offset to tuned frequency
+int foffset[MAX_CLIENTS];    // audio offset to tuned frequency
 int ssbmode = 1;    // 0=LSB 1=USB
 int filtermode = 1; // 0=1,8k 1=2,4k 2=3,6k
 int setrfoffset = 0;
 unsigned int newrf = 0;
 int autosync = 0;
-
+int fclient = 0;
 
 // called in the main loop
 // checks if a new set-frequency command arrived
@@ -55,18 +56,18 @@ unsigned int frdiff;
     {
         case 1: 
                 #ifdef WIDEBAND
-                    foffset = freqval * 5250;
+                    foffset[fclient] = freqval * 5250;
                 #else
-                    foffset = freqval;
-                    printf("freqval:%d foffset:%d\n",freqval,foffset);
-                    downmixer_setFrequency(foffset);
+                    foffset[fclient] = freqval;
+                    printf("freqval:%d foffset:%d\n",freqval,foffset[fclient]);
+                    downmixer_setFrequency(foffset[fclient],fclient);
                 #endif
-                printf("new QRG offset: %d\n",foffset);
+                printf("new QRG offset: %d\n",foffset[fclient]);
                 break;
                 
-        case 2: foffset += (freqval * 10);
+        case 2: foffset[fclient] += (freqval * 10);
                 #ifndef WIDEBAND
-                downmixer_setFrequency(foffset);
+                downmixer_setFrequency(foffset[fclient],fclient);
                 #endif
                 break;
         
@@ -100,9 +101,9 @@ unsigned int frdiff;
                 // resolution: 15kHz (10 Hz/pixel)
                 //foffset += ((freqval * NB_RESOLUTION) - (WF_WIDTH/2)*NB_RESOLUTION);
                 #ifndef WIDEBAND
-                foffset += (freqval - WF_WIDTH/2) * NB_RESOLUTION;
-                printf("new QRG offset: %d\n",foffset);
-                downmixer_setFrequency(foffset);
+                foffset[fclient] += (freqval - WF_WIDTH/2) * NB_RESOLUTION;
+                printf("new QRG offset: %d\n",foffset[fclient]);
+                downmixer_setFrequency(foffset[fclient],fclient);
                 #endif
                 break;
                 

@@ -38,14 +38,16 @@
 #include "fifo.h"
 #include "wf_univ.h"
 #include "qo100websdr.h"
-#include "setqrg.h"
 #include "audio_bandpass.h"
 #include "downmixer.h"
 #include "hilbert90.h"
 #include "antialiasing.h"
 #include "timing.h"
+#include "websocketserver.h"
+#include "setqrg.h"
 
 void bcnLock(unsigned short *vals, int len);
+void ssb_decoder(short _xi, short _xq);
 
 fftw_complex *din = NULL;				// input data for  fft, output data from ifft
 fftw_complex *cpout = NULL;	            // ouput data from fft, input data to ifft
@@ -54,7 +56,12 @@ fftw_plan plan = NULL, iplan = NULL;
 int din_idx = 0;
 int rflock = 0;
 
+
 #ifndef WIDEBAND
+
+int audio_cnt[MAX_CLIENTS];
+short b16samples[MAX_CLIENTS][AUDIO_RATE];
+int audio_idx[MAX_CLIENTS];
 
 void init_fssb()
 {
@@ -71,6 +78,12 @@ void init_fssb()
 	iplan = fftw_plan_dft_1d(NB_FFT_LENGTH, cpssb, din, FFTW_BACKWARD, FFTW_MEASURE);
 
     fftw_export_wisdom_to_filename(fn);
+    
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        audio_cnt[i] = 0;
+        audio_idx[i] = 0;
+    }
 }
 
 // gain correction
@@ -145,103 +158,122 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // make Beacon Lock
             bcnLock(wfsamp,DATASIZE);
             
-            // showing the spectrum from 0-900.000 Hz with a resolution of 10 Hz
-            
             unsigned int realrf = TUNED_FREQUENCY - newrf;
             
-			drawWF( WFID_BIG,                   // Waterfall ID
-                    wfsamp,                     // FFT output data
-                    realrf,            			// frequency of the SDR 
-                    WF_RANGE_HZ,                // total width of the fft data in Hz (900.000)
-                    NB_HZ_PER_PIXEL,            // Hz/pixel (100)
-                    DISPLAYED_FREQUENCY_KHZ);   // frequency of the left margin of the waterfall
-            
-            // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
-            // in a range of 15.000 Hz, so every single bin (one bin is 10 Hz)
-            // starting at the current RX frequency - 15kHz/2 (so the RX qrg is in the middle)
-            // foffset is the RX qrg in Hz
-            // so we need the bins from (foffset/10) - 750 to (foffset/10) + 750
-            int start = ((foffset)/10) - 750;
-            int end = ((foffset)/10) + 750;
-
-			if(start < 0) start = 0;
-			if(end >= NB_FFT_LENGTH) end = NB_FFT_LENGTH-1;
-            
-            unsigned short wfsampsmall[WF_WIDTH];
-            idx = 0;
-
-            for(wfbins=start; wfbins<end; wfbins++)
+            // loop through all clients for the waterfalls and the SSB decoder
+            for(int client=0; client<MAX_CLIENTS; client++)
             {
-                real = cpout[wfbins][0];
-                imag = cpout[wfbins][1];
-                double dm = sqrt((real * real) + (imag * imag));
+                // big waterfall, the same for all clients
+                drawWF( WFID_BIG,                   // Waterfall ID
+                        wfsamp,                     // FFT output data
+                        realrf,            			// frequency of the SDR 
+                        WF_RANGE_HZ,                // total width of the fft data in Hz (900.000)
+                        NB_HZ_PER_PIXEL,            // Hz/pixel (100)
+                        DISPLAYED_FREQUENCY_KHZ,   // frequency of the left margin of the waterfall
+                        client);                        // client ID, -1 ... to all clients
                 
-                // correct level
-                
-                if(hwtype == 2)
-                    dm /= small_gaincorr_rtl;
-                 else
-                    dm /= small_gaincorr_sdrplay;
-				if(dm > 65535) 
-                {
-                    //printf("maxv overflow, rise small_gaincorr dm:%.0f\n",dm);
-                    dm = 65535;
-                }
-				wfsampsmall[idx] = (unsigned short)dm;
-                
-                idx++;
-            }
+                // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
+                // in a range of 15.000 Hz, so every single bin (one bin is 10 Hz)
+                // starting at the current RX frequency - 15kHz/2 (so the RX qrg is in the middle)
+                // foffset is the RX qrg in Hz
+                // so we need the bins from (foffset/10) - 750 to (foffset/10) + 750
+                int start = ((foffset[client])/10) - 750;
+                int end = ((foffset[client])/10) + 750;
 
-			drawWF( WFID_SMALL,                 // Waterfall ID
-                    wfsampsmall,                // FFT output data
-                    realrf,            			// frequency of the SDR 
-                    15000,               		// total width of the fft data in Hz (in this case 8.000.000)
-                    10,			                // Hz/pixel
-                    DISPLAYED_FREQUENCY_KHZ + (foffset)/1000);   // frequency of the left margin of the waterfall
+                if(start < 0) start = 0;
+                if(end >= NB_FFT_LENGTH) end = NB_FFT_LENGTH-1;
+                
+                unsigned short wfsampsmall[WF_WIDTH];
+                idx = 0;
+
+                for(wfbins=start; wfbins<end; wfbins++)
+                {
+                    real = cpout[wfbins][0];
+                    imag = cpout[wfbins][1];
+                    double dm = sqrt((real * real) + (imag * imag));
+                    
+                    // correct level
+                    
+                    if(hwtype == 2)
+                        dm /= small_gaincorr_rtl;
+                    else
+                        dm /= small_gaincorr_sdrplay;
+                    if(dm > 65535) 
+                    {
+                        //printf("maxv overflow, rise small_gaincorr dm:%.0f\n",dm);
+                        dm = 65535;
+                    }
+                    wfsampsmall[idx] = (unsigned short)dm;
+                    
+                    idx++;
+                }
+
+                drawWF( WFID_SMALL,                 // Waterfall ID
+                        wfsampsmall,                // FFT output data
+                        realrf,            			// frequency of the SDR 
+                        15000,               		// total width of the fft data in Hz (in this case 8.000.000)
+                        10,			                // Hz/pixel
+                        DISPLAYED_FREQUENCY_KHZ + (foffset[client])/1000, // frequency of the left margin of the waterfall
+                        client);                    // logged in client index
+            }
         }
         
         // SSB Decoding and Audio Output
-        // shift the needed frequency to baseband
-        downmixer_process(xi+i,xq+i);
+        ssb_decoder(xi[i],xq[i]);
+    }
+}
+
+// called for every single sample
+void ssb_decoder(short _xi, short _xq)
+{
+short xi, xq;
+
+    // shift the needed frequency to baseband
+    for(int client=0; client<MAX_CLIENTS; client++)
+    {
+        if(actsock[client].socket == -1)
+            continue;
+
+        xi = _xi;
+        xq = _xq;
+        
+        downmixer_process(&xi,&xq,client);
         
         // here we have the samples with rate of 1.800.000
-        // we need 7.500 for the sound card
-        // lets decimate by 240 (2*WF_RANGE_HZ / 8000)
-        static int audio_cnt = 0;
-        static short b16samples[AUDIO_RATE];
-        static int audio_idx = 0;
-        if(++audio_cnt >= 225)
+        // we need 8.000 for the sound card
+        // lets decimate by 225
+        if(++audio_cnt[client] >= 225)
         {
-            audio_cnt = 0;
-            
-            xi[i] = fir_filter_i_ssb(xi[i]);
-            xq[i] = fir_filter_q_ssb(xq[i]);
+            audio_cnt[client] = 0;
+
+            xi = fir_filter_i_ssb(xi,client);
+            xq = fir_filter_q_ssb(xq,client);
     
             // USB demodulation
-            double dsamp = BandPassm45deg(xi[i]) - BandPass45deg(xq[i]);
+            double dsamp = BandPassm45deg(xi,client) - BandPass45deg(xq,client);
             
             if(dsamp > 32767 || dsamp < -32767)
                 printf("Hilbert Output too loud: %.0f\n",dsamp);
             
-            b16samples[audio_idx] = audio_filter((short)dsamp);
+            b16samples[client][audio_idx[client]] = audio_filter((short)dsamp,client);
             
-            if(++audio_idx >= AUDIO_RATE)
+            if(++(audio_idx[client]) >= AUDIO_RATE)
             {
-                audio_idx = 0;
+                audio_idx[client] = 0;
                 // we have AUDIO_RATE (8000) samples, this is one second
                 #ifdef SOUNDLOCAL
                     // play it to the local soundcard
-                    write_pipe(FIFO_AUDIO, (unsigned char *)b16samples, AUDIO_RATE*2);
+                    write_pipe(FIFO_AUDIO, (unsigned char *)b16samples[client], AUDIO_RATE*2);
                 #else
                     // lets pipe it to the browser through the web socket
-                    write_pipe(FIFO_AUDIOWEBSOCKET, (unsigned char *)b16samples, AUDIO_RATE*2);
+                    write_pipe(FIFO_AUDIOWEBSOCKET + client, (unsigned char *)b16samples[client], AUDIO_RATE*2);
                 #endif
             }
         }
         else
         {
-            fir_filter_i_ssb_inc(xi[i]);
-            fir_filter_q_ssb_inc(xq[i]);
+            fir_filter_i_ssb_inc(xi,client);
+            fir_filter_q_ssb_inc(xq,client);
         }
     }
 }
@@ -331,7 +363,8 @@ static int swait = 0;
                 
                 printf("Beacon found at pos:%d diff:%d lastdiff:%d -> %d. Retuning data\n",maxpos,diff,lastdiff,qrgoffset);
                 
-                newrf = qrgoffset;
+                if(abs(qrgoffset-newrf) > 2)
+                    newrf = qrgoffset;
                 setrfoffset = 1;
                 rflock = 0;
                 

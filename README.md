@@ -4,6 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V1.9:
+- first multi user version, each browser can hear its own frequency, max. 20 simultaneous users
+
 Update V1.8:
 - many fixes for 32bit computers like Raspberry PI
 - new beacon lock algorithm

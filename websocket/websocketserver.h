@@ -3,7 +3,7 @@
 #include "../qo100websdr.h"
 
 #define MESSAGE_LENGTH 30000
-#define MAX_CLIENTS    20
+#define MAX_CLIENTS    20   // if changed: change also fifo.h !!!!!!!!!
 
 #define WS_KEY_LEN     24
 #define WS_MS_LEN      36
@@ -71,7 +71,8 @@ int   ws_sendframe_binary(int fd, unsigned char *msg, uint64_t length);
 int   ws_socket(struct ws_events *evs, int port);
 
 void ws_init();
-void ws_send(unsigned char *pwfdata, int idx, int wf_id);
+void ws_send(unsigned char *pwfdata, int idx, int wf_id, int client);
+int get_useranz();
 void onopen(int fd);
 void onclose(int fd);
 void onmessage(int fd, unsigned char *message);
@@ -81,5 +82,6 @@ void remove_socket(int fd);
 char *getSocketIP(int fd);
 int test_socket(char *cli);
 unsigned char *ws_build_txframe(int i, int *plength);
+int get_socket_idx(int fd);
 
 extern WS_SOCK actsock[MAX_CLIENTS];

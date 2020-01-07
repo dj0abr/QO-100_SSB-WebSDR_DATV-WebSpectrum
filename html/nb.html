@@ -1346,6 +1346,20 @@ canvas {
         return val;
     }
     
+    function get16(myarr)
+    {
+        var val = myarr[0];
+        val <<= 8;
+        val += myarr[1];
+        return val;
+    }
+    
+    function get8(myarr)
+    {
+        var val = myarr[0];
+        return val;
+    }
+    
     var ftx = 8089500;
     var rflock = 0;
 
@@ -1526,6 +1540,7 @@ canvas {
     var qo100_bp = qo100_bp_1;
     var startqrg = 10489250000;
     var endqrg   = 10490150000;
+    var fusers = 0;
     
     // process data received via the web socket
     function handle_type(type,arr,pos,len)
@@ -1555,13 +1570,19 @@ canvas {
             tuneqrg = get32(arr.slice(idx+8));      // QRG of the left margin of the picture in kHz
             resolution = get32(arr.slice(idx+12));  // Hz per pixel
             foffset = get32(arr.slice(idx+16));     // offset of the RX (lower WF) freq to the SDR tuned freq
-            rxpix  = arr.slice(idx+20);
+            fusers = get8(arr.slice(idx+20));       // number of logged in users
+            var fspare1 = get8(arr.slice(idx+21));
+            var fspare2 = get8(arr.slice(idx+22));
+            var fspare3 = get8(arr.slice(idx+23));
+            rxpix  = arr.slice(idx+24);
             pixwidth = end / resolution;            // number of fft values in rxpix
 
             var fval_Hz = tuneqrg*1000 + foffset;
             var fval = (tuneqrg + foffset/1000)/1e3;
             var sd = "RX: " + fval.toFixed(6) + " MHz, TX: " + (fval-ftx/1000).toFixed(6) + " MHz";
             $("#tuneinfo").html(sd);
+            
+            $("#loggedinusers").html("Users:" + fusers);
 
             //console.log("old:"+tunerqrg+" "+end+" "+tuneqrg+" "+resolution+" "+foffset);
             
@@ -2060,7 +2081,7 @@ canvas {
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V1.8</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V1.9</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2227,6 +2248,7 @@ canvas {
                 </div>
                 <div id="mousepos" class="measurements"></div>
                 <div id="transpondernoise" class="measurements"></div>
+                <div id="loggedinusers" class="measurements"></div>
             </div>
         </div>
         
