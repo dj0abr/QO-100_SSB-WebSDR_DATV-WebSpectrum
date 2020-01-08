@@ -133,9 +133,9 @@
     #define CW_BEACON   10489550000
     #define PSK_BEACON   10489800000
 
-   	// we need one FFT value every 10Hz for the lower waterfall and the SSB demodulator
+   	// we need one FFT value every 10Hz for the lower waterfall
 	// the Waterfall speed will be NB_RESOLUTION lines/s
-	// if this is modified, the lower WF resolution must be also modified and the SSB demodulator may sound different
+	// if this is modified, the lower WF resolution must be also modified
     #define NB_RESOLUTION   10  
     
     // width of the waterfall in pixels (must match the graphic width in the HTML file)
@@ -186,8 +186,8 @@
     // we have more FFT data as we can show in the display (display resolution: WF_WIDTH)
     // this value is the oversampling and MUST be an integer number !!!
     // the minimum bandwidth that we want to display with full resolution (WF_WIDTH) is 150kHz
-    // which are 15.000 fft-bins, so we have 10 fft-bins per pixel
-    #define NB_OVERSAMPLING 10
+    // 9000: number of FFT output values needed
+    #define NB_OVERSAMPLING ((WF_RANGE_HZ / NB_RESOLUTION) / 9000)
     
     // Hz per screen pixel
     // NB_OVERSAMPLING shows the FFT values per pixel, but one 

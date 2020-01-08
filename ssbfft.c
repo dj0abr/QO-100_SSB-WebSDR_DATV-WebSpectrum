@@ -112,7 +112,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // the buffer is full, now lets execute the fft
             fftw_execute(plan);
             
-            // this fft has generated FSSB_NUM_BINS bins in cpout
+            // this fft has generated NB_FFT_LENGTH bins in cpout
             #define DATASIZE ((NB_FFT_LENGTH/2)/NB_OVERSAMPLING)    // (180.000/2)/10 = 9000 final values
             unsigned short wfsamp[DATASIZE];
             int idx = 0;
@@ -143,11 +143,22 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                  else
                     maxv /= ssb_gaincorr_sdrplay;
                  
+                // move level correction value close to maximum level
                 if(maxv > 65535) 
                 {
-                    //printf("maxv overflow, rise gaincorr\n");
                     maxv = 65535;
+                    if(hwtype == 2)
+                    {
+                        ssb_gaincorr_rtl+=100;
+                        printf("maxv overflow, rise gaincorr to %d\n",ssb_gaincorr_rtl);
+                    }
+                    else
+                    {
+                        ssb_gaincorr_sdrplay+=100;
+                        printf("maxv overflow, rise gaincorr to %d\n",ssb_gaincorr_sdrplay);
+                    }
                 }
+                
                 wfsamp[idx] = (unsigned short)maxv;
 
                 idx++;
@@ -172,8 +183,9 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                         DISPLAYED_FREQUENCY_KHZ,   // frequency of the left margin of the waterfall
                         client);                        // client ID, -1 ... to all clients
                 
-                // for the SMALL waterfall we need 1500 (WF_WIDTH) bins
-                // in a range of 15.000 Hz, so every single bin (one bin is 10 Hz)
+                // for the SMALL waterfall we need 1500 (WF_WIDTH) bins in a range of 15.000 Hz
+                // 
+                
                 // starting at the current RX frequency - 15kHz/2 (so the RX qrg is in the middle)
                 // foffset is the RX qrg in Hz
                 // so we need the bins from (foffset/10) - 750 to (foffset/10) + 750
@@ -200,8 +212,18 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                         dm /= small_gaincorr_sdrplay;
                     if(dm > 65535) 
                     {
-                        //printf("maxv overflow, rise small_gaincorr dm:%.0f\n",dm);
                         dm = 65535;
+                        
+                        if(hwtype == 2)
+                        {
+                            small_gaincorr_rtl+=100;
+                            printf("small dm overflow, rise small gaincorr to %d\n",small_gaincorr_rtl);
+                        }
+                        else
+                        {
+                            small_gaincorr_sdrplay+=100;
+                            printf("small dm overflow, rise small gaincorr to %d\n",small_gaincorr_sdrplay);
+                        }
                     }
                     wfsampsmall[idx] = (unsigned short)dm;
                     
@@ -297,7 +319,7 @@ unsigned short max = 0;
 int maxpos = 0;
 static int oldmaxpos = 0;
 static int maxcnt = 0;
-static int lastdiff = 0;
+//static int lastdiff = 0;
 int pskfound=0;
 static int swait = 0;
 
@@ -358,15 +380,21 @@ static int swait = 0;
             
             if(diff != 0 && autosync == 1)
             {
-                lastdiff += diff;
-                int qrgoffset = lastdiff * NB_HZ_PER_PIXEL;
+                //lastdiff += diff;
+                int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
-                printf("Beacon found at pos:%d diff:%d lastdiff:%d -> %d. Retuning data\n",maxpos,diff,lastdiff,qrgoffset);
-                
-                if(abs(qrgoffset-newrf) > 2)
-                    newrf = qrgoffset;
-                setrfoffset = 1;
-                rflock = 0;
+                int maxabw = 2;
+                if(hwtype == 2) maxabw = 8;
+
+                //printf("Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
+
+                if(abs(diff) > maxabw)
+                {
+                    printf("Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
+                    newrf += qrgoffset;
+                    setrfoffset = 1;
+                    rflock = 0;
+                }
                 
                 // wait a bit for next beacon check to give the SDR a chance to set the new qrg
                 swait = 10;

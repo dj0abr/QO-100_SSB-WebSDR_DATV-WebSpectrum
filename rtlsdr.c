@@ -120,10 +120,23 @@ int init_rtlsdr()
     return 1;
 }
 
+/*
+ * void setTunedQrgOffset(unsigned int hz)
+{
+    double dqrg = TUNED_FREQUENCY - hz;
+    dqrg = (dqrg * (1000000L+SDRPLAY_TUNER_CORRECTION))/1000000L;
+    mir_sdr_SetRf(dqrg,1,0);
+    printf("rf : %.6f MHz\n",dqrg/1e6);
+}
+
+*/
 void rtlsetTunedQrgOffset(unsigned int hz)
 {
+    printf("rtl hz : %d\n",hz);
     unsigned long qrg = TUNED_FREQUENCY - hz;
+    printf("rtl qrg : %ld\n",qrg);
     qrg = (qrg * (1000000L+RTL_TUNER_CORRECTION))/1000000L;
+    printf("rtl qrg corr: %ld\n",qrg);
     int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
     if(retval != 0) printf("freqset= %d\n",retval);
     printf("rtl rf : %ld\n",qrg);
