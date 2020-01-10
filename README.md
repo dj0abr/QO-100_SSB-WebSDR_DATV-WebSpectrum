@@ -4,6 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V2.0:
+- wide band version supports Minitiouner Remote Control by clicking in the spectrum/waterfall. See documentation below
+
 Update V1.9:
 - first multi user version, each browser can hear its own frequency, max. 20 simultaneous users
 
@@ -137,6 +140,14 @@ and in the other directory run  ./build_RTLSDR
 you can now start the WB version and the NB version simultaneously. Just be sure that you use the correct frequencies for each version.
 
 The CPU load is quite high if you run both, but is not a problem for a modern PC, and also an Odroid N2 can handle both.
+
+# Minitiouner Remote Control
+F6DZP has implemented an UDP interface into his excellent Minitiouner software. This QO-100 WebSDR supports this feature. Just click on a signal in the spectrum or waterfall and the Minitiouner will be tuned to this signal.
+
+Before compilation you can change these settings in qo100websdr.h:
+MINITIOUNER_IP ... enter the IP address of the PC running Minitiouner
+MINITIOUNER_LOCAL ... if you want to remote control Minitiouner via the internet, enter 0. The default value 1 allows remote control in the home network only.
+    
 
 # ICOM synchronisation (for NB SSB transponder)
 an ICOM TRX can be connected via CIV (USB) to the computer running this software.

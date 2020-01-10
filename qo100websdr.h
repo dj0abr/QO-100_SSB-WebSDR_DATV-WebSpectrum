@@ -92,12 +92,19 @@
     #define WF_RANGE_HZ 8000000     
     
     // width of the waterfall in pixels (must match the graphic width in the HTML file)
-    #define WF_WIDTH    1600            
+    #define WF_WIDTH    1600 
+    
+    // minitiouner remote control
+    #define MINITIOUNER_IP      "192.168.0.25"  // enter IP address of PC running minitiouner software
+    #define MINITIOUNER_PORT    6789            // standard port, usually do not change
+    #define MINITIOUNER_LOCAL   1               // 0...access from internet allowed, 1...only local access
     
     // calculated values DO NOT change !
     // =================================
     
     #define _TUNED_FREQUENCY    ((int)((((long long)DISPLAYED_FREQUENCY_KHZ + (((long long)WF_RANGE_HZ/(long long)1000) / (long long)2)) * (long long)1000) - LNB_LO))
+
+    #define MINITIOUNER_OFFSET  ((LNB_CRYSTAL/1000000)*LNB_MULTIPLIER)
 
 #else  
 

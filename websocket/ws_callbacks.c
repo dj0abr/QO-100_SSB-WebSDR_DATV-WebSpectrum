@@ -31,15 +31,25 @@
 * 
 */
 
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <ifaddrs.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+
 #include "websocketserver.h"
+#include "../minitiouner.h"
 #include "../setqrg.h"
 #include "../fifo.h"
 
+void get_ownIP();
+
 extern int useCAT;
 int connections = 0;
+char myIP[20];
 
 // a new browser connected
 void onopen(int fd)
@@ -107,6 +117,16 @@ int ret = 0;
 // received a Websocket Message from a browser
 void onmessage(int fd, unsigned char *msg)
 {
+int remoteaccess = 0;
+static int f=1;
+
+    if(f == 1)
+    {
+        // init own IP
+        f=0;
+        get_ownIP();
+    }
+
 	char *cli = ws_getaddress(fd);
     if(cli != NULL)
     {
@@ -114,7 +134,13 @@ void onmessage(int fd, unsigned char *msg)
         
         // check if IP is authorized to control the SDRplay
         // allow only internal computers
-        if(useCAT && memcmp(cli,"192.168",7))
+        if(memcmp(cli,myIP,strlen(myIP)))
+        {
+            remoteaccess = 1;
+        }
+        
+        
+        if(useCAT && remoteaccess)
         {
             printf("ignore remote access %s for %s\n",msg, cli);
             free(cli);
@@ -183,7 +209,65 @@ void onmessage(int fd, unsigned char *msg)
             freqval = atoi((char *)msg+8);
             setfreq = 11;
         }
+        if(strstr((char *)msg,"datvqrg:"))
+        {
+            #if MINITIOUNER_LOCAL == 1
+                if(!remoteaccess) 
+                    setMinitiouner((char *)msg+8);
+                else
+                    printf("remote access to minitiouner blocked\n");
+            #else
+                setMinitiouner((char *)msg+8);
+            #endif
+        }
         
         free(cli);
     }
+}
+
+void get_ownIP()
+{
+    struct ifaddrs *ifaddr, *ifa;
+    int s;
+    char host[NI_MAXHOST];
+
+    if (getifaddrs(&ifaddr) == -1)
+    {
+        perror("getifaddrs");
+        return;
+    }
+
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+    {
+        if (ifa->ifa_addr == NULL)
+            continue;
+
+        s=getnameinfo(ifa->ifa_addr,sizeof(struct sockaddr_in),host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+
+        if(ifa->ifa_addr->sa_family==AF_INET)
+        {
+            if (s != 0)
+            {
+                printf("getnameinfo() failed: %s\n", gai_strerror(s));
+                return;
+            }
+            printf("Interface : <%s>\n",ifa->ifa_name );
+            printf("  Address : <%s>\n", host);
+            char *hp = strchr(host,'.');
+            if(hp)
+            {
+                *hp=0;
+                if(!strstr(host,"127"))
+                {
+                    // found the first real IP address
+                    strcpy(myIP, host);
+                    printf("my IP starts with %s.\n",myIP);
+                    return;
+                }
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
 }

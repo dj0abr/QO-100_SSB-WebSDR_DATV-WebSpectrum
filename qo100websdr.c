@@ -42,6 +42,7 @@
 #include "wb_fft.h"
 #include "downmixer.h"
 #include "cat.h"
+#include "minitiouner.h"
 
 int hwtype = 0; // 1=playSDR, 2=rtlsdr
 int samplesPerPacket;
@@ -55,6 +56,11 @@ void sighandler(int signum)
     if(hwtype == 1) remove_SDRplay();
     #endif
     if(hwtype == 2) rtlsdr_close(0);
+    
+    #ifdef WIDEBAND
+    remove_udp_minitiouner();
+    #endif
+    
     exit(0);
 }
 
@@ -254,6 +260,7 @@ int main(int argc, char *argv[])
     
     #ifdef WIDEBAND
         init_fwb();
+        init_udp_minitiouner();
     #else
         init_fssb();
         downmixer_init();

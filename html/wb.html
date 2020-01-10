@@ -210,14 +210,37 @@ canvas {
             var player;
             var playON = 0;
             
+            function mouseXtoQRG(x)
+            {
+                var mval = tuneqrg/1e3 + (x * 5000)/1e6;
+                mval -= 0.0300; // needed to get right value from mouse pointer, reason unknown
+                return mval;
+            }
+            
             function MouseMoveHandler(e)
             {
                 var e = window.event || e; // old IE support
-                var mval = tuneqrg/1e3 + (e.pageX * 5000)/1e6;
-                mval -= 0.0300; // needed to get right value from mouse pointer, reason unknown
+                var mval = mouseXtoQRG(e.pageX);
                 
                 var sd = "Mousepos. RX: " + mval.toFixed(6) + " MHz, TX: " + (mval-ftx/1000).toFixed(6) + " MHz";
                 $("#tuneinfo").html(sd);
+            }
+            
+            function MouseClickHandler(e)
+            {
+                // get clicked frequency
+                var e = window.event || e; // old IE support
+                var frequency = mouseXtoQRG(e.pageX) * 1000000; // clicked qrg in Hz
+                frequency = Math.round(frequency);
+
+                for(var xx=0; xx<qrgarridx; xx++)
+                {
+                    if(startqrgarr[xx] <= frequency && endqrgarr[xx] >= frequency)
+                    {
+                        //console.log("FOUND:" + startqrgarr[xx] + " to " + endqrgarr[xx] + " BW:" + bwarr[xx]);
+                        websocket.send("datvqrg:" + frequency + "," + bwarr[xx] + "\0");
+                    }
+                }
             }
             
             var filter_cutoff = 2400;
@@ -255,6 +278,20 @@ canvas {
             function onstart()
             {
                 setListboxes();
+                
+                // click into WF
+                var myitem = document.getElementById("wf_overlay");
+                if (myitem.addEventListener)
+                {
+                    myitem.addEventListener("click", MouseClickHandler, false);
+                }
+                
+                // click into spec
+                var myitem = document.getElementById("spec");
+                if (myitem.addEventListener)
+                {
+                    myitem.addEventListener("click", MouseClickHandler, false);
+                }
                 
                 // mouse in WF
                 var myitem = document.getElementById("wf_overlay");
@@ -724,6 +761,10 @@ canvas {
             var wfgain = 50;
             var minval = 999999;
             var maxval = -999999;
+            var startqrgarr = new Array(100);
+            var endqrgarr = new Array(100);
+            var bwarr = new Array(100);
+            var qrgarridx=0;
             
             function draw_spec()
             {
@@ -838,10 +879,17 @@ canvas {
                 context.textAlign = "center";
 
                 var redge = 0;
+                var arridx = 0;
                 for(var x=1; x<(width-1); x++)
                 {
+                    /*if(x<=20)
+                    {
+                    console.log("x:"+x+" y:"+yarr[x]);
+                    }*/
+                
                     // rising edge
-                    if(yarr[x-1] > y3db && yarr[x+1] < y3db)
+                    if( (yarr[x-1] > y3db && yarr[x+1] < y3db) ||
+                        (x == 5 && yarr[x] < y3db))
                     {
                         context.beginPath();
                         context.moveTo(x, y3db-8);
@@ -871,22 +919,37 @@ canvas {
                         else if(bw > 1400) bw = 1500;
                         else if(bw > 900) bw = 1000;
                         else if(bw > 450) bw = 500;
-                        else if(bw > 300) bw = 333;
+                        else if(bw > 310) bw = 333;
                         else if(bw > 220) bw = 250;
                         else if(bw > 110) bw = 125;
                         else if(bw > 50) bw = 66;
                         else if(bw > 20) bw = 33;
                         else bw = "?";
                         context.fillText(bw,(x-redge)/2+redge,y3db-7);
+                        bwarr[arridx] = bw;
+                        
+                        var startfreq = redge*5000 / 1000;
+                        startfreq = Number(startfreq) + tuneqrg;
+                        startqrgarr[arridx] = startfreq*1000;
+                        
+                        var endfreq = x*5000 / 1000;
+                        endfreq = Number(endfreq) + tuneqrg;
+                        endqrgarr[arridx] = endfreq*1000;
+                        
+                        arridx++;
                         
                         var freq = ((x-redge)/2+redge)*5000 / 1000000;
                         freq = Number(freq) + tuneqrg/1000;
                         freq = Number(freq) - 10000;
                         context.fillText(freq.toFixed(2) + "0",(x-redge)/2+redge,y3db+15);
                         
+                        
                         redge = 0;
                     }
                 }
+                
+                qrgarridx = arridx;
+                
                 context.textAlign = "left";
                 
                 // change minval only if bigger difference to old value to avaiod flickering
@@ -1690,7 +1753,7 @@ canvas {
         </head>
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 Wideband DATV Live Spectrum</div>
-        <div class="header_subtitle" id="header_subtitle">SDRplay RSP1a by DJ0ABR V1.9</div>
+        <div class="header_subtitle" id="header_subtitle">SDRplay RSP1a by DJ0ABR V2.0</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
