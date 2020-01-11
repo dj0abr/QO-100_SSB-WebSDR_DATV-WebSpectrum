@@ -209,6 +209,7 @@ static int f=1;
             freqval = atoi((char *)msg+8);
             setfreq = 11;
         }
+        #ifdef WIDEBAND
         if(strstr((char *)msg,"datvqrg:"))
         {
             #if MINITIOUNER_LOCAL == 1
@@ -220,6 +221,7 @@ static int f=1;
                 setMinitiouner((char *)msg+8);
             #endif
         }
+        #endif
         
         free(cli);
     }
