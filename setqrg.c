@@ -28,7 +28,6 @@
 #include "qo100websdr.h"
 #include "sdrplay.h"
 #include "rtlsdr.h"
-#include "downmixer.h"
 #include "cat.h"
 #include "websocket/websocketserver.h"
 #include "setqrg.h"
@@ -60,14 +59,14 @@ unsigned int frdiff;
                 #else
                     foffset[fclient] = freqval;
                     printf("freqval:%d foffset:%d\n",freqval,foffset[fclient]);
-                    downmixer_setFrequency(foffset[fclient],fclient);
+                    //downmixer_setFrequency(foffset[fclient],fclient);
                 #endif
                 printf("new QRG offset: %d\n",foffset[fclient]);
                 break;
                 
         case 2: foffset[fclient] += (freqval * 10);
                 #ifndef WIDEBAND
-                downmixer_setFrequency(foffset[fclient],fclient);
+                //downmixer_setFrequency(foffset[fclient],fclient);
                 #endif
                 break;
         
@@ -103,7 +102,7 @@ unsigned int frdiff;
                 #ifndef WIDEBAND
                 foffset[fclient] += (freqval - WF_WIDTH/2) * NB_RESOLUTION;
                 printf("new QRG offset: %d\n",foffset[fclient]);
-                downmixer_setFrequency(foffset[fclient],fclient);
+                //downmixer_setFrequency(foffset[fclient],fclient);
                 #endif
                 break;
                 

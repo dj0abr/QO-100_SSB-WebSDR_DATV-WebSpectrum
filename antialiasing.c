@@ -2,6 +2,8 @@
 // Anti Aliasing Mixer after down mixer
 // =================================================================================
 
+#include <stdio.h>
+#include <stdlib.h>
 #include "antialiasing.h"
 #include "websocketserver.h"
 
@@ -29,15 +31,15 @@ extern double dm_coef_299[299];
 #define DM_COEFLEN 299
 double *dm_coef = dm_coef_299;
 
-double i_ssb_circular_buffer[MAX_CLIENTS][DM_COEFLEN];
-double q_ssb_circular_buffer[MAX_CLIENTS][DM_COEFLEN];
-int i_ssb_wr_idx[MAX_CLIENTS];
-int q_ssb_wr_idx[MAX_CLIENTS];
+double i_circbuf[MAX_CLIENTS][DM_COEFLEN];
+double q_circbuf[MAX_CLIENTS][DM_COEFLEN];
+int i_wridx[MAX_CLIENTS];
+int q_wridx[MAX_CLIENTS];
 
 void fir_filter_i_ssb_inc(double sample, int client)
 {
-    i_ssb_circular_buffer[client][i_ssb_wr_idx[client]++] = sample;
-    i_ssb_wr_idx[client] %= DM_COEFLEN;
+    i_circbuf[client][i_wridx[client]++] = sample;
+    i_wridx[client] %= DM_COEFLEN;
 }
 
 /*
@@ -47,37 +49,34 @@ void fir_filter_i_ssb_inc(double sample, int client)
 int fir_filter_i_ssb(double sample, int client)
 {
 double *pcoeff = dm_coef;
-double y;
+int *pidx = &(i_wridx[client]);
+double *buf = i_circbuf[client];
 
     // write value to buffer
-    i_ssb_circular_buffer[client][i_ssb_wr_idx[client]] = sample;
-    
-    // increment write index
-    i_ssb_wr_idx[client]++;
-    i_ssb_wr_idx[client] %= DM_COEFLEN;
+    buf[(*pidx)++] = sample;
+    (*pidx) %= DM_COEFLEN;
     
     // calculate new value
-    y = 0;
-    int idxl = i_ssb_wr_idx[client];
-    int idxh = i_ssb_wr_idx[client]-1;
+    double y = 0;
+    int idxl = *pidx;
+    int idxh = (*pidx)-1;
     for(int i = 0; i < (DM_COEFLEN/2); i++)
     {
-        y += (*pcoeff++ * (i_ssb_circular_buffer[client][idxl++] + i_ssb_circular_buffer[client][idxh--]));
+        idxl %= DM_COEFLEN;
+        idxh %= DM_COEFLEN;
         
-        if(idxl >= DM_COEFLEN) idxl=0;
-        if(idxh < 0) idxh = DM_COEFLEN-1;
+        y += (*pcoeff++ * (buf[idxl++] + buf[idxh--]));
     }
-    
     // and the middle value
-    y += (*pcoeff * i_ssb_circular_buffer[client][idxl]);
-
+    y += (*pcoeff * buf[idxl]);
+    
     return (int)y;
 }
 
 void fir_filter_q_ssb_inc(double sample, int client)
 {
-    q_ssb_circular_buffer[client][q_ssb_wr_idx[client]++] = sample;
-    q_ssb_wr_idx[client] %= DM_COEFLEN;
+    q_circbuf[client][q_wridx[client]++] = sample;
+    q_wridx[client] %= DM_COEFLEN;
 }
 
 int fir_filter_q_ssb(double sample, int client)
@@ -86,26 +85,26 @@ double *pcoeff = dm_coef;
 double y;
 
     // write value to buffer
-    q_ssb_circular_buffer[client][q_ssb_wr_idx[client]] = sample;
+    q_circbuf[client][q_wridx[client]] = sample;
     
     // increment write index
-    q_ssb_wr_idx[client]++;
-    q_ssb_wr_idx[client] %= DM_COEFLEN;
+    q_wridx[client]++;
+    q_wridx[client] %= DM_COEFLEN;
     
     // calculate new value
     y = 0;
-    int idxl = q_ssb_wr_idx[client];
-    int idxh = q_ssb_wr_idx[client]-1;
+    int idxl = q_wridx[client];
+    int idxh = q_wridx[client]-1;
     for(int i = 0; i < (DM_COEFLEN/2); i++)
     {
-        y += (*pcoeff++ * (q_ssb_circular_buffer[client][idxl++] + q_ssb_circular_buffer[client][idxh--]));
+        idxl %= DM_COEFLEN;
+        idxh %= DM_COEFLEN;
         
-        if(idxl >= DM_COEFLEN) idxl=0;
-        if(idxh < 0) idxh = DM_COEFLEN-1;
+        y += (*pcoeff++ * (q_circbuf[client][idxl++] + q_circbuf[client][idxh--]));
     }
     
     // and the middle value
-    y += (*pcoeff * q_ssb_circular_buffer[client][idxl]);
+    y += (*pcoeff * q_circbuf[client][idxl]);
 
     return (int)y;
 }

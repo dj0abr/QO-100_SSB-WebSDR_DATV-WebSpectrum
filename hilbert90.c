@@ -36,7 +36,7 @@
 * designed with Iowa Hills Hilbert Filter Designer
 * Parameters:
 * Phase Added 
-* Smapling Freq: 8000 (does not matter, is just for fun)
+* Sampling Freq: 8000 (does not matter, is just for fun)
 * Fc=1,88kHz (0,44)
 * BW=3.6 kHz (0,731)
 * Taps: 24

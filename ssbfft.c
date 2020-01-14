@@ -39,20 +39,18 @@
 #include "wf_univ.h"
 #include "qo100websdr.h"
 #include "audio_bandpass.h"
-#include "downmixer.h"
 #include "hilbert90.h"
 #include "antialiasing.h"
 #include "timing.h"
 #include "websocketserver.h"
 #include "setqrg.h"
+#include "ssbdemod.h"
 
-void bcnLock(unsigned short *vals, int len);
-void ssb_decoder(short _xi, short _xq);
+void bcnLock(uint16_t *vals, int len);
 
 fftw_complex *din = NULL;				// input data for  fft, output data from ifft
 fftw_complex *cpout = NULL;	            // ouput data from fft, input data to ifft
-fftw_complex *cpssb = NULL;             // converted cpout, used as input for the inverse fft
-fftw_plan plan = NULL, iplan = NULL;
+fftw_plan plan = NULL;
 int din_idx = 0;
 int rflock = 0;
 
@@ -60,22 +58,25 @@ int rflock = 0;
 #ifndef WIDEBAND
 
 int audio_cnt[MAX_CLIENTS];
-short b16samples[MAX_CLIENTS][AUDIO_RATE];
+int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
 int audio_idx[MAX_CLIENTS];
+int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
+int b16idx[MAX_CLIENTS];
+
 
 void init_fssb()
 {
     char fn[300];
-	sprintf(fn, "fssb_wisdom");	// wisdom file for each capture rate
+	sprintf(fn, "fssb_wisdom2a");	// wisdom file for each capture rate
 
 	fftw_import_wisdom_from_filename(fn);
   
     din   = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
 	cpout = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
-    cpssb = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
 
     plan = fftw_plan_dft_1d(NB_FFT_LENGTH, din, cpout, FFTW_FORWARD, FFTW_MEASURE);
-	iplan = fftw_plan_dft_1d(NB_FFT_LENGTH, cpssb, din, FFTW_BACKWARD, FFTW_MEASURE);
+    
+    init_ssbdemod();
 
     fftw_export_wisdom_to_filename(fn);
     
@@ -95,7 +96,7 @@ int small_gaincorr_rtl = 2000;
 int ssb_gaincorr_sdrplay = 1000;
 int small_gaincorr_sdrplay = 1000;
 int ex=0;
-void fssb_sample_processing(short *xi, short *xq, int numSamples)
+void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
 {
     // copy the samples into the FFT input buffer
     for(int i=0; i<numSamples; i++)
@@ -114,7 +115,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             
             // this fft has generated NB_FFT_LENGTH bins in cpout
             #define DATASIZE ((NB_FFT_LENGTH/2)/NB_OVERSAMPLING)    // (180.000/2)/10 = 9000 final values
-            unsigned short wfsamp[DATASIZE];
+            uint16_t wfsamp[DATASIZE];
             int idx = 0;
             double real,imag;
             int wfbins;
@@ -122,53 +123,39 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
             // we do not use the possible lower/upper half of the FFT because the Nyquist frequency
             // is in the middle and makes an awful line in the middle of the waterfall
             // therefore we use the double sampling frequency and display to lower half only
-
             for(wfbins=0; wfbins<(NB_FFT_LENGTH/2); wfbins+=NB_OVERSAMPLING)
             {
                 if(idx >= DATASIZE) break; // all wf pixels are filled
                 
+                // get the maximum fft-bin for one final value
                 double maxv = -99999;
                 for(int bin10=0; bin10<NB_OVERSAMPLING; bin10++)
                 {
                     real = cpout[wfbins+bin10][0];
                     imag = cpout[wfbins+bin10][1];
                     double v = sqrt((real * real) + (imag * imag));
-                    //beaconLock(v,wfbins+bin10);
                     if(v > maxv) maxv = v;
                 }
 
                 // level correction
-                if(hwtype == 2)
-                    maxv /= ssb_gaincorr_rtl;
-                 else
-                    maxv /= ssb_gaincorr_sdrplay;
+                if(hwtype == 2) maxv /= ssb_gaincorr_rtl;
+                else            maxv /= ssb_gaincorr_sdrplay;
                  
                 // move level correction value close to maximum level
-                if(maxv > 65535) 
+                if(maxv > 10000) 
                 {
-                    maxv = 65535;
-                    if(hwtype == 2)
-                    {
-                        ssb_gaincorr_rtl+=100;
-                        printf("maxv overflow, rise gaincorr to %d\n",ssb_gaincorr_rtl);
-                    }
-                    else
-                    {
-                        ssb_gaincorr_sdrplay+=100;
-                        printf("maxv overflow, rise gaincorr to %d\n",ssb_gaincorr_sdrplay);
-                    }
+                    maxv = 10000;
+                    if(hwtype == 2) ssb_gaincorr_rtl+=100;
+                    else            ssb_gaincorr_sdrplay+=100;
                 }
                 
-                wfsamp[idx] = (unsigned short)maxv;
-
-                idx++;
+                wfsamp[idx++] = (uint16_t)maxv;
             }
-            
             // here war have wfsamp filled with DATASIZE values
             
-            // make Beacon Lock
-            bcnLock(wfsamp,DATASIZE);
-            
+            bcnLock(wfsamp,DATASIZE);       // make Beacon Lock
+
+            // left-margin-frequency including clicked-frequency
             unsigned int realrf = TUNED_FREQUENCY - newrf;
             
             // loop through all clients for the waterfalls and the SSB decoder
@@ -195,7 +182,7 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                 if(start < 0) start = 0;
                 if(end >= NB_FFT_LENGTH) end = NB_FFT_LENGTH-1;
                 
-                unsigned short wfsampsmall[WF_WIDTH];
+                uint16_t wfsampsmall[WF_WIDTH];
                 idx = 0;
 
                 for(wfbins=start; wfbins<end; wfbins++)
@@ -205,29 +192,16 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                     double dm = sqrt((real * real) + (imag * imag));
                     
                     // correct level
+                    if(hwtype == 2) dm /= small_gaincorr_rtl;
+                    else            dm /= small_gaincorr_sdrplay;
                     
-                    if(hwtype == 2)
-                        dm /= small_gaincorr_rtl;
-                    else
-                        dm /= small_gaincorr_sdrplay;
-                    if(dm > 65535) 
+                    if(dm > 10000) 
                     {
-                        dm = 65535;
-                        
-                        if(hwtype == 2)
-                        {
-                            small_gaincorr_rtl+=100;
-                            printf("small dm overflow, rise small gaincorr to %d\n",small_gaincorr_rtl);
-                        }
-                        else
-                        {
-                            small_gaincorr_sdrplay+=100;
-                            printf("small dm overflow, rise small gaincorr to %d\n",small_gaincorr_sdrplay);
-                        }
+                        dm = 10000;
+                        if(hwtype == 2) small_gaincorr_rtl+=100;
+                        else            small_gaincorr_sdrplay+=100;
                     }
-                    wfsampsmall[idx] = (unsigned short)dm;
-                    
-                    idx++;
+                    wfsampsmall[idx++] = (uint16_t)dm;
                 }
 
                 drawWF( WFID_SMALL,                 // Waterfall ID
@@ -237,66 +211,14 @@ void fssb_sample_processing(short *xi, short *xq, int numSamples)
                         10,			                // Hz/pixel
                         DISPLAYED_FREQUENCY_KHZ + (foffset[client])/1000, // frequency of the left margin of the waterfall
                         client);                    // logged in client index
+                
             }
+            
+            ssbdemod(cpout);
         }
         
         // SSB Decoding and Audio Output
-        ssb_decoder(xi[i],xq[i]);
-    }
-}
-
-// called for every single sample
-void ssb_decoder(short _xi, short _xq)
-{
-short xi, xq;
-
-    // shift the needed frequency to baseband
-    for(int client=0; client<MAX_CLIENTS; client++)
-    {
-        if(actsock[client].socket == -1)
-            continue;
-
-        xi = _xi;
-        xq = _xq;
-        
-        downmixer_process(&xi,&xq,client);
-        
-        // here we have the samples with rate of 1.800.000
-        // we need 8.000 for the sound card
-        // lets decimate by 225
-        if(++audio_cnt[client] >= 225)
-        {
-            audio_cnt[client] = 0;
-
-            xi = fir_filter_i_ssb(xi,client);
-            xq = fir_filter_q_ssb(xq,client);
-    
-            // USB demodulation
-            double dsamp = BandPassm45deg(xi,client) - BandPass45deg(xq,client);
-            
-            if(dsamp > 32767 || dsamp < -32767)
-                printf("Hilbert Output too loud: %.0f\n",dsamp);
-            
-            b16samples[client][audio_idx[client]] = audio_filter((short)dsamp,client);
-            
-            if(++(audio_idx[client]) >= AUDIO_RATE)
-            {
-                audio_idx[client] = 0;
-                // we have AUDIO_RATE (8000) samples, this is one second
-                #ifdef SOUNDLOCAL
-                    // play it to the local soundcard
-                    write_pipe(FIFO_AUDIO, (unsigned char *)b16samples[client], AUDIO_RATE*2);
-                #else
-                    // lets pipe it to the browser through the web socket
-                    write_pipe(FIFO_AUDIOWEBSOCKET + client, (unsigned char *)b16samples[client], AUDIO_RATE*2);
-                #endif
-            }
-        }
-        else
-        {
-            fir_filter_i_ssb_inc(xi,client);
-            fir_filter_q_ssb_inc(xq,client);
-        }
+        // ssb_decoder(xi[i],xq[i]);
     }
 }
 
@@ -310,12 +232,12 @@ short xi, xq;
 // PSK Beacon
 // has a width of +-600Hz
 #define PSK_BEACON_OFFSET   (((long long)PSK_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / ((long long)NB_HZ_PER_PIXEL))
-#define PSK_BEACON_LOCKRANGE        (long long)6     // check beacon QRG +- lockrange (1=100Hz)
+#define PSK_BEACON_LOCKRANGE        (long long)3     // check beacon QRG +- lockrange (1=100Hz)
 #define PSK_CW_OFFSET (PSK_BEACON_OFFSET - BEACON_OFFSET)
 
-void bcnLock(unsigned short *vals, int len)
+void bcnLock(uint16_t *vals, int len)
 {
-unsigned short max = 0;
+uint16_t max = 0;
 int maxpos = 0;
 static int oldmaxpos = 0;
 static int maxcnt = 0;
@@ -340,9 +262,10 @@ static int swait = 0;
             maxpos = pos;
         }
     }
-    //printf("Maximum found at idx: %d\n",maxpos);
+    //printf("Maximum found at idx: %d. PSKoffset:%lld\n",maxpos,PSK_CW_OFFSET);
     
     int pskcenter = maxpos + PSK_CW_OFFSET;
+    //printf("PSKcenter at%d\n",pskcenter);
     int lowsig = 0;
     int highsig = 0;
     int sig = 0;
@@ -357,8 +280,10 @@ static int swait = 0;
     
     sig = vals[pskcenter];
     
+    //printf("l,c,h: %05d %05d %05d\n",lowsig,sig,highsig);
+    
     // we see the PSK beacon, if lowsig and highsig is at least double of sig
-    if((lowsig/2) > sig && (highsig/2) > sig)
+    if(((lowsig*2)/3) > sig && ((highsig*2)/3) > sig)
     {
         //printf("%05d %05d %05d  PSK Beacon found\n",lowsig,sig,highsig);
         pskfound = 1;
@@ -380,13 +305,12 @@ static int swait = 0;
             
             if(diff != 0 && autosync == 1)
             {
-                //lastdiff += diff;
                 int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
                 int maxabw = 2;
                 if(hwtype == 2) maxabw = 8;
 
-                //printf("Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
+                //printf("*Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
 
                 if(abs(diff) > maxabw)
                 {

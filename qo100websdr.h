@@ -185,16 +185,15 @@
 	#define SDR_SAMPLE_RATE    (NB_SAMPLE_RATE * SR_MULTIPLIER)
     
     // number of input and output data of the FFT
-    // we will only use the lower half of the output data
     // i.e.: 1.800.000 / 10 = 180.000 samples input and 180.000 bins FFT output, where 90.000 are used
     // these 90.000 bins show the spectrum of 900kHz with a resolution of 10 Hz
     #define NB_FFT_LENGTH   (NB_SAMPLE_RATE / NB_RESOLUTION)    // 1.800.000/10 = 180.000
-    
-    // we have more FFT data as we can show in the display (display resolution: WF_WIDTH)
-    // this value is the oversampling and MUST be an integer number !!!
-    // the minimum bandwidth that we want to display with full resolution (WF_WIDTH) is 150kHz
-    // 9000: number of FFT output values needed
-    #define NB_OVERSAMPLING ((WF_RANGE_HZ / NB_RESOLUTION) / 9000)
+
+    // the FFT delivers NB_FFT_LENGTH/2 values (i.e.: 90.000 values with a resolution of 10 Hz/value)
+    // we want to be able to display a lowest range of 150kHz (30.000 values) within 1500 pixel
+    // this is 200Hz/Pixel
+    // the FFT gives us 10 Hz value, so we only need every 10th value, this is the oversampling
+    #define NB_OVERSAMPLING (15000 / WF_WIDTH)  // = 10
     
     // Hz per screen pixel
     // NB_OVERSAMPLING shows the FFT values per pixel, but one 

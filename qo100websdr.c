@@ -40,7 +40,6 @@
 #include "fifo.h"
 #include "ssbfft.h"
 #include "wb_fft.h"
-#include "downmixer.h"
 #include "cat.h"
 #include "minitiouner.h"
 
@@ -263,7 +262,6 @@ int main(int argc, char *argv[])
         init_udp_minitiouner();
     #else
         init_fssb();
-        downmixer_init();
     #endif // WIDEBAND
     
     // init the FIFO

@@ -4,6 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V2.1:
+- new and better SSB demodulator using inverse FFT. Preconfigured for max. 20 independent users. Can be changed in webspcketserver.h, see MAX_CLIENTS. Maximum number of users is given by the CPU power of your computer. I.e.: an Odroid N2 or RPI-4 can handle up to 20 users, a PC can handle much more.
+
 Update V2.0:
 - wide band version supports Minitiouner Remote Control by clicking in the spectrum/waterfall. See documentation below
 
