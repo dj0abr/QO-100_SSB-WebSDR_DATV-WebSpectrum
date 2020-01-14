@@ -1639,8 +1639,7 @@ canvas {
     function showLock()
     {
         lk = "sync-ing ............";
-        if(rflock == 1) lk = "LOCKED to CW beacon";
-        if($("#sync").is(':checked') == false) lk = "off";
+        if(rflock == 1) lk = "LOCKED to beacon";
         $("#lockstat").html(lk);
     }
     
@@ -1654,8 +1653,6 @@ canvas {
         switch(openints)
         {
             case 0: websocket.send("ssbmode:1\0"); 
-                    break;
-            case 1: checkQRG();
                     break;
             default: clear = 1;
                     break;
@@ -1799,22 +1796,6 @@ canvas {
 
         });
         
-    }
-    
-    function checkQRG()
-    {
-        var ckb = $("#sync").is(':checked');
-        $('#qrg').attr('disabled', ckb);
-        if(ckb == true)
-        {
-            websocket.send("autosyn:1\0");
-            localStorage.setItem('sync',"1");
-        }
-        else
-        {
-            websocket.send("autosyn:0\0");
-            localStorage.setItem('sync',"0");
-        }
     }
     
     function CATonoff()
@@ -2136,7 +2117,6 @@ canvas {
                         <div id="status">Status</div>
                     </div>
                     <div class="controls_left_right">
-                        <div><input type="checkbox" id="sync" onclick="checkQRG()">Sync ON/off</div>
                         <div><input type="text" class="qrg" id="qrg" onfocusout="qrgFocusOut()"  onfocus="qrgFocus()">  Hz (Tuner)</div>
                     </div>
                 </div>

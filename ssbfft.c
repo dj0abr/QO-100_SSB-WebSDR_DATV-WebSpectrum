@@ -39,12 +39,15 @@
 #include "wf_univ.h"
 #include "qo100websdr.h"
 #include "audio_bandpass.h"
-#include "hilbert90.h"
-#include "antialiasing.h"
 #include "timing.h"
 #include "websocketserver.h"
 #include "setqrg.h"
 #include "ssbdemod.h"
+
+int rflock = 0;
+
+// not used for WB Transponder
+#ifndef WIDEBAND
 
 void bcnLock(uint16_t *vals, int len);
 
@@ -52,10 +55,6 @@ fftw_complex *din = NULL;				// input data for  fft, output data from ifft
 fftw_complex *cpout = NULL;	            // ouput data from fft, input data to ifft
 fftw_plan plan = NULL;
 int din_idx = 0;
-int rflock = 0;
-
-
-#ifndef WIDEBAND
 
 int audio_cnt[MAX_CLIENTS];
 int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
@@ -216,9 +215,6 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
             
             ssbdemod(cpout);
         }
-        
-        // SSB Decoding and Audio Output
-        // ssb_decoder(xi[i],xq[i]);
     }
 }
 

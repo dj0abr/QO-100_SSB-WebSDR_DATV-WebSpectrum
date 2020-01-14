@@ -47,7 +47,7 @@ int b16idx[MAX_CLIENTS];
  * handling all clients in one thread takes less CPU time
  * than using a separate thread for each client
  */
-#define CLIENT_HANDLING 0   // 0=all in one thread, 1=one thread per client
+#define CLIENT_HANDLING 1   // 0=all in one thread, 1=one thread per client
 
 #if CLIENT_HANDLING == 1
 pthread_mutex_t ssb_crit_sec[MAX_CLIENTS];
@@ -133,12 +133,10 @@ void *ssbdemod_thread(void *param)
         
         // SSB Demodulation
         // we got 90.000 values, 10 Hz/value
-        int fftcnt = NB_FFT_LENGTH / 2 + 1;
         // shift the demodulated signal from the IF into the baseband (0 Hz)
         // fmin and fmax are the minimum and maximum audio frequencies of interest
-        //printf("%d\n",foffset[client]);
         int fmin = 0;
-        int fmax = 360;                     // 3,6 kHz max BW
+        int fmax = 500;                     // 3,6 kHz max BW
         int ifqrg = foffset[client] / 10;   // offset choosen by the user
         for (int i = fmin; i < fmax; i++)
         {
@@ -148,7 +146,7 @@ void *ssbdemod_thread(void *param)
         
         // NULL the negative frequencies, this eliminates the mirror image
         // (in case of LSB demodulation use this negative image and null the positive)
-        for (int i = fftcnt; i < NB_FFT_LENGTH; i++)
+        for (int i = (NB_FFT_LENGTH / 2); i < NB_FFT_LENGTH; i++)
         {
             cin[client][i][0] = 0;
             cin[client][i][1] = 0;
@@ -158,34 +156,28 @@ void *ssbdemod_thread(void *param)
         fftw_execute(iplan[client]);
 
         // and copy samples into the resulting buffer
-        // scaling: the FFT/iFFT multipies the samples by capture rate
-        double usbsamples[NB_FFT_LENGTH];
-        int maxfval = 0;
-        for (int i = 0; i < NB_FFT_LENGTH; i++)
-        {
-            usbsamples[i] = cout[client][i][0];	// use real part only
-            usbsamples[i] /= (double)NB_FFT_LENGTH;		// scale down to match the value of the input signal
-            if (usbsamples[i] > maxfval) maxfval = usbsamples[i];   // measure maximum value
-        }
-
-        // check for overflow. We need to put the samples into a 16 bit int16_t, test if it fits
-        if (maxfval > 32767)
-        {
-            // it does not fit, scale down to the maximum possible value, which is 32767
-            for (int i = 0; i < NB_FFT_LENGTH; i++)
-                usbsamples[i] = usbsamples[i] * 32767 / maxfval;
-        }
-
         // we have NB_FFT_LENGTH usbsamples for 1/10s
         // fill a buffer for 1s
-        if(b16idx[client] >= AUDIO_RATE) printf("OVR !!! %d\n",b16idx[client]);
-        
+        // scale down to AUDIORATE
+        #define maxcode  (32767.0 / 2.0) // abs max = 32767
+        static double max[MAX_CLIENTS];
         for(int i=0; i<NB_FFT_LENGTH; i+=(NB_FFT_LENGTH/(AUDIO_RATE/10)))
         {
-            b16samples[client][(b16idx[client])++] = audio_filter((int16_t)usbsamples[i],client);
+            // scale to max. 16 bit
+            double v = cout[client][i][0];
+            if(v > 0 && v > max[client]) max[client] = v;
+            if(v < 0 && -v > max[client]) max[client] = -v;
+            if(max[client] <= 0) max[client] = 1;
+            
+            // filter and copy sample to audio sample buffer
+            b16samples[client][(b16idx[client])++] = audio_filter((int16_t)(v*maxcode/max[client]),client);
+
+            // reduce scaling slowly
+            if(max[client] > 1) max[client]-=100;
         }
         if(b16idx[client] == AUDIO_RATE) 
         {
+            // audio samples for 1s available, send to browser
             b16idx[client] = 0;
             write_pipe(FIFO_AUDIOWEBSOCKET + client, (unsigned char *)b16samples[client], AUDIO_RATE*2);
         }

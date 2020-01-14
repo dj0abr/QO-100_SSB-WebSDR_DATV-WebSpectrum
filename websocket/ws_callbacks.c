@@ -182,11 +182,11 @@ static int f=1;
             freqval = atoi((char *)msg+8);
             setfreq = 6;
         }
-        if(strstr((char *)msg,"autosyn:"))
+        /*if(strstr((char *)msg,"autosyn:"))
         {
             freqval = atoi((char *)msg+8);
             setfreq = 7;
-        }
+        }*/
         if(strstr((char *)msg,"tunervl:"))
         {
             // Browser sends a new tuner frequency

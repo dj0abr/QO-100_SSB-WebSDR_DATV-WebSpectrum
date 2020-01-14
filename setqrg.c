@@ -42,7 +42,7 @@ int ssbmode = 1;    // 0=LSB 1=USB
 int filtermode = 1; // 0=1,8k 1=2,4k 2=3,6k
 int setrfoffset = 0;
 unsigned int newrf = 0;
-int autosync = 0;
+int autosync = 1;   // always on
 int fclient = 0;
 
 // called in the main loop
@@ -85,9 +85,9 @@ unsigned int frdiff;
                 setrfoffset = 1;
                 break;
                 
-        case 7: autosync = freqval;
+        /*case 7: autosync = freqval;
                 printf("auto beacon lock: %d\n",autosync);
-                break; 
+                break; */
                 
         case 8: // Browser sends a new tuner frequency
                 newrf = TUNED_FREQUENCY - freqval;
