@@ -39,7 +39,6 @@ int freqval;        // value for above command
 
 int foffset[MAX_CLIENTS];    // audio offset to tuned frequency
 int ssbmode = 1;    // 0=LSB 1=USB
-int filtermode = 1; // 0=1,8k 1=2,4k 2=3,6k
 int setrfoffset = 0;
 unsigned int newrf = 0;
 int autosync = 1;   // always on
@@ -72,10 +71,6 @@ unsigned int frdiff;
         
         case 4: ssbmode = freqval;
                 printf("set mode: %s\n",ssbmode?"USB":"LSB");
-                break;
-                
-        case 5: filtermode = freqval;
-                printf("set filter: %d\n",filtermode);
                 break;
                 
         case 6: frdiff = freqval;

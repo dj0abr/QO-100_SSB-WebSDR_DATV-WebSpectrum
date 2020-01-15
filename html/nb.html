@@ -329,64 +329,14 @@ canvas {
         }
     }
     
-    var filter_cutoff = 2400;
-    
-    function filter18()
-    {
-        filter_cutoff = 1800;
-        sendFilter();
-    }
-    
-    function filter24()
-    {
-        filter_cutoff = 2400;
-        sendFilter();
-    }
-    
-    function filter28()
-    {
-        filter_cutoff = 2800;
-        sendFilter();
-    }
-
-    function filter30()
-    {
-        filter_cutoff = 3000;
-        sendFilter();
-    }
-
-    function filter36()
-    {
-        filter_cutoff = 3600;
-        sendFilter();
-    }
-    
-    function sendFilter()
-    {
-        localStorage.setItem('filter',filter_cutoff);
-        
-        switch(filter_cutoff)
-        {
-        case 1800:  
-            websocket.send("filterw:0\0");
-            break;
-        case 2400:  
-            websocket.send("filterw:1\0");
-            break;
-        case 2800:  
-            websocket.send("filterw:2\0");
-            break;
-        case 3000:  
-            websocket.send("filterw:3\0");
-            break;
-        case 3600:  
-            websocket.send("filterw:4\0");
-            break;
-        }
-    }
+    var filter_cutoff = 2800;
     
     function onstart()
     {
+        // activate the PCMplayer
+        audioON();
+        audioON();  // and switch audio initially off
+        
         setListboxes();
         
         // click into WF
@@ -608,7 +558,7 @@ canvas {
     var arrfirst = 1;
     var speclevel = -180;
     var specgain = -60;
-    var audiogain = 100;
+    var audiogain = 1;
     var wflevel = 230;
     var wfgain = 50;
     var bcnarrlen = 500;
@@ -1631,7 +1581,7 @@ canvas {
         {
             if(playON == 1)
             {
-                player.feed(arr.slice(pos,pos+len),530-audiogain);
+                player.feed(arr.slice(pos,pos+len));
             }
         }
     }
@@ -1982,12 +1932,14 @@ canvas {
         if(v != null)
         {
             audiogain = v;
+            player.volume(audiogain);
             slider_audiogain.value = audiogain;
         }
             
         slider_audiogain.oninput = function() 
         {
             audiogain = this.value;
+            player.volume(audiogain);
             localStorage.setItem('audiogain',audiogain);
         }
         
@@ -2062,7 +2014,7 @@ canvas {
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.1</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.2</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2102,11 +2054,11 @@ canvas {
                     <option value="0">Marker OFF</option>
                 </select>
                 <button class="mybutton" id="audiobutton" onclick="audioON()">AUDIO OFF</button>
-                <button class="mybutton" onclick="filter18()">1.8kHz</button>
-                <button class="mybutton" onclick="filter24()">2.4kHz</button>
-                <button class="mybutton" onclick="filter28()">2.8kHz</button>
-                <button class="mybutton" onclick="filter30()">3.0kHz</button>
-                <button class="mybutton" onclick="filter36()">3.6kHz</button>
+                <button class="mybutton" onclick="player.setLPfilter(1800)">1.8kHz</button>
+                <button class="mybutton" onclick="player.setLPfilter(2400)">2.4kHz</button>
+                <button class="mybutton" onclick="player.setLPfilter(2800)">2.8kHz</button>
+                <button class="mybutton" onclick="player.setLPfilter(3000)">3.0kHz</button>
+                <button class="mybutton" onclick="player.setLPfilter(3600)">3.6kHz</button>
                 <div class="controls_left">
                     <div class="controls_left_left">
                         <div>QRG-AUTOLOCK:</div>
@@ -2202,7 +2154,7 @@ canvas {
                         Audio:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="audiogain" type="range" min="1" max="500" value="100">
+                        <input id="audiogain" type="range" min="1" max="100" value="1">
                     </div>
                 </div>
                 <div class="midrow_menuline" style="background-color: #e0e0e0;">

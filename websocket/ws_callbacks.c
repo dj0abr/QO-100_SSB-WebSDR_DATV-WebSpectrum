@@ -172,11 +172,6 @@ static int f=1;
             freqval = atoi((char *)msg+8);
             setfreq = 4;
         }
-        if(strstr((char *)msg,"filterw:"))
-        {
-            freqval = atoi((char *)msg+8);
-            setfreq = 5;
-        }
         if(strstr((char *)msg,"tunerfr:"))
         {
             freqval = atoi((char *)msg+8);

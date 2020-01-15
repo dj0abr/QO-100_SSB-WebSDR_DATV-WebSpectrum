@@ -76,32 +76,62 @@ PCMPlayer.prototype.getTypedArray = function () {
     return typedArrays[this.option.encoding] ? typedArrays[this.option.encoding] : typedArrays['16bitInt'];
 };
 
-PCMPlayer.prototype.createContext = function() {
+var lpfilter;
+var hpfilter;
+
+PCMPlayer.prototype.createContext = function() 
+{
+    // create audio context
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // create a gain module
     this.gainNode = this.audioCtx.createGain();
-    this.gainNode.gain.value = 1;
-    this.gainNode.connect(this.audioCtx.destination);
+    this.gainNode.gain.value = 5;
+    
+    // create a low pass filter
+    lpfilter = this.audioCtx.createBiquadFilter();
+    lpfilter.type = "lowpass";
+    lpfilter.Q = 10;
+    this.setLPfilter(2800);
+    
+    // create a high pass filter
+    hpfilter = this.audioCtx.createBiquadFilter();
+    hpfilter.type = "highpass";
+    hpfilter.Q = 10;
+    hpfilter.frequency.value = 200; 
+    
+    this.gainNode.connect(hpfilter);
+    hpfilter.connect(lpfilter);
+    lpfilter.connect(this.audioCtx.destination);
+    
     this.startTime = this.audioCtx.currentTime;
+};
+
+PCMPlayer.prototype.setLPfilter = function(v) 
+{
+    filter_cutoff = v;
+    lpfilter.frequency.value = v - 1000; // -1500 to make filter more realistic
 };
 
 PCMPlayer.prototype.isTypedArray = function(data) {
     return (data.byteLength && data.buffer && data.buffer.constructor == ArrayBuffer);
 };
 
-PCMPlayer.prototype.feed = function(data,gain) 
+PCMPlayer.prototype.feed = function(data) 
 {
     if (!this.isTypedArray(data)) return;
     //console.log("samples:" + data.length + " " + data[0].toString(16) + " " + data[1].toString(16) + " " + data[2].toString(16) + " " + data[3].toString(16));
     var i1 = data.length;
-    data = this.getFormatedValue(data,gain);
+    data = this.getFormatedValue(data);
     var tmp = new Float32Array(this.samples.length + data.length);
     tmp.set(this.samples, 0);
     tmp.set(data, this.samples.length);
     this.samples = tmp;
 };
 
-PCMPlayer.prototype.getFormatedValue = function(data,gain) 
+PCMPlayer.prototype.getFormatedValue = function(data) 
 {
+    var gain = 30000;
     var float32 = new Float32Array(8000);
     var idx = 0;
     for (var i = 0; i < data.length; i+=2) 
@@ -110,14 +140,14 @@ PCMPlayer.prototype.getFormatedValue = function(data,gain)
         v <<= 8;
         v += data[i];
         if(v >= 32768) v = v - 65536;
-        float32[idx++] = v / (gain * 400);
+        float32[idx++] = v / gain;
     }
     
     return float32;
 };
 
 PCMPlayer.prototype.volume = function(volume) {
-    this.gainNode.gain.value = volume;
+    this.gainNode.gain.value = volume/40;
 };
 
 PCMPlayer.prototype.destroy = function() {
@@ -142,16 +172,6 @@ PCMPlayer.prototype.flush = function() {
 
     for (channel = 0; channel < this.option.channels; channel++) {
         audioData = audioBuffer.getChannelData(channel);
-        /*
-        // fadein
-        if (i < 50) {
-            audioData[i] =  (audioData[i] * i) / 50;
-        }
-        // fadeout
-        if (i >= (length - 51)) {
-            audioData[i] =  (audioData[i] * decrement--) / 50;
-        }
-        */
         offset = channel;
         decrement = 50;
         for (i = 0; i < length; i++) {

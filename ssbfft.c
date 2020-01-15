@@ -38,7 +38,6 @@
 #include "fifo.h"
 #include "wf_univ.h"
 #include "qo100websdr.h"
-#include "audio_bandpass.h"
 #include "timing.h"
 #include "websocketserver.h"
 #include "setqrg.h"

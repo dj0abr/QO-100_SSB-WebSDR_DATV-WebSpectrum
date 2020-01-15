@@ -34,7 +34,6 @@
 #include "ssbdemod.h"
 #include "websocketserver.h"
 #include "setqrg.h"
-#include "audio_bandpass.h"
 #include "fifo.h"
 
 fftw_complex *cin[MAX_CLIENTS];
@@ -170,9 +169,7 @@ void *ssbdemod_thread(void *param)
             if(max[client] <= 0) max[client] = 1;
             
             // filter and copy sample to audio sample buffer
-            //b16samples[client][(b16idx[client])++] = v*5000/max[client];
-            b16samples[client][(b16idx[client])++] = audio_filter((int16_t)(v*maxcode/max[client]),client);
-            //b16samples[client][(b16idx[client])++] = audio_filter((int16_t)(v*5000/max[client]),client);
+            b16samples[client][(b16idx[client])++] = (int16_t)(v*maxcode/max[client]);
 
             // reduce scaling slowly
             if(max[client] > 1) max[client]-=100;
