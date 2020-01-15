@@ -608,7 +608,7 @@ canvas {
     var arrfirst = 1;
     var speclevel = -180;
     var specgain = -60;
-    var audiogain = 50;
+    var audiogain = 100;
     var wflevel = 230;
     var wfgain = 50;
     var bcnarrlen = 500;
@@ -1631,7 +1631,7 @@ canvas {
         {
             if(playON == 1)
             {
-                player.feed(arr.slice(pos,pos+len),audiogain);
+                player.feed(arr.slice(pos,pos+len),530-audiogain);
             }
         }
     }
@@ -2202,7 +2202,7 @@ canvas {
                         Audio:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="audiogain" type="range" min="1" max="100" value="50">
+                        <input id="audiogain" type="range" min="1" max="500" value="100">
                     </div>
                 </div>
                 <div class="midrow_menuline" style="background-color: #e0e0e0;">

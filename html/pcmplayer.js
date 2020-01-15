@@ -88,9 +88,11 @@ PCMPlayer.prototype.isTypedArray = function(data) {
     return (data.byteLength && data.buffer && data.buffer.constructor == ArrayBuffer);
 };
 
-PCMPlayer.prototype.feed = function(data,gain) {
+PCMPlayer.prototype.feed = function(data,gain) 
+{
     if (!this.isTypedArray(data)) return;
-    //console.log("samp" + data[0] + " " + data[1]);
+    //console.log("samples:" + data.length + " " + data[0].toString(16) + " " + data[1].toString(16) + " " + data[2].toString(16) + " " + data[3].toString(16));
+    var i1 = data.length;
     data = this.getFormatedValue(data,gain);
     var tmp = new Float32Array(this.samples.length + data.length);
     tmp.set(this.samples, 0);
@@ -98,14 +100,19 @@ PCMPlayer.prototype.feed = function(data,gain) {
     this.samples = tmp;
 };
 
-PCMPlayer.prototype.getFormatedValue = function(data,gain) {
-    var data = new this.typedArray(data.buffer),
-        float32 = new Float32Array(data.length),
-        i;
-
-    for (i = 0; i < data.length; i++) {
-        float32[i] = (data[i] / this.maxValue) * gain/10;
+PCMPlayer.prototype.getFormatedValue = function(data,gain) 
+{
+    var float32 = new Float32Array(8000);
+    var idx = 0;
+    for (var i = 0; i < data.length; i+=2) 
+    {
+        var v = data[i+1];
+        v <<= 8;
+        v += data[i];
+        if(v >= 32768) v = v - 65536;
+        float32[idx++] = v / (gain * 400);
     }
+    
     return float32;
 };
 
@@ -135,14 +142,16 @@ PCMPlayer.prototype.flush = function() {
 
     for (channel = 0; channel < this.option.channels; channel++) {
         audioData = audioBuffer.getChannelData(channel);
-        /* fadein */
+        /*
+        // fadein
         if (i < 50) {
             audioData[i] =  (audioData[i] * i) / 50;
         }
-        /* fadeout*/
+        // fadeout
         if (i >= (length - 51)) {
             audioData[i] =  (audioData[i] * decrement--) / 50;
         }
+        */
         offset = channel;
         decrement = 50;
         for (i = 0; i < length; i++) {

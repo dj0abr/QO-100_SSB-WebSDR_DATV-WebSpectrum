@@ -159,7 +159,7 @@ void *ssbdemod_thread(void *param)
         // we have NB_FFT_LENGTH usbsamples for 1/10s
         // fill a buffer for 1s
         // scale down to AUDIORATE
-        #define maxcode  (32767.0 / 2.0) // abs max = 32767
+        #define maxcode  (32767.0 / 5.0) // abs max = 32767
         static double max[MAX_CLIENTS];
         for(int i=0; i<NB_FFT_LENGTH; i+=(NB_FFT_LENGTH/(AUDIO_RATE/10)))
         {
@@ -170,7 +170,9 @@ void *ssbdemod_thread(void *param)
             if(max[client] <= 0) max[client] = 1;
             
             // filter and copy sample to audio sample buffer
+            //b16samples[client][(b16idx[client])++] = v*5000/max[client];
             b16samples[client][(b16idx[client])++] = audio_filter((int16_t)(v*maxcode/max[client]),client);
+            //b16samples[client][(b16idx[client])++] = audio_filter((int16_t)(v*5000/max[client]),client);
 
             // reduce scaling slowly
             if(max[client] > 1) max[client]-=100;
@@ -179,7 +181,11 @@ void *ssbdemod_thread(void *param)
         {
             // audio samples for 1s available, send to browser
             b16idx[client] = 0;
+            #ifdef SOUNDLOCAL
+            write_pipe(FIFO_AUDIO, (unsigned char *)b16samples[client], AUDIO_RATE*2);
+            #else
             write_pipe(FIFO_AUDIOWEBSOCKET + client, (unsigned char *)b16samples[client], AUDIO_RATE*2);
+            #endif
         }
 #if CLIENT_HANDLING == 0
     }

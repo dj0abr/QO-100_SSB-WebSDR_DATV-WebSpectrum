@@ -223,7 +223,7 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
 // NB_FFT_LENGTH/2 goes over a range of WF_RANGE_HZ Hz starting at DISPLAYED_FREQUENCY_KHZ
 // with a resolution of 10Hz per FFT value
 #define BEACON_OFFSET   (((long long)CW_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / ((long long)NB_HZ_PER_PIXEL))
-#define BEACON_LOCKRANGE        (long long)200     // check beacon QRG +- lockrange (1=100Hz)
+#define BEACON_LOCKRANGE        (long long)1000     // check beacon QRG +- lockrange (1=100Hz)
 
 // PSK Beacon
 // has a width of +-600Hz
@@ -304,7 +304,7 @@ static int swait = 0;
                 int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
                 int maxabw = 2;
-                if(hwtype == 2) maxabw = 8;
+                if(hwtype == 2) maxabw = 12;
 
                 //printf("*Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
 
