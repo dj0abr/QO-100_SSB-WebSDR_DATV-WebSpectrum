@@ -303,7 +303,7 @@ static int swait = 0;
                 int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
                 int maxabw = 2;
-                if(hwtype == 2) maxabw = 12;
+                if(hwtype == 2) maxabw = 16;
 
                 //printf("*Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
 

@@ -91,13 +91,13 @@ PCMPlayer.prototype.createContext = function()
     // create a low pass filter
     lpfilter = this.audioCtx.createBiquadFilter();
     lpfilter.type = "lowpass";
-    lpfilter.Q = 10;
-    this.setLPfilter(2800);
+    //lpfilter.Q = 10;
+    lpfilter.frequency.value = 2400; 
     
     // create a high pass filter
     hpfilter = this.audioCtx.createBiquadFilter();
     hpfilter.type = "highpass";
-    hpfilter.Q = 10;
+    //hpfilter.Q = 10;
     hpfilter.frequency.value = 200; 
     
     this.gainNode.connect(hpfilter);
@@ -109,8 +109,17 @@ PCMPlayer.prototype.createContext = function()
 
 PCMPlayer.prototype.setLPfilter = function(v) 
 {
-    filter_cutoff = v;
-    lpfilter.frequency.value = v - 1000; // -1500 to make filter more realistic
+    if(v <=0 || v == null || v === undefined || v == "null") return;
+    //console.log("LP:" + v);
+    lpfilter.frequency.value = v;
+    
+};
+
+PCMPlayer.prototype.setHPfilter = function(v) 
+{
+    if(v <=0 || v == null || v === undefined || v == "null") return;
+    //console.log("HP:" + v);
+    hpfilter.frequency.value = v;
 };
 
 PCMPlayer.prototype.isTypedArray = function(data) {
@@ -146,43 +155,48 @@ PCMPlayer.prototype.getFormatedValue = function(data)
     return float32;
 };
 
-PCMPlayer.prototype.volume = function(volume) {
-    this.gainNode.gain.value = volume/40;
+PCMPlayer.prototype.volume = function(v) 
+{
+    if(v <=0 || v == null || v === undefined || v == "null") return;
+    audiogain = v;
+    //console.log("vol: " + v);
+    this.gainNode.gain.value = v/40;
 };
 
-PCMPlayer.prototype.destroy = function() {
-    if (this.interval) {
+PCMPlayer.prototype.destroy = function() 
+{
+    if (this.interval)
         clearInterval(this.interval);
-    }
+
     this.samples = null;
     this.audioCtx.close();
     this.audioCtx = null;
 };
 
-PCMPlayer.prototype.flush = function() {
+PCMPlayer.prototype.flush = function() 
+{
     if (!this.samples.length) return;
+    
     var bufferSource = this.audioCtx.createBufferSource(),
         length = this.samples.length / this.option.channels,
-        audioBuffer = this.audioCtx.createBuffer(this.option.channels, length, this.option.sampleRate),
-        audioData,
-        channel,
-        offset,
-        i,
-        decrement;
+        audioBuffer = this.audioCtx.createBuffer(this.option.channels, length, this.option.sampleRate);
 
-    for (channel = 0; channel < this.option.channels; channel++) {
-        audioData = audioBuffer.getChannelData(channel);
-        offset = channel;
-        decrement = 50;
-        for (i = 0; i < length; i++) {
+    for (var channel = 0; channel < this.option.channels; channel++) 
+    {
+        var audioData = audioBuffer.getChannelData(channel);
+        var offset = channel;
+        var decrement = 50;
+        
+        for (var i = 0; i < length; i++) 
+        {
             audioData[i] = this.samples[offset];
             offset += this.option.channels;
         }
     }
     
-    if (this.startTime < this.audioCtx.currentTime) {
+    if (this.startTime < this.audioCtx.currentTime)
         this.startTime = this.audioCtx.currentTime;
-    }
+
     //console.log('start vs current '+this.startTime+' vs '+this.audioCtx.currentTime+' duration: '+audioBuffer.duration);
     bufferSource.buffer = audioBuffer;
     bufferSource.connect(this.gainNode);

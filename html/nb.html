@@ -93,6 +93,25 @@ body {
     width: 185px;
 }
 
+.filtercontainer
+{
+    display: flex;
+    align-items: center;
+    height: 36px;
+}
+
+.audio_filter_slider
+{
+    width: 170px;
+}
+
+.audiolabel
+{
+    text-align: center;
+    padding-left: 1em;
+    font-weight: 200;
+}
+
 .controls 
 {
     width: 1500px;
@@ -330,6 +349,7 @@ canvas {
     }
     
     var filter_cutoff = 2800;
+    var filter_cutoff_low = 200;
     
     function onstart()
     {
@@ -1155,7 +1175,7 @@ canvas {
                 if((i%2)==0)
                 {
                     vls(width/2 + 20,i);
-                    vls(width/2 + filter_cutoff/10,i);
+                    vls(width/2 + filter_cutoff_low/10,i);
                 }
             }
         }
@@ -1822,12 +1842,6 @@ canvas {
     
     function setListboxes()
     {
-        var v = localStorage.getItem('filter');
-        if(v != null)
-        {
-            filter_cutoff = parseInt(v);
-        }
-        
         var v = localStorage.getItem('sync');
         if(v != null)
         {
@@ -1931,15 +1945,13 @@ canvas {
         v = localStorage.getItem('audiogain');
         if(v != null)
         {
-            audiogain = v;
-            player.volume(audiogain);
+            player.volume(v);
             slider_audiogain.value = audiogain;
         }
             
         slider_audiogain.oninput = function() 
         {
-            audiogain = this.value;
-            player.volume(audiogain);
+            player.volume(this.value);
             localStorage.setItem('audiogain',audiogain);
         }
         
@@ -1996,7 +2008,39 @@ canvas {
             //console.log(wfgain);
             localStorage.setItem('wfgain',wfgain);
         }
-    }
+        
+        var slider_audiolowfilter = document.getElementById("lowfilter");
+        v = localStorage.getItem('lowfilter');
+        if(v != null)
+        {
+            filter_cutoff = v;
+            player.setHPfilter(v);
+            slider_audiolowfilter.value = filter_cutoff;
+        }
+            
+        slider_audiolowfilter.oninput = function() 
+        {
+            filter_cutoff = this.value;
+            player.setHPfilter(filter_cutoff);
+            localStorage.setItem('lowfilter',filter_cutoff);
+        }
+
+        var slider_audiohighfilter = document.getElementById("highfilter");
+        v = localStorage.getItem('highfilter');
+        if(v != null)
+        {
+            filter_cutoff_low = v;
+            player.setLPfilter(v);
+            slider_audiohighfilter.value = filter_cutoff_low;
+        }
+            
+        slider_audiohighfilter.oninput = function() 
+        {
+            filter_cutoff_low = this.value;
+            player.setLPfilter(filter_cutoff_low);
+            localStorage.setItem('highfilter',filter_cutoff_low);
+        }
+}
     
     var qrgfocus = 0;
     function qrgFocusOut()
@@ -2053,12 +2097,16 @@ canvas {
                     <option value="1">Marker ON</option>
                     <option value="0">Marker OFF</option>
                 </select>
+                
+                <div class="filtercontainer">
                 <button class="mybutton" id="audiobutton" onclick="audioON()">AUDIO OFF</button>
-                <button class="mybutton" onclick="player.setLPfilter(1800)">1.8kHz</button>
-                <button class="mybutton" onclick="player.setLPfilter(2400)">2.4kHz</button>
-                <button class="mybutton" onclick="player.setLPfilter(2800)">2.8kHz</button>
-                <button class="mybutton" onclick="player.setLPfilter(3000)">3.0kHz</button>
-                <button class="mybutton" onclick="player.setLPfilter(3600)">3.6kHz</button>
+                <label class="audiolabel">Filter Low:</label>
+                <input type ="range" min="50" max="700" step="10" id="lowfilter" value="200" class="audio_filter_slider" />
+
+                <label class="audiolabel">High:</label>
+                <input type ="range" min="800" max="3600" step="50" id="highfilter" value="2400" class="audio_filter_slider" />
+                </div>
+                
                 <div class="controls_left">
                     <div class="controls_left_left">
                         <div>QRG-AUTOLOCK:</div>

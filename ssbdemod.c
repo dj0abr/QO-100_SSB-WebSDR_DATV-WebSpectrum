@@ -158,8 +158,15 @@ void *ssbdemod_thread(void *param)
         // we have NB_FFT_LENGTH usbsamples for 1/10s
         // fill a buffer for 1s
         // scale down to AUDIORATE
-        #define maxcode  (32767.0 / 5.0) // abs max = 32767
+        #define maxcode  (32767.0 / 3.0) // abs max = 32767
         static double max[MAX_CLIENTS];
+        static int f=1;
+        if(f==1)
+        {
+            f=0;
+            for(int i=0; i<MAX_CLIENTS; i++) max[i]=1;
+        }
+        
         for(int i=0; i<NB_FFT_LENGTH; i+=(NB_FFT_LENGTH/(AUDIO_RATE/10)))
         {
             // scale to max. 16 bit
