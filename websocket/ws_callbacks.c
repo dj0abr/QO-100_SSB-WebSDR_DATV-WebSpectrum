@@ -114,11 +114,13 @@ int ret = 0;
     return 0;
 }
 
+
 // received a Websocket Message from a browser
 void onmessage(int fd, unsigned char *msg)
 {
 int remoteaccess = 0;
 static int f=1;
+USERMSG tx_usermsg;
 
     if(f == 1)
     {
@@ -130,7 +132,8 @@ static int f=1;
 	char *cli = ws_getaddress(fd);
     if(cli != NULL)
     {
-        fclient = get_socket_idx(fd);
+        tx_usermsg.client = get_socket_idx(fd);
+        tx_usermsg.command = 0;
         
         // check if IP is authorized to control the SDRplay
         // allow only internal computers
@@ -154,56 +157,61 @@ static int f=1;
             long long v1 = atol((char *)msg+8);   // full qrg from browser
             long long v2 = v1 - LNB_LO;
             long long v = v2 - (long long)TUNED_FREQUENCY;        // we need the offset only
-            freqval = (int)v;
-            setfreq = 1;
+            tx_usermsg.command = 1;
+            tx_usermsg.para = (int)v;
         }
         if(strstr((char *)msg,"mousewh:"))
         {
-            freqval = atoi((char *)msg+8);
-            setfreq = 2;
+            tx_usermsg.command = 2;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
         if(strstr((char *)msg,"bandsel:"))
         {
-            freqval = atoi((char *)msg+8);
-            setfreq = 3;
+            tx_usermsg.command = 3;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
         if(strstr((char *)msg,"ssbmode:"))
         {
-            freqval = atoi((char *)msg+8);
-            setfreq = 4;
+            tx_usermsg.command = 4;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
         if(strstr((char *)msg,"tunerfr:"))
         {
-            freqval = atoi((char *)msg+8);
-            setfreq = 6;
+            tx_usermsg.command = 6;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
         /*if(strstr((char *)msg,"autosyn:"))
         {
-            freqval = atoi((char *)msg+8);
-            setfreq = 7;
+            tx_usermsg.command = 7;
+            tx_usermsg.para = atoi((char *)msg+8);
         }*/
         if(strstr((char *)msg,"tunervl:"))
         {
-            // Browser sends a new tuner frequency
-            freqval = atoi((char *)msg+8);
-            setfreq = 8;
+            tx_usermsg.command = 8;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
         if(strstr((char *)msg,"mouselo:"))  // mouse click lower WF
         {
-            freqval = atoi((char *)msg+8);
-            setfreq = 9;
+            tx_usermsg.command = 9;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
         if(strstr((char *)msg,"catonof:"))
         {
-            freqval = atoi((char *)msg+8);
-            setfreq = 10;
+            tx_usermsg.command = 10;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
         if(strstr((char *)msg,"catsetq:") && !memcmp(cli,"192.168",7))
         {
             // allow only local stations to activate CAT control
-            freqval = atoi((char *)msg+8);
-            setfreq = 11;
+            tx_usermsg.command = 11;
+            tx_usermsg.para = atoi((char *)msg+8);
         }
+        if(strstr((char *)msg,"audioon:"))
+        {
+            tx_usermsg.command = 12;
+            tx_usermsg.para = atoi((char *)msg+8);
+        }
+        
         #ifdef WIDEBAND
         if(strstr((char *)msg,"datvqrg:"))
         {
@@ -217,6 +225,11 @@ static int f=1;
             #endif
         }
         #endif
+        
+        if(tx_usermsg.command != 0)
+        {
+            write_pipe(FIFO_USERCMD, (unsigned char *)(&tx_usermsg), sizeof(USERMSG));
+        }
         
         free(cli);
     }

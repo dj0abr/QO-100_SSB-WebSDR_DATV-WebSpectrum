@@ -4,6 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V2.3:
+- bug fixes in multi user mode
+
 Update V2.2:
 - new audio filter: now filtering is done in the browser, so every user has his own filters.
 

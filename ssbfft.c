@@ -42,6 +42,8 @@
 #include "websocketserver.h"
 #include "setqrg.h"
 #include "ssbdemod.h"
+#include "sdrplay.h"
+#include "rtlsdr.h"
 
 int rflock = 0;
 
@@ -311,8 +313,12 @@ static int swait = 0;
                 {
                     printf("Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
                     newrf += qrgoffset;
-                    setrfoffset = 1;
                     rflock = 0;
+                    if(hwtype == 1)
+                        setTunedQrgOffset(newrf);
+                    
+                    if(hwtype == 2)
+                        rtlsetTunedQrgOffset(newrf);
                 }
                 
                 // wait a bit for next beacon check to give the SDR a chance to set the new qrg

@@ -317,7 +317,6 @@ int main(int argc, char *argv[])
     while(1)
     {
         set_frequency();
-        
         usleep(1000);
     }
     

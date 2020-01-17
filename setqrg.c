@@ -31,18 +31,15 @@
 #include "cat.h"
 #include "websocket/websocketserver.h"
 #include "setqrg.h"
-
-// 0=do nothing, 1=set to mouse pos 2=increment/decrement
-// 3=set a band, 4=set LSB/USB
-int setfreq = 0;    
-int freqval;        // value for above command
+#include "fifo.h"
+#include <fftw3.h>
+#include "ssbdemod.h"
 
 int foffset[MAX_CLIENTS];    // audio offset to tuned frequency
 int ssbmode = 1;    // 0=LSB 1=USB
 int setrfoffset = 0;
 unsigned int newrf = 0;
 int autosync = 1;   // always on
-int fclient = 0;
 
 // called in the main loop
 // checks if a new set-frequency command arrived
@@ -50,42 +47,46 @@ void set_frequency()
 {
 unsigned int frdiff;
 
-    switch (setfreq)
+    // look if user command available
+    USERMSG rx_usermsg;
+    int len = read_pipe(FIFO_USERCMD, (unsigned char *)(&rx_usermsg), sizeof(USERMSG));
+    if(len == 0) return;
+    
+    //printf("user command:%d from client:%d parameter:%d\n",rx_usermsg.command,rx_usermsg.client,rx_usermsg.para);
+
+    switch (rx_usermsg.command)
     {
         case 1: 
                 #ifdef WIDEBAND
-                    foffset[fclient] = freqval * 5250;
+                    foffset[rx_usermsg.client] = rx_usermsg.para * 5250;
                 #else
-                    foffset[fclient] = freqval;
-                    printf("freqval:%d foffset:%d\n",freqval,foffset[fclient]);
-                    //downmixer_setFrequency(foffset[fclient],fclient);
+                    foffset[rx_usermsg.client] = rx_usermsg.para;
+                    printf("freqval:%d foffset:%d\n",rx_usermsg.para,foffset[rx_usermsg.client]);
+                    //downmixer_setFrequency(foffset[rx_usermsg.client],rx_usermsg.client);
                 #endif
-                printf("new QRG offset: %d\n",foffset[fclient]);
+                printf("new QRG offset: %d\n",foffset[rx_usermsg.client]);
                 break;
                 
-        case 2: foffset[fclient] += (freqval * 10);
-                #ifndef WIDEBAND
-                //downmixer_setFrequency(foffset[fclient],fclient);
-                #endif
+        case 2: foffset[rx_usermsg.client] += (rx_usermsg.para * 10);
                 break;
         
-        case 4: ssbmode = freqval;
+        case 4: ssbmode = rx_usermsg.para;
                 printf("set mode: %s\n",ssbmode?"USB":"LSB");
                 break;
                 
-        case 6: frdiff = freqval;
+        case 6: frdiff = rx_usermsg.para;
                 if(frdiff == 1) newrf-=100;
                 else newrf+=100;
                 printf("set tuner qrg: %d\n",frdiff);
                 setrfoffset = 1;
                 break;
                 
-        /*case 7: autosync = freqval;
+        /*case 7: autosync = rx_usermsg.para;
                 printf("auto beacon lock: %d\n",autosync);
                 break; */
                 
         case 8: // Browser sends a new tuner frequency
-                newrf = TUNED_FREQUENCY - freqval;
+                newrf = TUNED_FREQUENCY - rx_usermsg.para;
                 printf("set tuner qrg: %d (%d)\n",newrf,TUNED_FREQUENCY - newrf);
                 setrfoffset = 1;
                 break;
@@ -93,19 +94,22 @@ unsigned int frdiff;
         case 9: // mouse click lower WF 0..1500
                 // actual qrg is in the middle at pos=750
                 // resolution: 15kHz (10 Hz/pixel)
-                //foffset += ((freqval * NB_RESOLUTION) - (WF_WIDTH/2)*NB_RESOLUTION);
+                //foffset += ((rx_usermsg.para * NB_RESOLUTION) - (WF_WIDTH/2)*NB_RESOLUTION);
                 #ifndef WIDEBAND
-                foffset[fclient] += (freqval - WF_WIDTH/2) * NB_RESOLUTION;
-                printf("new QRG offset: %d\n",foffset[fclient]);
-                //downmixer_setFrequency(foffset[fclient],fclient);
+                foffset[rx_usermsg.client] += (rx_usermsg.para - WF_WIDTH/2) * NB_RESOLUTION;
+                printf("new QRG offset: %d\n",foffset[rx_usermsg.client]);
+                //downmixer_setFrequency(foffset[rx_usermsg.client],rx_usermsg.client);
                 #endif
                 break;
                 
         case 10:// activate icom CAT interface (open/close serial port)
-                useCAT = freqval;
+                useCAT = rx_usermsg.para;
+                break;
+        case 12:// audio decoder for this client on/off
+                printf("switch audio %d for client %d\n",rx_usermsg.para,rx_usermsg.client);
+                audioon[rx_usermsg.client] = rx_usermsg.para;
                 break;
     }
-    setfreq = 0;
     
     if(setrfoffset)
     {

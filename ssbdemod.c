@@ -31,8 +31,8 @@
 #include <pthread.h>
 #include <time.h>
 #include "qo100websdr.h"
-#include "ssbdemod.h"
 #include "websocketserver.h"
+#include "ssbdemod.h"
 #include "setqrg.h"
 #include "fifo.h"
 
@@ -41,6 +41,7 @@ fftw_complex *cout[MAX_CLIENTS];
 fftw_plan iplan[MAX_CLIENTS];
 int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
 int b16idx[MAX_CLIENTS];
+int audioon[MAX_CLIENTS];
 
 /*
  * handling all clients in one thread takes less CPU time
@@ -71,6 +72,7 @@ void init_ssbdemod()
         iplan[cli] = fftw_plan_dft_1d(NB_FFT_LENGTH, cin[cli], cout[cli], FFTW_BACKWARD, FFTW_MEASURE);
         
         b16idx[cli] = 0;
+        audioon[cli] = 0;
         #if CLIENT_HANDLING == 1
         ssbp[cli].running = 0;
         #endif
@@ -130,66 +132,69 @@ void *ssbdemod_thread(void *param)
         if(actsock[client].socket == -1) continue;
 #endif
         
-        // SSB Demodulation
-        // we got 90.000 values, 10 Hz/value
-        // shift the demodulated signal from the IF into the baseband (0 Hz)
-        // fmin and fmax are the minimum and maximum audio frequencies of interest
-        int fmin = 0;
-        int fmax = 500;                     // 3,6 kHz max BW
-        int ifqrg = foffset[client] / 10;   // offset choosen by the user
-        for (int i = fmin; i < fmax; i++)
+        if(audioon[client] == 1)
         {
-            cin[client][i][0] = cpout[i+ifqrg][0];
-            cin[client][i][1] = cpout[i+ifqrg][1];
-        }
-        
-        // NULL the negative frequencies, this eliminates the mirror image
-        // (in case of LSB demodulation use this negative image and null the positive)
-        for (int i = (NB_FFT_LENGTH / 2); i < NB_FFT_LENGTH; i++)
-        {
-            cin[client][i][0] = 0;
-            cin[client][i][1] = 0;
-        }
-
-        // with invers fft convert the spectrum back to samples
-        fftw_execute(iplan[client]);
-
-        // and copy samples into the resulting buffer
-        // we have NB_FFT_LENGTH usbsamples for 1/10s
-        // fill a buffer for 1s
-        // scale down to AUDIORATE
-        #define maxcode  (32767.0 / 3.0) // abs max = 32767
-        static double max[MAX_CLIENTS];
-        static int f=1;
-        if(f==1)
-        {
-            f=0;
-            for(int i=0; i<MAX_CLIENTS; i++) max[i]=1;
-        }
-        
-        for(int i=0; i<NB_FFT_LENGTH; i+=(NB_FFT_LENGTH/(AUDIO_RATE/10)))
-        {
-            // scale to max. 16 bit
-            double v = cout[client][i][0];
-            if(v > 0 && v > max[client]) max[client] = v;
-            if(v < 0 && -v > max[client]) max[client] = -v;
-            if(max[client] <= 0) max[client] = 1;
+            // SSB Demodulation
+            // we got 90.000 values, 10 Hz/value
+            // shift the demodulated signal from the IF into the baseband (0 Hz)
+            // fmin and fmax are the minimum and maximum audio frequencies of interest
+            int fmin = 0;
+            int fmax = 500;                     // 3,6 kHz max BW
+            int ifqrg = foffset[client] / 10;   // offset choosen by the user
+            for (int i = fmin; i < fmax; i++)
+            {
+                cin[client][i][0] = cpout[i+ifqrg][0];
+                cin[client][i][1] = cpout[i+ifqrg][1];
+            }
             
-            // filter and copy sample to audio sample buffer
-            b16samples[client][(b16idx[client])++] = (int16_t)(v*maxcode/max[client]);
+            // NULL the negative frequencies, this eliminates the mirror image
+            // (in case of LSB demodulation use this negative image and null the positive)
+            for (int i = (NB_FFT_LENGTH / 2); i < NB_FFT_LENGTH; i++)
+            {
+                cin[client][i][0] = 0;
+                cin[client][i][1] = 0;
+            }
 
-            // reduce scaling slowly
-            if(max[client] > 1) max[client]-=100;
-        }
-        if(b16idx[client] == AUDIO_RATE) 
-        {
-            // audio samples for 1s available, send to browser
-            b16idx[client] = 0;
-            #ifdef SOUNDLOCAL
-            write_pipe(FIFO_AUDIO, (unsigned char *)b16samples[client], AUDIO_RATE*2);
-            #else
-            write_pipe(FIFO_AUDIOWEBSOCKET + client, (unsigned char *)b16samples[client], AUDIO_RATE*2);
-            #endif
+            // with invers fft convert the spectrum back to samples
+            fftw_execute(iplan[client]);
+
+            // and copy samples into the resulting buffer
+            // we have NB_FFT_LENGTH usbsamples for 1/10s
+            // fill a buffer for 1s
+            // scale down to AUDIORATE
+            #define maxcode  (32767.0 / 3.0) // abs max = 32767
+            static double max[MAX_CLIENTS];
+            static int f=1;
+            if(f==1)
+            {
+                f=0;
+                for(int i=0; i<MAX_CLIENTS; i++) max[i]=1;
+            }
+            
+            for(int i=0; i<NB_FFT_LENGTH; i+=(NB_FFT_LENGTH/(AUDIO_RATE/10)))
+            {
+                // scale to max. 16 bit
+                double v = cout[client][i][0];
+                if(v > 0 && v > max[client]) max[client] = v;
+                if(v < 0 && -v > max[client]) max[client] = -v;
+                if(max[client] <= 0) max[client] = 1;
+                
+                // filter and copy sample to audio sample buffer
+                b16samples[client][(b16idx[client])++] = (int16_t)(v*maxcode/max[client]);
+
+                // reduce scaling slowly
+                if(max[client] > 1) max[client]-=100;
+            }
+            if(b16idx[client] == AUDIO_RATE) 
+            {
+                // audio samples for 1s available, send to browser
+                b16idx[client] = 0;
+                #ifdef SOUNDLOCAL
+                write_pipe(FIFO_AUDIO, (unsigned char *)b16samples[client], AUDIO_RATE*2);
+                #else
+                write_pipe(FIFO_AUDIOWEBSOCKET + client, (unsigned char *)b16samples[client], AUDIO_RATE*2);
+                #endif
+            }
         }
 #if CLIENT_HANDLING == 0
     }

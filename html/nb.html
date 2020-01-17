@@ -340,11 +340,15 @@ canvas {
         {
             playON = 2;
             $("#audiobutton").html('AUDIO OFF');
+            if(websocket != undefined)
+                websocket.send("audioon:0\0");
         }
         else if(playON == 2)
         {
             playON = 1;
             $("#audiobutton").html('AUDIO ON');
+            if(websocket != undefined)
+                websocket.send("audioon:1\0");
         }
     }
     
@@ -1174,7 +1178,8 @@ canvas {
                 // SSB lines 200 Hz and Filter-Cutoff line
                 if((i%2)==0)
                 {
-                    vls(width/2 + 20,i);
+                    //vls(width/2 + 20,i);
+                    vls(width/2 + filter_cutoff/10,i);
                     vls(width/2 + filter_cutoff_low/10,i);
                 }
             }
@@ -1742,6 +1747,7 @@ canvas {
             localStorage.setItem('ymarker',vertmarker);
         });
         
+        // mouse wheel in QRG text input field
         $(document).ready(function(){
         $('#qrg').bind('mousewheel', function(e){
                 if($("#sync").is(':checked') == false)
@@ -1757,6 +1763,7 @@ canvas {
             });
         });
         
+        // ENTER key in QRG text input field
         $('#qrg').keyup(function(event){
             var keycode = (event.keyCode ? event.keyCode : event.which);
             if(keycode == '13'){
@@ -2058,7 +2065,7 @@ canvas {
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.2</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.3</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">

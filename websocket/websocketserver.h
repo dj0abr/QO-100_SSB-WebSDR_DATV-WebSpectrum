@@ -62,6 +62,12 @@ struct ws_events
     int (*onwork)(int fd, unsigned char *cnt0, unsigned char *cnt1);
 };
 
+typedef struct {
+    uint32_t command;
+    uint32_t para;
+    uint32_t client;
+} USERMSG;
+
 int getHSaccept(char *wsKey, unsigned char **dest);
 int getHSresponse(char *hsrequest, char **hsresponse);
 

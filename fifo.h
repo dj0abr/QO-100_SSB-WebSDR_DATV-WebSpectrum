@@ -11,6 +11,7 @@ int NumberOfElementsInPipe(int pipenum);
 enum {
     FIFO_RTL = 0,
     FIFO_AUDIO,
+    FIFO_USERCMD,
     FIFO_AUDIOWEBSOCKET,    // this number goes up to FIFO_AUDIOWEBSOCKET+MAX_CLIENTS
     NUM_OF_PIPES = 23       // must be > (FIFO_AUDIOWEBSOCKET + MAX_CLIENTS) !!!
 };
