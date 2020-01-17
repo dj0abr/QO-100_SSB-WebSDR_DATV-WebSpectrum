@@ -106,8 +106,10 @@ unsigned int frdiff;
                 useCAT = rx_usermsg.para;
                 break;
         case 12:// audio decoder for this client on/off
+                #ifndef WIDEBAND
                 printf("switch audio %d for client %d\n",rx_usermsg.para,rx_usermsg.client);
                 audioon[rx_usermsg.client] = rx_usermsg.para;
+                #endif
                 break;
     }
     

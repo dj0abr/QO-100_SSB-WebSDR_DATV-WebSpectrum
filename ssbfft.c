@@ -314,11 +314,21 @@ static int swait = 0;
                     printf("Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
                     newrf += qrgoffset;
                     rflock = 0;
+                    
                     if(hwtype == 1)
+                    {
+                        #ifdef SDR_PLAY
                         setTunedQrgOffset(newrf);
+                        #endif
+                    }
                     
                     if(hwtype == 2)
+                    {
+                        #ifndef WIDEBAND
                         rtlsetTunedQrgOffset(newrf);
+                        #endif
+                    }
+
                 }
                 
                 // wait a bit for next beacon check to give the SDR a chance to set the new qrg
