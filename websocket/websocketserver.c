@@ -313,3 +313,13 @@ char *getSocketIP(int fd)
     return NULL;
 }
 
+// check if the IP of an index is local
+int isLocal(int idx)
+{
+    if(!memcmp(clilist[idx],myIP,strlen(myIP)))
+        return 1;
+    
+    return 0;
+}
+
+

@@ -31,10 +31,13 @@
 // ====================================================
 // global definitions describing the LNB/Hardware/Mixer
 // ====================================================
-// enter the LNB crystal frequency and choose the multiplier for a 25 or 27 MHz LNB
-#define LNB_CRYSTAL		24000000	  // enter the crystal or external ref. frequency of your LNB in Hz
-#define LNB_MULTIPLIER	390000	      // enter the multiplier*1000 which is 390 for a 25 MHz LNB
-//#define LNB_MULTIPLIER	361111	// enter the multiplier*1000 wich is 361,111 for a 27 MHz LNB 
+// enter the LNB crystal frequency or external LO frequency
+#define LNB_CRYSTAL		25787179 // for 432,55 Mhz output //24000000	   of your LNB in Hz
+
+// enter the multiplier*1000 which is 390 for a 25 MHz LNB
+// or 361,111 for a 27 MHz LNB 
+#define LNB_MULTIPLIER	390000
+//#define LNB_MULTIPLIER	361111
 
 // if a downmixer is used, enter the mixer's output frequency here (only MHz, i.e.: 439)
 // if no downmixer is used, enter 0
@@ -47,7 +50,7 @@
 // !!! this setting depends on the individual SDR hardware. First set it to 0, then enter a value !!!
 // small differences compensate with the AUTO-LOCK function in the browser
 // use the CW beacon for orientation
-#define RTL_TUNER_CORRECTION        0
+#define RTL_TUNER_CORRECTION        0   // IMPORTANT! the RTLsdr has a significat offset !
 #define SDRPLAY_TUNER_CORRECTION    0
 
 // global calculations, DO NOT change !

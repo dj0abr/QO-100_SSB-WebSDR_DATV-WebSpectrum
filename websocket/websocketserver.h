@@ -89,5 +89,7 @@ char *getSocketIP(int fd);
 int test_socket(char *cli);
 unsigned char *ws_build_txframe(int i, int *plength);
 int get_socket_idx(int fd);
+int isLocal(int idx);
 
 extern WS_SOCK actsock[MAX_CLIENTS];
+extern char myIP[20];

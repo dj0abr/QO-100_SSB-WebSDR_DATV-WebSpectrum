@@ -293,7 +293,7 @@ canvas {
         var mval = tuneqrg/1e3 + (e.pageX * resolution)/1e6;
         mval -= 0.001200; // needed to get right value from mouse pointer, reason unknown
         
-        $('#mousepos').html("mouse X: " + mval.toFixed(6) + " MHz<br>mouse Y: " + "---" + " dBm");
+        $('#mousepos').html("mouse X: " + mval.toFixed(6) + " MHz<br>mouse Y: " + "---" + " dB");
     }
     
     function MouseMoveHandler_spek(e)
@@ -305,7 +305,7 @@ canvas {
         var y = e.offsetY;
         var dbm = scale_y_to_dbm(y);
         
-        $('#mousepos').html("mouse X: " + mval.toFixed(6) + " MHz<br>mouse Y: " + dbm.toFixed(1) + " dBm");
+        $('#mousepos').html("mouse X: " + mval.toFixed(6) + " MHz<br>mouse Y: " + dbm.toFixed(1) + " dB");
     }
     
     function MouseWheelHandler(e)

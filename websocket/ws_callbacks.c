@@ -195,15 +195,9 @@ USERMSG tx_usermsg;
             tx_usermsg.command = 9;
             tx_usermsg.para = atoi((char *)msg+8);
         }
-        if(strstr((char *)msg,"catonof:"))
+        if(strstr((char *)msg,"catonof:") && !remoteaccess)
         {
             tx_usermsg.command = 10;
-            tx_usermsg.para = atoi((char *)msg+8);
-        }
-        if(strstr((char *)msg,"catsetq:") && !memcmp(cli,"192.168",7))
-        {
-            // allow only local stations to activate CAT control
-            tx_usermsg.command = 11;
             tx_usermsg.para = atoi((char *)msg+8);
         }
         if(strstr((char *)msg,"audioon:"))
