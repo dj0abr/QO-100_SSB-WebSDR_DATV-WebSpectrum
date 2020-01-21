@@ -32,7 +32,7 @@
 // global definitions describing the LNB/Hardware/Mixer
 // ====================================================
 // enter the LNB crystal frequency or external LO frequency
-#define LNB_CRYSTAL		25787179 // for 432,55 Mhz output //24000000	   of your LNB in Hz
+#define LNB_CRYSTAL		25000000 // for 432,55 Mhz output //24000000	   of your LNB in Hz
 
 // enter the multiplier*1000 which is 390 for a 25 MHz LNB
 // or 361,111 for a 27 MHz LNB 

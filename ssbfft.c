@@ -22,9 +22,9 @@
 * 
 * ssbfft.c ... 
 * 
-* this function gets samples with a rate of 600.000 kS/s (300kHz bandwidth)
+* this function gets samples with a rate of 1.800.000 kS/s (900kHz bandwidth)
 * we need an FFT with a resolution of 10 Hz per bin
-* so we do the FFT every 60.000 samples (10 times per second)
+* so we do the FFT every 90.000 samples (10 times per second)
 * 
 * 
 */
@@ -50,11 +50,12 @@ int rflock = 0;
 // not used for WB Transponder
 #ifndef WIDEBAND
 
-void bcnLock(uint16_t *vals, int len);
+void bcnLock1(uint16_t *vals, int len);
+void bcnLock2();
 
 fftw_complex *din = NULL;				// input data for  fft, output data from ifft
 fftw_complex *cpout = NULL;	            // ouput data from fft, input data to ifft
-fftw_complex *cpout_temp = NULL;
+fftw_complex *cpout_shifted = NULL;
 fftw_plan plan = NULL;
 int din_idx = 0;
 
@@ -65,6 +66,7 @@ int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
 int b16idx[MAX_CLIENTS];
 
 int offqrg = 0;
+int offset_tuned = 0;   // 1...tuner has been retuned to correct an offset 
 
 void init_fssb()
 {
@@ -75,7 +77,7 @@ void init_fssb()
   
     din   = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
 	cpout = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
-    cpout_temp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
+    cpout_shifted = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
 
     plan = fftw_plan_dft_1d(NB_FFT_LENGTH, din, cpout, FFTW_FORWARD, FFTW_MEASURE);
     
@@ -116,6 +118,13 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
             // the buffer is full, now lets execute the fft
             fftw_execute(plan);
             
+            if(offset_tuned == 1)
+            {
+                // the tuner has been corrected already
+                // now make a fine correction by shifting the spectrum
+                bcnLock2();
+            }
+            
             // this fft has generated NB_FFT_LENGTH bins in cpout
             #define DATASIZE ((NB_FFT_LENGTH/2)/NB_OVERSAMPLING)    // (180.000/2)/10 = 9000 final values
             uint16_t wfsamp[DATASIZE];
@@ -135,26 +144,27 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
             // this must be corrected here by shifting the cpout
             // Resolution: 10 Hz, so every single shift means 10 Hz correction
             
-            int corr = offqrg / 10; // correction shift in Hz
+            int corr = offqrg; // correction shift in 10Hz steps
             int corr_start = corr;
             int corr_end = (NB_FFT_LENGTH/2) + corr;
             if(corr_start < 0) corr_start = -corr_start;
             if(corr_end >= (NB_FFT_LENGTH/2)) corr_end = (NB_FFT_LENGTH/2);
             int corr_len = corr_end - corr_start;
-            
-            if(corr > 0)
+
+            if(corr == 0)
             {
-                memset(&(cpout_temp[0][0]), 0, sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
-                memcpy(&(cpout_temp[corr_start][0]), &(cpout[0][0]), sizeof(fftw_complex) * corr_len);
-                memcpy(&(cpout[0][0]), &(cpout_temp[0][0]), sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
+                // no qrg correction
+                memcpy(&(cpout_shifted[0][0]), &(cpout[0][0]), sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
+            }
+            else
+            {
+                memset(&(cpout_shifted[0][0]), 0, sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
+                if(corr > 0)
+                    memcpy(&(cpout_shifted[corr_start][0]), &(cpout[0][0]), sizeof(fftw_complex) * corr_len);
+                else
+                    memcpy(&(cpout_shifted[0][0]), &(cpout[corr_start][0]), sizeof(fftw_complex) * corr_len);
             }
             
-            if(corr < 0)
-            {
-                memset(&(cpout_temp[0][0]), 0, sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
-                memcpy(&(cpout_temp[0][0]), &(cpout[corr_start][0]), sizeof(fftw_complex) * corr_len);
-                memcpy(&(cpout[0][0]), &(cpout_temp[0][0]), sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
-            }
             
             for(wfbins=0; wfbins<(NB_FFT_LENGTH/2); wfbins+=NB_OVERSAMPLING)
             {
@@ -164,8 +174,8 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
                 double maxv = -99999;
                 for(int bin10=0; bin10<NB_OVERSAMPLING; bin10++)
                 {
-                    real = cpout[wfbins+bin10][0];
-                    imag = cpout[wfbins+bin10][1];
+                    real = cpout_shifted[wfbins+bin10][0];
+                    imag = cpout_shifted[wfbins+bin10][1];
                     double v = sqrt((real * real) + (imag * imag));
                     if(v > maxv) maxv = v;
                 }
@@ -186,7 +196,7 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
             }
             // here war have wfsamp filled with DATASIZE values
             
-            bcnLock(wfsamp,DATASIZE);       // make Beacon Lock
+            bcnLock1(wfsamp,DATASIZE);       // make Beacon Lock
 
             // left-margin-frequency including clicked-frequency
             unsigned int realrf = TUNED_FREQUENCY - newrf;
@@ -220,8 +230,8 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
 
                 for(wfbins=start; wfbins<end; wfbins++)
                 {
-                    real = cpout[wfbins][0];
-                    imag = cpout[wfbins][1];
+                    real = cpout_shifted[wfbins][0];
+                    imag = cpout_shifted[wfbins][1];
                     double dm = sqrt((real * real) + (imag * imag));
                     
                     // correct level
@@ -247,12 +257,14 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
                 
             }
             
-            ssbdemod(cpout);
+            ssbdemod(cpout_shifted);
         }
     }
 }
 
-// CW Beacon
+// CW Beacon - Step-1: this function changes the tuner frequency. Max. precision: 100Hz and with the RTLsdr
+// about 400 Hz
+
 // calculate the position (offset in the FFT output values) of the CW beacon
 // NB_FFT_LENGTH/2 goes over a range of WF_RANGE_HZ Hz starting at DISPLAYED_FREQUENCY_KHZ
 // with a resolution of 10Hz per FFT value
@@ -265,13 +277,12 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
 #define PSK_BEACON_LOCKRANGE        (long long)3     // check beacon QRG +- lockrange (1=100Hz)
 #define PSK_CW_OFFSET (PSK_BEACON_OFFSET - BEACON_OFFSET)
 
-void bcnLock(uint16_t *vals, int len)
+void bcnLock1(uint16_t *vals, int len)
 {
 uint16_t max = 0;
 int maxpos = 0;
 static int oldmaxpos = 0;
 static int maxcnt = 0;
-//static int lastdiff = 0;
 int pskfound=0;
 static int swait = 0;
 
@@ -320,7 +331,7 @@ static int swait = 0;
     }
     
     // check if same position is detected for check_times times
-    int check_times = 10;
+    int check_times = 6;
     if(maxpos != oldmaxpos || pskfound == 0)
     {
         oldmaxpos = maxpos;
@@ -338,8 +349,8 @@ static int swait = 0;
             {
                 int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
-                int maxabw = 2;
-                if(hwtype == 2) maxabw = 16;
+                int maxabw = 4;
+                //if(hwtype == 2) maxabw = 16;
 
                 printf("*Beacon found at pos:%d diff:%d -> %d Hz\n",maxpos,diff,qrgoffset);
 
@@ -357,6 +368,7 @@ static int swait = 0;
                     {
                         #ifdef SDR_PLAY
                         setTunedQrgOffset(newrf);
+                        offset_tuned = 1;
                         #endif
                     }
                     
@@ -364,6 +376,7 @@ static int swait = 0;
                     {
                         #ifndef WIDEBAND
                         rtlsetTunedQrgOffset(newrf);
+                        offset_tuned = 1;
                         #endif
                     }
                 }
@@ -376,6 +389,105 @@ static int swait = 0;
                 rflock = 1;
             }
         }
+    }
+}
+
+// do a fine tuning
+// calculate the offset of the beacon in 10Hz steps
+// the tuner has been corrected already, so the beacon should be within +- 500 Hz
+
+// the becons should be on this index of the fft output values in cpout
+#define BEACON_10HZ_OFFSET   (((long long)CW_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / ((long long)NB_RESOLUTION))
+
+#define PSK_BEACON_10HZ_OFFSET   (((long long)PSK_BEACON - (long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000L) / ((long long)NB_RESOLUTION))
+
+// search for the beacon +- LOCKRANGE_10HZ, which is 1kHz
+#define LOCKRANGE_10HZ  (long long)(500/NB_RESOLUTION) 
+
+#define PSK_BEACON_LOCKRANGE_10HZ        (long long)30
+
+// distance between cw and psk beacon
+#define PSK_CW_OFFSET_10HZ (long long)(PSK_BEACON_10HZ_OFFSET - BEACON_10HZ_OFFSET)
+
+void bcnLock2()
+{
+    int pskfound = 0;
+    int start = BEACON_10HZ_OFFSET - LOCKRANGE_10HZ;
+    int end = BEACON_10HZ_OFFSET + LOCKRANGE_10HZ;
+
+    double maxval = -9999;
+    int maxpos = 0;
+    for(int i=start; i<end; i++)
+    {
+        double real = cpout[i][0];
+        double imag = cpout[i][1];
+        double v = sqrt((real * real) + (imag * imag));
+        if(v > maxval) 
+        {
+            maxval = v;
+            maxpos = i;
+        }
+    }
+    
+    int pskcenter = maxpos + PSK_CW_OFFSET_10HZ;
+    int lowsig = 0;
+    int highsig = 0;
+    int sig = 0;
+    // measure the central signal and the lower and upper range of the PSK beacon
+    for(int i=(pskcenter-PSK_BEACON_LOCKRANGE_10HZ); i<(pskcenter-1); i++)
+    {
+        double real = cpout[i][0];
+        double imag = cpout[i][1];
+        double v = sqrt((real * real) + (imag * imag));
+        lowsig += v;
+    }
+    lowsig /= (PSK_BEACON_LOCKRANGE_10HZ-1);
+    
+    for(int i=(pskcenter+1); i<(pskcenter+PSK_BEACON_LOCKRANGE_10HZ); i++)
+    {
+        double real = cpout[i][0];
+        double imag = cpout[i][1];
+        double v = sqrt((real * real) + (imag * imag));
+        highsig += v;
+    }
+    highsig /= (PSK_BEACON_LOCKRANGE_10HZ-1);
+    
+    // and the signal at the center
+    double real = cpout[pskcenter][0];
+    double imag = cpout[pskcenter][1];
+    double v = sqrt((real * real) + (imag * imag));
+    sig = v;
+    
+    //printf("l,c,h: %05d %05d %05d\n",lowsig,sig,highsig);
+    
+    // we see the PSK beacon, if lowsig and highsig is at least double of sig
+    if(((lowsig*2)/3) > sig && ((highsig*2)/3) > sig)
+    {
+        //printf("%05d %05d %05d  PSK Beacon found at pos:%d soll:%lld\n",lowsig,sig,highsig,pskcenter,PSK_BEACON_10HZ_OFFSET);
+        pskfound = 1;
+    }
+    
+    if(pskfound)
+    {
+        int diff = PSK_BEACON_10HZ_OFFSET - pskcenter;
+        
+        // diff is the beacon offset in 10Hz steps
+        // before correction, wait until we get this same value for fine_trigger times
+        static int sameval = 0;
+        static int lastdiff = 0;
+        int fine_trigger = 10;
+        if(diff == lastdiff)
+        {
+            sameval++;
+            //printf("same:%d\n",sameval);
+            if(sameval == fine_trigger)
+            {
+                printf("fine correct %d Hz\n",diff*10);
+                offqrg = diff;
+            }
+        }
+        else sameval=0;
+        lastdiff = diff;
     }
 }
 
