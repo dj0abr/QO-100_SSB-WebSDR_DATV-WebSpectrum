@@ -320,7 +320,7 @@ static int swait = 0;
     }
     
     // check if same position is detected for check_times times
-    int check_times = 5;
+    int check_times = 10;
     if(maxpos != oldmaxpos || pskfound == 0)
     {
         oldmaxpos = maxpos;
@@ -338,12 +338,12 @@ static int swait = 0;
             {
                 int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
-                //int maxabw = 2;
+                int maxabw = 2;
                 //if(hwtype == 2) maxabw = 16;
 
                 //printf("*Beacon found at pos:%d diff:%d -> %d Hz\n",maxpos,diff,qrgoffset);
 
-                //if(abs(diff) > maxabw)
+                if(abs(diff) > maxabw)
                 {
                     printf("Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
                     newrf += qrgoffset;
