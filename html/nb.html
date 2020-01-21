@@ -1571,9 +1571,6 @@ canvas {
             
             get_noiselevels();
             
-            if(qrgfocus == 0)
-                $("#qrg").val(tunerqrg);
-            
             drawWFtitle_eshail_rx("wf_title");
             drawWFtitle_eshail_tx("wf_txtitle");
             drawWFtitle_eshail_ssb("wf_title1",fval);
@@ -2049,23 +2046,12 @@ canvas {
         }
 }
     
-    var qrgfocus = 0;
-    function qrgFocusOut()
-    {
-        qrgfocus = 0;
-    }
-    
-    function qrgFocus()
-    {
-        qrgfocus = 1;
-    }
-    
 </script>
 </head>
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.3</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.4</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2124,7 +2110,7 @@ canvas {
                         <div id="status">Status</div>
                     </div>
                     <div class="controls_left_right">
-                        <div><input type="text" class="qrg" id="qrg" onfocusout="qrgFocusOut()"  onfocus="qrgFocus()">  Hz (Tuner)</div>
+                        <div></div>
                     </div>
                 </div>
                 <div>

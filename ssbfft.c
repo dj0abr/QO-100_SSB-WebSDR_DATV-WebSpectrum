@@ -54,6 +54,7 @@ void bcnLock(uint16_t *vals, int len);
 
 fftw_complex *din = NULL;				// input data for  fft, output data from ifft
 fftw_complex *cpout = NULL;	            // ouput data from fft, input data to ifft
+fftw_complex *cpout_temp = NULL;
 fftw_plan plan = NULL;
 int din_idx = 0;
 
@@ -63,6 +64,7 @@ int audio_idx[MAX_CLIENTS];
 int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
 int b16idx[MAX_CLIENTS];
 
+int offqrg = 0;
 
 void init_fssb()
 {
@@ -73,6 +75,7 @@ void init_fssb()
   
     din   = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
 	cpout = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
+    cpout_temp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * NB_FFT_LENGTH);
 
     plan = fftw_plan_dft_1d(NB_FFT_LENGTH, din, cpout, FFTW_FORWARD, FFTW_MEASURE);
     
@@ -123,6 +126,36 @@ void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples)
             // we do not use the possible lower/upper half of the FFT because the Nyquist frequency
             // is in the middle and makes an awful line in the middle of the waterfall
             // therefore we use the double sampling frequency and display to lower half only
+            
+            // fft output in cpout from index 0 to NB_FFT_LENGTH/2 which are 90.000 values
+            // with a resolution of 10 Hz per value
+            
+            // frequency fine correction
+            // not all tuners can be set to 1Hz precision, i.e. the RTLsdr has only huge steps
+            // this must be corrected here by shifting the cpout
+            // Resolution: 10 Hz, so every single shift means 10 Hz correction
+            
+            int corr = offqrg / 10; // correction shift in Hz
+            int corr_start = corr;
+            int corr_end = (NB_FFT_LENGTH/2) + corr;
+            if(corr_start < 0) corr_start = -corr_start;
+            if(corr_end >= (NB_FFT_LENGTH/2)) corr_end = (NB_FFT_LENGTH/2);
+            int corr_len = corr_end - corr_start;
+            
+            if(corr > 0)
+            {
+                memset(&(cpout_temp[0][0]), 0, sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
+                memcpy(&(cpout_temp[corr_start][0]), &(cpout[0][0]), sizeof(fftw_complex) * corr_len);
+                memcpy(&(cpout[0][0]), &(cpout_temp[0][0]), sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
+            }
+            
+            if(corr < 0)
+            {
+                memset(&(cpout_temp[0][0]), 0, sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
+                memcpy(&(cpout_temp[0][0]), &(cpout[corr_start][0]), sizeof(fftw_complex) * corr_len);
+                memcpy(&(cpout[0][0]), &(cpout_temp[0][0]), sizeof(fftw_complex) * NB_FFT_LENGTH / 2);
+            }
+            
             for(wfbins=0; wfbins<(NB_FFT_LENGTH/2); wfbins+=NB_OVERSAMPLING)
             {
                 if(idx >= DATASIZE) break; // all wf pixels are filled
@@ -286,7 +319,8 @@ static int swait = 0;
         pskfound = 1;
     }
     
-    // check if same position is detected for x times
+    // check if same position is detected for check_times times
+    int check_times = 5;
     if(maxpos != oldmaxpos || pskfound == 0)
     {
         oldmaxpos = maxpos;
@@ -295,7 +329,7 @@ static int swait = 0;
     else
     {
         maxcnt++;
-        if(maxcnt >= 2)
+        if(maxcnt >= check_times)
         {
             // diff to expected position
             int diff = BEACON_OFFSET - maxpos;
@@ -304,31 +338,33 @@ static int swait = 0;
             {
                 int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
-                int maxabw = 2;
-                if(hwtype == 2) maxabw = 16;
+                //int maxabw = 2;
+                //if(hwtype == 2) maxabw = 16;
 
-                //printf("*Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
+                //printf("*Beacon found at pos:%d diff:%d -> %d Hz\n",maxpos,diff,qrgoffset);
 
-                if(abs(diff) > maxabw)
+                //if(abs(diff) > maxabw)
                 {
                     printf("Beacon found at pos:%d diff:%d -> %d\n",maxpos,diff,qrgoffset);
                     newrf += qrgoffset;
                     rflock = 0;
+
+                    // store the offset in Hz for the frequency correction
+                    offqrg = qrgoffset;                    
                     
-                    if(hwtype == 1)
+                    /*if(hwtype == 1)
                     {
                         #ifdef SDR_PLAY
-                        setTunedQrgOffset(newrf);
+                        //setTunedQrgOffset(newrf);
                         #endif
                     }
                     
                     if(hwtype == 2)
                     {
                         #ifndef WIDEBAND
-                        rtlsetTunedQrgOffset(newrf);
+                        //rtlsetTunedQrgOffset(newrf);
                         #endif
-                    }
-
+                    }*/
                 }
                 
                 // wait a bit for next beacon check to give the SDR a chance to set the new qrg
