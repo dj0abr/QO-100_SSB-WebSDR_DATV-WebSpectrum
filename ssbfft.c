@@ -339,9 +339,9 @@ static int swait = 0;
                 int qrgoffset = diff * NB_HZ_PER_PIXEL;
                 
                 int maxabw = 2;
-                //if(hwtype == 2) maxabw = 16;
+                if(hwtype == 2) maxabw = 16;
 
-                //printf("*Beacon found at pos:%d diff:%d -> %d Hz\n",maxpos,diff,qrgoffset);
+                printf("*Beacon found at pos:%d diff:%d -> %d Hz\n",maxpos,diff,qrgoffset);
 
                 if(abs(diff) > maxabw)
                 {
@@ -350,21 +350,22 @@ static int swait = 0;
                     rflock = 0;
 
                     // store the offset in Hz for the frequency correction
-                    offqrg = qrgoffset;                    
+                    //offqrg = qrgoffset;                    
+                    offqrg =  0;
                     
-                    /*if(hwtype == 1)
+                    if(hwtype == 1)
                     {
                         #ifdef SDR_PLAY
-                        //setTunedQrgOffset(newrf);
+                        setTunedQrgOffset(newrf);
                         #endif
                     }
                     
                     if(hwtype == 2)
                     {
                         #ifndef WIDEBAND
-                        //rtlsetTunedQrgOffset(newrf);
+                        rtlsetTunedQrgOffset(newrf);
                         #endif
-                    }*/
+                    }
                 }
                 
                 // wait a bit for next beacon check to give the SDR a chance to set the new qrg
