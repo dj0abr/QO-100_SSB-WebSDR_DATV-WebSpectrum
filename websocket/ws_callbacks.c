@@ -154,9 +154,10 @@ USERMSG tx_usermsg;
         
         if(strstr((char *)msg,"mousepo:"))  // mouse click upper WF
         {
-            long long v1 = atol((char *)msg+8);   // full qrg from browser
+            long long v1 = atoll((char *)msg+8);   // full qrg from browser
             long long v2 = v1 - LNB_LO;
             long long v = v2 - (long long)TUNED_FREQUENCY;        // we need the offset only
+            //printf("%lld %lld %lld %lld %lld\n",v1,v2,v,(long long)LNB_LO,(long long)TUNED_FREQUENCY);
             tx_usermsg.command = 1;
             tx_usermsg.para = (int)v;
         }
