@@ -50,6 +50,14 @@ void init_fwb()
 {
     char fn[300];
 	sprintf(fn, "wb_wisdom");	// wisdom file for each capture rate
+    
+    int numofcpus = sysconf(_SC_NPROCESSORS_ONLN); // Get the number of logical CPUs.
+    if(numofcpus > 1)
+    {
+        printf("found %d cores, running FFT in multithreading mode\n",numofcpus);
+        fftw_init_threads();
+        fftw_plan_with_nthreads(numofcpus);
+    }
 
 	fftw_import_wisdom_from_filename(fn);
   

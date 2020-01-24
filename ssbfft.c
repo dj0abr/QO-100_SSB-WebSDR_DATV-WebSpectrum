@@ -72,6 +72,14 @@ void init_fssb()
 {
     char fn[300];
 	sprintf(fn, "fssb_wisdom2a");	// wisdom file for each capture rate
+    
+    int numofcpus = sysconf(_SC_NPROCESSORS_ONLN); // Get the number of logical CPUs.
+    if(numofcpus > 1)
+    {
+        printf("found %d cores, running FFT in multithreading mode\n",numofcpus);
+        fftw_init_threads();
+        fftw_plan_with_nthreads(numofcpus);
+    }
 
 	fftw_import_wisdom_from_filename(fn);
   
@@ -482,7 +490,12 @@ void bcnLock2()
             //printf("same:%d\n",sameval);
             if(sameval == fine_trigger)
             {
-                printf("fine correct %d Hz\n",diff*10);
+                static ld = 0;
+                if(diff != ld)
+                {
+                    printf("fine correct %d Hz\n",diff*10);
+                    ld = diff;
+                }
                 offqrg = diff;
             }
         }
