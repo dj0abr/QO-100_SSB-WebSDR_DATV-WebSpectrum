@@ -490,7 +490,7 @@ void bcnLock2()
             //printf("same:%d\n",sameval);
             if(sameval == fine_trigger)
             {
-                static ld = 0;
+                static int ld = 0;
                 if(diff != ld)
                 {
                     printf("fine correct %d Hz\n",diff*10);
