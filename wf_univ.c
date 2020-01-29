@@ -100,8 +100,10 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
     if(useCAT != 0 && civ_freq != 0)
     {
 		// if civ and sdr are on different band, we need to compensate by just using the kHz
+		// if it is below 500kHz then it is the TX qrg, in this case add 500 kHz
 		int tf = (TUNED_FREQUENCY / 1000000) * 1000000;	// tf is the tunded qrg, only MHz
 		int kHz = civ_freq - ((civ_freq / 1000000) * 1000000); // only kHz
+		if(kHz < 500000) kHz += 500000;
         int offset = tf + kHz- TUNED_FREQUENCY;
         // assign it to local users only
         if(isLocal(client))
