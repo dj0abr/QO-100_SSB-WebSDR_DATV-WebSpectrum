@@ -62,7 +62,6 @@ unsigned int frdiff;
                 #else
                     foffset[rx_usermsg.client] = rx_usermsg.para;
                     printf("freqval:%d foffset:%d\n",rx_usermsg.para,foffset[rx_usermsg.client]);
-                    //downmixer_setFrequency(foffset[rx_usermsg.client],rx_usermsg.client);
                 #endif
                 printf("new QRG offset: %d\n",foffset[rx_usermsg.client]);
                 break;

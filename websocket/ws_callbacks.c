@@ -118,7 +118,7 @@ int ret = 0;
 // received a Websocket Message from a browser
 void onmessage(int fd, unsigned char *msg)
 {
-int remoteaccess = 0;
+int access_blocked = 0;
 static int f=1;
 USERMSG tx_usermsg;
 
@@ -137,17 +137,9 @@ USERMSG tx_usermsg;
         
         // check if IP is authorized to control the SDRplay
         // allow only internal computers
-        if(memcmp(cli,myIP,strlen(myIP)))
+        if(memcmp(cli,myIP,strlen(myIP)) && useCAT)
         {
-            remoteaccess = 1;
-        }
-        
-        
-        if(useCAT && remoteaccess)
-        {
-            printf("ignore remote access %s for %s\n",msg, cli);
-            free(cli);
-            return;
+            access_blocked = 1;
         }
         
         printf("user message: %s, from: %s/%d\n", msg, cli, fd);
@@ -196,7 +188,7 @@ USERMSG tx_usermsg;
             tx_usermsg.command = 9;
             tx_usermsg.para = atoi((char *)msg+8);
         }
-        if(strstr((char *)msg,"catonof:") && !remoteaccess)
+        if(strstr((char *)msg,"catonof:") && !access_blocked)
         {
             tx_usermsg.command = 10;
             tx_usermsg.para = atoi((char *)msg+8);
@@ -211,7 +203,7 @@ USERMSG tx_usermsg;
         if(strstr((char *)msg,"datvqrg:"))
         {
             #if MINITIOUNER_LOCAL == 1
-                if(!remoteaccess) 
+                if(!access_blocked) 
                     setMinitiouner((char *)msg+8);
                 else
                     printf("remote access to minitiouner blocked\n");

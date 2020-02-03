@@ -164,6 +164,7 @@ int cret = 0;
                         if(cret == 3)
                         {
                             // got an frequency from icom
+                            // this QRG is read in wf_univ.c and sent to the browser
                             //printf("got QRG\n");
                             tries = 0;
                             status = 3;
