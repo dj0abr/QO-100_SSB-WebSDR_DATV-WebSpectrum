@@ -11,3 +11,4 @@ extern unsigned int civ_freq;
 extern unsigned int civ_subfreq;
 extern int civ_active;
 extern int civ_confirm;
+extern int civ_adr;

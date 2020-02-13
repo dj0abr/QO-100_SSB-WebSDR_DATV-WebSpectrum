@@ -46,6 +46,7 @@
 #include "setqrg.h"
 #include "civ.h"
 #include "cat.h"
+#include "setup.h"
 
 void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz, int res, int _tunedQRG, int client)
 {
@@ -95,16 +96,18 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
     wfdata[idx++] = res;
 
     // offset of the RX frequency to the tuner frequency in Hz
-    // which is 10489.450 MHz (DISPLAYED_FREQUENCY_KHZ)
     // if a freq was recved via CIV, enter it here
     if(useCAT != 0 && civ_freq != 0)
     {
 		// if civ and sdr are on different band, we need to compensate by just using the kHz
 		// if it is below 500kHz then it is the TX qrg, in this case add 500 kHz
-		int tf = (TUNED_FREQUENCY / 1000000) * 1000000;	// tf is the tunded qrg, only MHz
+        // tx_correction is a value which can be used to correct an offset of an external transmitter (ICOM)
+        // which is used by CIV to read the frequency
+        int corval = 500000 + tx_correction;
+		int tf = (tuned_frequency / 1000000) * 1000000;	// tf is the tunded qrg, only MHz
 		int kHz = civ_freq - ((civ_freq / 1000000) * 1000000); // only kHz
-		if(kHz < 500000) kHz += 500000;
-        int offset = tf + kHz- TUNED_FREQUENCY;
+		if(kHz < 500000) kHz += corval;
+        int offset = tf + kHz- tuned_frequency;
         // assign it to local users only
         if(isLocal(client))
             foffset[client] = offset;
@@ -129,7 +132,7 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
         wfdata[idx++] = (unsigned char)fdata[i];
         if(idx > sizeof(wfdata)) 
         {
-            printf("wfdata overflow ! idx:%d\n",idx);
+            printf("wfdata overflow ! wfdata-idx:%d, max. allowed:%d\n",idx,sizeof(wfdata));
             break;
         }
     }

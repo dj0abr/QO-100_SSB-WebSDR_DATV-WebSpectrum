@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>QO-100 WebSDR SETUP</title>
+        <script src="jquery.min.js"></script>
+        <script src="config.js"></script>
+</head>
+<style>
+#setuptab {
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 800px;
+}
+
+#setuptab td, #setuptab th {
+  border: 2px solid #ddd;
+  padding: 8px;
+}
+
+#setuptab tr:nth-child(even){background-color: #f2f2f2;}
+
+#setuptab tr:hover {background-color: #ddd;}
+
+#setuptab th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #4CAF50;
+  color: white;
+}
+
+.mybutton {
+    padding: 1px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+    -webkit-border-radius:4px;
+    -moz-border-radius:4px;
+    border-radius:4px;
+    background: #c8c8e8;
+    color:#404040;
+    outline:none;
+    display: inline-block;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+    appearance:none;
+    cursor:pointer;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.setup_title
+{
+    color: #0000ff;
+    font-weight: bold;
+}
+
+.header_mytitle
+{
+    font-size:30px;
+    color: white;
+    background-color:#808080;
+    text-align: center;
+    font-weight: 900;
+}
+
+.header_subtitle
+{
+    font-size:20px;
+    color: white;
+    background-color:#808080;
+    text-align: center;
+}
+
+.header_title
+{
+    font-size:30px;
+    color: blue;
+    text-align: center;
+    font-weight: 900;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+</style>
+
+<script type="text/javascript">
+    
+window.onload = onstart;
+
+function onstart()
+{
+    var userLang = navigator.language || navigator.userLanguage;
+    if(userLang.substring(0,2) == 'de')
+    {
+        $("#txt1").text("Allgemeine Einstellungen:");
+        $("#txt2").text("Rufzeichen:");
+        $("#txt3").text("Rufzeichen dieser WebSDR Station");
+        $("#txt4").text("TCP port für SDR Daten:");
+        $("#txt5").text("zusätzlich öffne diesen TCP Port im Internet-Router");
+        $("#txt6").text("Fernbedienung erlauben:");
+        $("#txt7").text("LNB original Quarzfrequenz [MHz]:");
+        $("#txt8").text("LNB ext. Referenz Frequenz [Hz]:");
+        $("#txt9").text("25 oder 27 MHz");
+        $("#txt10").text("tatsächliche LNB Taktfrequenz in Hz");
+        $("#txt11").text("zusätzlicher Empfangsmischer (nur für Schmalband-Transponder):");
+        $("#txt12").text("Ausgangsfrequenz [MHz]:");
+        $("#txt13").text("nur ganze MHz, ohne kHz Stellen");
+        $("#txt14").text("Minitiouner Steuerung (nur für Breitband-Transponder");
+        $("#txt15").text("IP Addresse:");
+        $("#txt16").text("IP Address des PC wo Minitiouner läuft");
+        $("#txt17").text("TCP Port Nummer:");
+        $("#txt18").text("Standart-Port");
+        $("#txt19").text("Fernbedienung erlauben:");
+        $("#txt20").text("aktiviere/deaktiviere Fernsteuerung");
+        $("#txt21").text("ICOM CAT Einstellungen (nur für Schmalband-Transponder):");
+        $("#txt22").text("CIV Addresse:");
+        $("#txt23").text("CIV Addresse des angeschlossenen ICOM Transceivers in HEXADECIMAL Format (z.B.: A2)");
+        $("#txt24").text("TX Frequenzkorrektur [Hz]:");
+        $("#txt25").text("NUR wenn der Icom TRX als Sender (nicht Empfänger) benutzt wird ! Trage einen kleinen Korrekturwert ein um die Abweichung zwischen RX und TX zu kompensieren");
+        $("#setupbutton").text("SPEICHERN und BEENDEN");
+    }
+    else
+    {
+        $("#txt1").text("General Settings:");
+        $("#txt2").text("Callsign:");
+        $("#txt3").text("callsign of this WebSDR station");
+        $("#txt4").text("TCP port for SDR data:");
+        $("#txt5").text("in addition open this TCP port in the INET router");
+        $("#txt6").text("allow remote control");
+        $("#txt7").text("LNB original crystal [MHz]:");
+        $("#txt8").text("LNB reference frequency [Hz]:");
+        $("#txt9").text("25 or 27 MHz");
+        $("#txt10").text("real LNB's reference frequency in Hz");
+        $("#txt11").text("additional Downmixer (narrow band version only):");
+        $("#txt12").text("output frequency [MHz]:");
+        $("#txt13").text("the MHz part of the output frequency only.");
+        $("#txt14").text("Minitiouner control (wideband version only");
+        $("#txt15").text("IP address:");
+        $("#txt16").text("IP address of the PC running Minitiouner");
+        $("#txt17").text("TCP port number:");
+        $("#txt18").text("default port");
+        $("#txt19").text("allow remote tuning:");
+        $("#txt20").text("enable/disable remote tuning");
+        $("#txt21").text("ICOM CAT settings (narrow band version only):");
+        $("#txt22").text("CIV address:");
+        $("#txt23").text("CIV address of the connected ICOM transceiver in HEXADECIMAL format (i.e.: A2)");
+        $("#txt24").text("TX freq correction [Hz]:");
+        $("#txt25").text("ONLY: if the Icom TRX is used as transmitter (not receiver). Enter a small correction value in Hz to compensate TX and/or converter frequency offset");
+        $("#setupbutton").text("SAVE and EXIT");
+    }
+
+    // read config data from local storage
+    getConfig();
+    // fill into GUI
+    document.getElementById('call').value = config.call;
+    document.getElementById('tcpport').value = config.websock_port;
+    document.getElementById('remoteok').value = config.allowRemoteAccess;
+    document.getElementById('lnb_orig').value = config.lnb_orig;
+    document.getElementById('lnb_ref').value = config.lnb_crystal;
+    document.getElementById('mixout').value = config.downmixer_outqrg;
+    document.getElementById('minitunIP').value = config.minitiouner_ip;
+    document.getElementById('minitunport').value = config.minitiouner_port;
+    document.getElementById('minituningok').value = config.minitiouner_local;
+    document.getElementById('CIV_address').value = config.CIV_address.toString(16);
+    document.getElementById('tx_correction').value = config.tx_correction;
+}
+
+function save()
+{
+    config.call = document.getElementById('call').value.toUpperCase();
+    config.websock_port = document.getElementById('tcpport').value;
+    config.allowRemoteAccess = document.getElementById('remoteok').value;
+    config.lnb_orig = document.getElementById('lnb_orig').value;
+    config.lnb_crystal = document.getElementById('lnb_ref').value;
+    config.downmixer_outqrg = document.getElementById('mixout').value;
+    config.minitiouner_ip = document.getElementById('minitunIP').value;
+    config.minitiouner_port = document.getElementById('minitunport').value;
+    config.minitiouner_local = document.getElementById('minituningok').value;
+    config.CIV_address = parseInt(document.getElementById('CIV_address').value.substring(0,2), 16);
+    config.tx_correction = document.getElementById('tx_correction').value;
+    
+    saveConfig(); 
+    
+    this.close();
+}
+
+</script>
+    
+<body>
+<div class="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
+<div class="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR</div>
+<div class="header_title">System SETUP</div>
+
+<table border="1" id="setuptab">
+  <tr>
+    <td colspan="3" class="setup_title" id="txt1">
+    </td>
+  </tr>
+  <tr>
+    <td id="txt2"></td>
+    <td>
+    <input type="text" name="call" id="call" style="text-transform:uppercase" oninput="this.value = this.value.replace(/[^0-9A-Za-z\/]/g, '').replace(/(\..*)\./g, '$1');">
+    </td>
+    <td id="txt3"></td>
+  </tr>
+  <tr>
+    <td id="txt4"></td>
+    <td>
+    <input type="text" name="tcpport" id="tcpport" oninput="this.value = this.value.replace(/[^0-9\/]/g, '').replace(/(\..*)\./g, '$1');">
+    </td>
+    <td id="txt5"></td>
+  </tr>
+  <tr>
+    <td id="txt6"></td>
+    <td>
+    <select id="remoteok" name="remoteok">
+        <option value="0">OFF (INET access blocked)</option>
+        <option value="1">ON  (INET access allowed)</option>
+    </select>
+    </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td colspan="3" class="setup_title">LNB:</td>
+  </tr>
+  <tr>
+    <td id="txt7"></td>
+    <td>
+    <select id="lnb_orig" name="lnb_orig">
+        <option value="25">25</option>
+        <option value="27">27</option>
+    </select>
+    </td>
+    <td id="txt9"></td>
+  </tr>
+  <tr>
+    <td id="txt8"></td>
+    <td>
+    <input type="text" name="lnb_ref" id="lnb_ref" oninput="this.value = this.value.replace(/[^0-9\/]/g, '').replace(/(\..*)\./g, '$1');">
+    </td>
+    <td id="txt10"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td colspan="3" class="setup_title" id="txt11"></td>
+  </tr>
+  <tr>
+    <td id="txt12"></td>
+    <td>
+    <input type="text" name="mixout" id="mixout" oninput="this.value = this.value.replace(/[^0-9\/]/g, '').replace(/(\..*)\./g, '$1');">
+    </td>
+    <td id="txt13"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td colspan="3" class="setup_title" id="txt14"></td>
+  </tr>
+  <tr>
+    <td id="txt15"></td>
+    <td>
+    <input type="text" name="minitunIP" id="minitunIP">
+    </td>
+    <td id="txt16"></td>
+  </tr>
+  <tr>
+    <td id="txt17"></td>
+    <td>
+    <input type="text" name="minitunport" id="minitunport" oninput="this.value = this.value.replace(/[^0-9\/]/g, '').replace(/(\..*)\./g, '$1');">
+    </td>
+    <td id="txt18"></td>
+  </tr>
+  <tr>
+    <td id="txt19"></td>
+    <td>
+    <select id="minituningok" name="minituningok">
+        <option value="0">OFF (INET tuning blocked)</option>
+        <option value="1">ON  (INET tuning allowed)</option>
+    </select>
+    </td>
+    <td id="txt20"></td>
+  </tr>
+  
+  <tr>
+    <td colspan="3" class="setup_title" id="txt21"></td>
+  </tr>
+  <tr>
+    <td id="txt22"></td>
+    <td>
+    <input type="text" name="CIV_address" id="CIV_address">
+    </td>
+    <td id="txt23"></td>
+  </tr>
+  <tr>
+  <td id="txt24"></td>
+    <td>
+    <input type="text" name="tx_correction" id="tx_correction">
+    </td>
+    <td id="txt25"></td>
+  </tr>
+</table>
+<button class="mybutton" id="setupbutton" onclick="save()">SAVE and EXIT</button>
+
+</body>
+
+</html>

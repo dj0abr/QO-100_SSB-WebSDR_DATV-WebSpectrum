@@ -4,6 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V2.7:
+- NEW SETUP menu: DO NOT make ANY changes to qo100websdr.h ! All settings can now be done in the browser's SETUP menu.
+
 Update V2.5:
 - bug fix for 32bit machines (i.e.RPI). Wrong frequency on mouse click, fixed
 - multi threading FFT reduces CPU-core load on RPI

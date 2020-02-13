@@ -29,6 +29,7 @@
 #include <pwd.h>
 #include <errno.h>
 #include "../qo100websdr.h"
+#include "../setup.h"
 
 int mt_port;
 int mt_sock;
@@ -73,8 +74,8 @@ char write_udppipe(unsigned char *data, int len)
 	{
 		struct sockaddr_in sin;
 		sin.sin_family = AF_INET;
-		sin.sin_port = htons(6789);
-		sin.sin_addr.s_addr = inet_addr("192.168.0.25");
+		sin.sin_port = htons(minitiouner_port);
+		sin.sin_addr.s_addr = inet_addr(minitiouner_ip);
 		sendto(mt_sock, (char *)data, len, 0, (struct sockaddr *)&sin, sizeof(struct sockaddr_in));
 	}
 	return 1;
@@ -95,7 +96,7 @@ char bw[20];
         {
             strcpy(bw,hp);
             
-            sprintf(s,"echo \"[GlobalMsg],Freq=%8.8s,Offset=%d,Doppler=0,Srate=%s,DVBmode=Auto\n\" > /dev/udp/%s/%d",qrg,MINITIOUNER_OFFSET,bw,MINITIOUNER_IP,MINITIOUNER_PORT);
+            sprintf(s,"echo \"[GlobalMsg],Freq=%8.8s,Offset=%d,Doppler=0,Srate=%s,DVBmode=Auto\n\" > /dev/udp/%s/%d",qrg,minitiouner_offset,bw,minitiouner_ip,minitiouner_port);
             //printf("send to Minitiouner: <%s>\n\n",s);
             
             write_udppipe((unsigned char *)s, strlen(s)+1); // +1 because we need to send including the null terminator

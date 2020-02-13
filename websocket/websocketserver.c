@@ -47,6 +47,7 @@
 #include "websocketserver.h"
 #include "../fifo.h"
 #include "../ssbfft.h"
+#include "../setup.h"
 
 WS_SOCK actsock[MAX_CLIENTS];
 char clilist[MAX_CLIENTS][50];
@@ -84,7 +85,7 @@ void *wsproc(void *pdata)
 	evs.onclose   = &onclose;
 	evs.onmessage = &onmessage;
     evs.onwork    = &onwork;
-	ws_socket(&evs, WEBSOCK_PORT);
+	ws_socket(&evs, websock_port);
     
     // never comes here because ws_socket runs in an infinite loop
     pthread_exit(NULL); // self terminate this thread
@@ -109,6 +110,7 @@ void ws_send(unsigned char *pwfdata, int idx, int wf_id, int client)
     {
         if(actsock[i].socket != -1 && i == client)
         {
+            // insert big WF data
             if(wf_id == 0 && actsock[i].send0 == 0)
             {
                 memcpy(actsock[i].msg0, pwfdata, idx);
@@ -116,6 +118,7 @@ void ws_send(unsigned char *pwfdata, int idx, int wf_id, int client)
                 actsock[i].send0 = 1;
             }
             
+            // insert small WF data
             if(wf_id == 1 && actsock[i].send1 == 0)
             {
                 memcpy(actsock[i].msg1, pwfdata, idx);
@@ -125,19 +128,42 @@ void ws_send(unsigned char *pwfdata, int idx, int wf_id, int client)
         }
     }
     
-    // if we have audio samples in the fifo, then copy it to each clients audio buffer
+    UNLOCK;
+}
+
+void ws_send_audio()
+{
+unsigned char samples[AUDIO_RATE*2];
+int len;
+
+    LOCK;
+    
     for(int i=0; i<MAX_CLIENTS; i++)
     {
-        unsigned char samples[AUDIO_RATE*2];
-        int len = read_pipe(FIFO_AUDIOWEBSOCKET + i, samples, AUDIO_RATE*2);
+        // insert audio samples
+        len = read_pipe(FIFO_AUDIOWEBSOCKET + i, samples, AUDIO_RATE*2);
         if(len)
         {
-            if(actsock[i].socket != -1)
-            {
-                //printf("Audio %d %d for %d %d\n",actsock[i].samples[0],actsock[i].samples[1],i,actsock[i].socket);
-                memcpy(actsock[i].samples,samples,AUDIO_RATE*2);
-                actsock[i].sendaudio = 1;
-            }
+            memcpy(actsock[i].samples,samples,AUDIO_RATE*2);
+            actsock[i].sendaudio = 1;
+        }
+    }
+    
+    UNLOCK;
+}
+
+void ws_send_config(unsigned char *cfgdata, int len)
+{
+    LOCK;
+    
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        // send to all connected clients
+        if(actsock[i].socket != -1)
+        {
+            memcpy(actsock[i].msg3, cfgdata, len);
+            actsock[i].msglen3 = len;
+            actsock[i].send3 = 1;
         }
     }
     
@@ -150,12 +176,12 @@ unsigned char *ws_build_txframe(int i, int *plength)
     
     if(actsock[i].sendaudio == 1)
     {
+        // send audio samples
         int idx = 0;
         int len = AUDIO_RATE*2;
         unsigned char *txdata = malloc(len+3);
         if(txdata == NULL)
             return NULL;
-        //printf("audio:%d\n",len);
         txdata[idx++] = 2;    // type of audio samples
         txdata[idx++] = len >> 8;
         txdata[idx++] = len & 0xff;
@@ -164,6 +190,25 @@ unsigned char *ws_build_txframe(int i, int *plength)
 
         *plength = idx;
         actsock[i].sendaudio = 0;
+        UNLOCK;
+        return txdata;
+    }
+    
+    if(actsock[i].send3 == 1)
+    {
+        // send config data
+        int idx = 0;
+        int len = actsock[i].msglen3;
+        unsigned char *txdata = malloc(len+3);
+        if(txdata == NULL)
+            return NULL;
+        txdata[idx++] = 3;    // type of config data
+        txdata[idx++] = len >> 8;
+        txdata[idx++] = len & 0xff;
+        memcpy(txdata+idx,actsock[i].msg3,len);
+        idx += len;
+        actsock[i].send3 = 0;
+        *plength = idx;
         UNLOCK;
         return txdata;
     }

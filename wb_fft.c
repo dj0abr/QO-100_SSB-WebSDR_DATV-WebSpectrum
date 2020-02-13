@@ -35,6 +35,7 @@
 #include "qo100websdr.h"
 #include "wf_univ.h"
 #include "websocketserver.h"
+#include "setup.h"
 
 #define WB_SRATE          SDR_SAMPLE_RATE               // full speed without decimation (10M)
 #define WB_RESOLUTION     1000                          // Hz per FFT value
@@ -184,10 +185,10 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                 {
                     drawWF( WFID_BIG,                   // Waterfall ID
                             wfsamp,                     // FFT output data
-                            TUNED_FREQUENCY,            // frequency of the SDR 
+                            tuned_frequency,            // frequency of the SDR 
                             WF_RANGE_HZ,                // total width of the fft data in Hz (in this case 8.000.000)
                             WF_RANGE_HZ/WF_WIDTH,       // Hz/pixel
-                            DISPLAYED_FREQUENCY_KHZ,client);   // frequency of the left margin of the waterfall
+                            LEFT_MARGIN_QRG_KHZ,client);   // frequency of the left margin of the waterfall
                 }
                 
                 wftimes = 0;

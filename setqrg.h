@@ -1,4 +1,5 @@
 void set_frequency();
+void re_set_freq();
 
 extern int setfreq;
 extern int freqval;

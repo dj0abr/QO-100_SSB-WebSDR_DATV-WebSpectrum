@@ -34,6 +34,7 @@
 #include "fifo.h"
 #include <fftw3.h>
 #include "ssbdemod.h"
+#include "setup.h"
 
 int foffset[MAX_CLIENTS];    // audio offset to tuned frequency
 int ssbmode = 1;    // 0=LSB 1=USB
@@ -46,6 +47,14 @@ int autosync = 1;   // always on
 void set_frequency()
 {
 unsigned int frdiff;
+static int f=1;
+
+    if(f)
+    {
+        f=0;
+        for(int i=0; i<MAX_CLIENTS; i++)
+            foffset[i] = 300000;
+    }
 
     // look if user command available
     USERMSG rx_usermsg;
@@ -85,8 +94,8 @@ unsigned int frdiff;
                 break; */
                 
         case 8: // Browser sends a new tuner frequency
-                newrf = TUNED_FREQUENCY - rx_usermsg.para;
-                printf("set tuner qrg: %d (%d)\n",newrf,TUNED_FREQUENCY - newrf);
+                newrf = tuned_frequency - rx_usermsg.para;
+                printf("set tuner qrg: %d (%d)\n",newrf,tuned_frequency - newrf);
                 setrfoffset = 1;
                 break;
                 
@@ -128,5 +137,22 @@ unsigned int frdiff;
             #endif
         }
         setrfoffset = 0;
+    }
+}
+
+void re_set_freq()
+{
+    if(hwtype == 1)
+    {
+        #ifdef SDR_PLAY
+        reset_Qrg_SDRplay();
+        #endif
+    }
+    
+    if(hwtype == 2)
+    {
+        #ifndef WIDEBAND
+        reset_Qrg_RTLsdr();
+        #endif
     }
 }

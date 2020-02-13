@@ -55,6 +55,7 @@ typedef struct {
     int client;
     int running;
     fftw_complex *cpout;
+    int offset;
 } SSBPARAM;
 
 SSBPARAM ssbp[MAX_CLIENTS];
@@ -73,7 +74,7 @@ void init_ssbdemod()
     }
 }
 
-void ssbdemod(fftw_complex *cpout)
+void ssbdemod(fftw_complex *cpout, int offset)
 {
     for(int cli=0; cli<MAX_CLIENTS; cli++)
     {
@@ -81,6 +82,7 @@ void ssbdemod(fftw_complex *cpout)
         {
             ssbp[cli].client = cli;
             ssbp[cli].cpout = cpout;
+            ssbp[cli].offset = offset;
             
             while(1)
             {
@@ -115,6 +117,7 @@ void *ssbdemod_thread(void *param)
         int fmin = 0;
         int fmax = 500;                     // 3,6 kHz max BW
         int ifqrg = foffset[client] / 10;   // offset choosen by the user
+        ifqrg += ssbp[client].offset;       // and SDR correction offset
         for (int i = fmin; i < fmax; i++)
         {
             cin[client][i][0] = cpout[i+ifqrg][0];
@@ -167,6 +170,7 @@ void *ssbdemod_thread(void *param)
             write_pipe(FIFO_AUDIO, (unsigned char *)b16samples[client], AUDIO_RATE*2);
             #else
             write_pipe(FIFO_AUDIOWEBSOCKET + client, (unsigned char *)b16samples[client], AUDIO_RATE*2);
+            ws_send_audio();
             #endif
         }
     }

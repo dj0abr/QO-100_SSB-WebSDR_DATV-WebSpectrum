@@ -32,35 +32,16 @@
 // global definitions describing the LNB/Hardware/Mixer
 // ====================================================
 // enter the LNB crystal frequency or external LO frequency
-#define LNB_CRYSTAL		24000000
+#define DEFAULT_LNB_CRYSTAL		24000000
 
 // enter the multiplier*1000 which is 390 for a 25 MHz LNB
 // or 361,111 for a 27 MHz LNB 
-#define LNB_MULTIPLIER	390000
-//#define LNB_MULTIPLIER	361111
+#define DEFAULT_LNB_MULTIPLIER	390000
+//#define DEFAULT_LNB_MULTIPLIER	361111
 
 // if a downmixer is used, enter the mixer's output frequency here (only MHz, i.e.: 439)
 // if no downmixer is used, enter 0
-#define DOWNMIXER_OUTQRG       0       
-
-// add a correction value to the SDR tuner frequency to compensate frequency
-// errors of the SDR hardware's crystal oscillator ( 0 = no correction)
-// this value is "ppm". 
-// usual values for the RTLsdr between -100 and +100 ppm
-// !!! this setting depends on the individual SDR hardware. First set it to 0, then enter a value !!!
-// small differences compensate with the AUTO-LOCK function in the browser
-// use the CW beacon for orientation
-#define RTL_TUNER_CORRECTION        0   // IMPORTANT! the RTLsdr has a significat offset !
-#define SDRPLAY_TUNER_CORRECTION    0
-
-// global calculations, DO NOT change !
-#if DOWNMIXER_OUTQRG == 0
-    // LO of the LNB's internalDISPLAYED_FREQUENCY_KHZ mixer in Hz
-    #define LNB_LO		(((long long)LNB_CRYSTAL * (long long)LNB_MULTIPLIER)/(long long)1000)
-#else
-    // sum-LO of the complete chain: LNB and Downmixer in Hz
-    #define LNB_LO		(((long long)10489 - (long long)DOWNMIXER_OUTQRG)*(long long)1000000)
-#endif
+#define DEFAULT_DOWNMIXER_OUTQRG       0       
 
 // =====================================================
 // definitions für the QO-100 wide band transponder mode
@@ -73,18 +54,12 @@
 		#define SDR_PLAY				
 	#endif
     
-    // definitions which may be modified to adapt the monitor to your needs
-    // ====================================================================
-
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)
-    #define WEBSOCK_PORT    8090
+    #define DEFAULT_WEBSOCK_PORT    8090
     
     // RX frequency of the left margin of the WF/spectrum picture in kHz
-    #define DISPLAYED_FREQUENCY_KHZ  10491500  
-    
-    // fixed values DO NOT change !
-    // ============================
+    #define LEFT_MARGIN_QRG_KHZ  10491500  
     
 	// 10 MHz sample rate, the maximum of the SDRplay hardware
     #define SDR_SAMPLE_RATE 10000000    
@@ -96,43 +71,23 @@
     
     // width of the waterfall in pixels (must match the graphic width in the HTML file)
     #define WF_WIDTH    1600 
-    
-    // minitiouner remote control
-    #define MINITIOUNER_IP      "192.168.0.25"  // enter IP address of PC running minitiouner software
-    #define MINITIOUNER_PORT    6789            // standard port, usually do not change
-    #define MINITIOUNER_LOCAL   1               // 0...access from internet allowed, 1...only local access
-    
-    // calculated values DO NOT change !
-    // =================================
-    
-    #define _TUNED_FREQUENCY    ((int)((((long long)DISPLAYED_FREQUENCY_KHZ + (((long long)WF_RANGE_HZ/(long long)1000) / (long long)2)) * (long long)1000) - LNB_LO))
-
-    #define MINITIOUNER_OFFSET  ((LNB_CRYSTAL/1000000)*LNB_MULTIPLIER)
-
 #else  
 
     // =======================================================
     // definitions für the QO-100 narrow band transponder mode
     // =======================================================
     
-    // these values may be changed according to the users needs
-    // ========================================================
-    
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)
-    #define WEBSOCK_PORT    8091
+    #define DEFAULT_WEBSOCK_PORT    8091
     
-    
-    // fixed values DO NOT change !
-    // ============================
-
     // we always capture the complete NB transponder over its total size
     // beginning at 10489,250 MHz with a range of 900kHz to 10490,150 MHz
     // the selection of a part of these data are done in the browser
     
     // RX frequency of the left margin of the waterfall/spectrum in kHz
-    // the complete samples go from DISPLAYED_FREQUENCY_KHZ to DISPLAYED_FREQUENCY_KHZ+(WF_RANGE_HZ/1000)
-    #define DISPLAYED_FREQUENCY_KHZ  10489250  
+    // the complete samples go from LEFT_MARGIN_QRG_KHZ to LEFT_MARGIN_QRG_KHZ+(WF_RANGE_HZ/1000)
+    #define LEFT_MARGIN_QRG_KHZ  10489250  
     
     // width of the waterfall/spectrum in Hz
     // if modified: check the SSB and AUDIO rate assignments below, and
@@ -162,6 +117,7 @@
         #define SR_MULTIPLIER   1   // default sample rate: 0.9 * 2 * 1 = 1.8M
     #endif
     
+    // check if multiplier are within range
     #ifdef SDR_PLAY
         #if (((WF_RANGE_HZ * 2 * SR_MULTIPLIER)<2000000) || ((WF_RANGE_HZ * 2 * SR_MULTIPLIER)>10000000))
             #warning SDRplay: CHOOSE OTHER SR_MULTIPLIER
@@ -172,19 +128,19 @@
         #endif
     #endif
 
-    // calculated values DO NOT change !
-    // =================================
-
-    // default SDR tuner frequency in Hz, which must be the left margin of the spectrum
-    // default: 10489.55 (CW Beacon) minus 25 KHz for a little left margin:
-    // (10489525 - 9750000)*1000 = 739525000 Hz
-    #define _TUNED_FREQUENCY    (((long long)DISPLAYED_FREQUENCY_KHZ * (long long)1000) - LNB_LO)
+    // calculated values
+    // =================
 
 	// SDR receiver's capture rate
 	// we use twice the bandwidth, so the FFT will return the requested bandwidth in the lower half of the FFT data
 	// the upper half (which contains the same bandwidth of below the tuner frequency) is not used to get a cleaner display
 	// (the WB monitor uses both halfs)
+	// we get data from the SDR with a rate of NB_SAMPLE_RATE
     #define NB_SAMPLE_RATE     (WF_RANGE_HZ * 2)                // 900000*2= 1.800.000
+    
+    // SDR_SAMPLE_RATE is the SDRs internal sample rate
+    // the SDRplay divides it in the proprietary driver, while
+    // the RTLsdr divides it in rtlsdr.c
 	#define SDR_SAMPLE_RATE    (NB_SAMPLE_RATE * SR_MULTIPLIER)
     
     // number of input and output data of the FFT
@@ -214,12 +170,11 @@
 
 #endif
 
-
 // for the RTLSDR only !
 // samples per callback
 #define SAMPLES_PER_PASS    512*8 // must be a multiple of 512
 
-
 extern int hwtype;
 extern int samplesPerPacket;
 extern int TUNED_FREQUENCY;
+extern int stopped;

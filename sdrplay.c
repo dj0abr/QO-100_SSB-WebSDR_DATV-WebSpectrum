@@ -35,6 +35,7 @@
 #include "sdrplay.h"
 #include "ssbfft.h"
 #include "wb_fft.h"
+#include "setup.h"
 #include "mirsdrapi-rsp.h"  // the SDRplay driver must be installed !
 
 int device = 0;     // device number. If we have one SDRplay device connected: device=0
@@ -86,12 +87,12 @@ int init_SDRplay()
 
     if (devAvail == 0) {
         printf("ERROR: No RSP devices available.\n");
-        exit(1);
+        return 0;
     }
 
     if (devices[device].devAvail != 1) {
         printf("ERROR: RSP selected (%d) is not available.\n", (device + 1));
-        exit(1);
+        return 0;
     }
     
     // read device information and initialize
@@ -119,14 +120,15 @@ int init_SDRplay()
     grMode = mir_sdr_USE_RSP_SET_GR;
     if(devModel == 1) grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 
-    double dqrg = (TUNED_FREQUENCY * (1000000L+SDRPLAY_TUNER_CORRECTION))/1000000L;
+    //double dqrg = (tuned_frequency * (1000000L))/1000000L;
+    double dqrg = tuned_frequency;
     r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), dqrg/1e6,
         (mir_sdr_Bw_MHzT)bwkHz, (mir_sdr_If_kHzT)ifkHz, rspLNA, &gRdBsystem,
         grMode, &samplesPerPacket, streamCallback, gainCallback, &cbContext);
 
 	if (r != mir_sdr_Success) {
 		printf("Failed to start SDRplay RSP device.\n");
-		exit(1);
+		return 0;
 	}
 	
 	#ifndef WIDEBAND
@@ -168,10 +170,26 @@ void remove_SDRplay()
 
 void setTunedQrgOffset(unsigned int hz)
 {
-    double dqrg = TUNED_FREQUENCY - hz;
-    dqrg = (dqrg * (1000000L+SDRPLAY_TUNER_CORRECTION))/1000000L;
+    double dqrg = tuned_frequency - hz;
     mir_sdr_SetRf(dqrg,1,0);
-    printf("rf : %.6f MHz\n",dqrg/1e6);
+    printf("set tuner : %.6f MHz\n",dqrg/1e6);
+}
+
+void reset_Qrg_SDRplay()
+{
+    int gRdBsystem;
+    mir_sdr_ErrT r;
+    double dqrg = tuned_frequency;
+    //mir_sdr_SetRf(dqrg,1,0);
+    
+    printf("re-set tuner : %.6f MHz\n",dqrg/1e6);
+    
+    r = mir_sdr_Reinit(&gainR, 0, dqrg/1e6, 0, 0, 0, 0,&gRdBsystem, 0, &samplesPerPacket,mir_sdr_CHANGE_RF_FREQ);
+
+	if (r != mir_sdr_Success) {
+		printf("Failed to restart SDRplay RSP device: %d\n",r);
+		return;
+	}
 }
 
 /*

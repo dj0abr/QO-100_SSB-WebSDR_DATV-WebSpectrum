@@ -42,34 +42,38 @@
 #include "wb_fft.h"
 #include "cat.h"
 #include "minitiouner.h"
+#include "setup.h"
+
+void stop_SDR();
 
 int hwtype = 0; // 1=playSDR, 2=rtlsdr
 int samplesPerPacket;
 char htmldir[256] = { "." };
-int TUNED_FREQUENCY = _TUNED_FREQUENCY;
+int stopped = 0;
 
 void sighandler(int signum)
 {
+    stopped = 1;
 	printf("signal %d, exit program\n",signum);
-    #ifdef SDR_PLAY
-    if(hwtype == 1) remove_SDRplay();
-    #endif
-    if(hwtype == 2) rtlsdr_close(0);
+    stop_SDR();
     
     #ifdef WIDEBAND
     remove_udp_minitiouner();
     #endif
+    
+    save_config();
     
     exit(0);
 }
 
 void sighandler_mem(int signum)
 {
+    stopped = 1;
 	printf("memory error, signal %d, exit program\n",signum);
-    #ifdef SDR_PLAY
-    if(hwtype == 1) remove_SDRplay();
-    #endif
-    if(hwtype == 2) rtlsdr_close(0);
+    stop_SDR();
+    
+    save_config();
+    
     exit(0);
 }
 
@@ -210,10 +214,61 @@ void installHTMLfiles()
     }
 }
 
-void usage()
+void calc_system_parameters()
 {
-    printf("\nusage:\n");
-    printf("./playSDReshail2  -f  tunerfrequency\n");
+    // calculate settings
+    calc_setup();
+    
+    printf("\nSDR parameters:\n\n");
+    printf("SDR base QRG:    %d Hz\n",tuned_frequency);
+    printf("SDR sample rate: %d S/s\n",SDR_SAMPLE_RATE);
+    printf("WF width:        %d Hz\n",WF_RANGE_HZ);
+    printf("WF width:        %d pixel\n",WF_WIDTH);
+    printf("1st downsampling:%d S/s\n",(WF_RANGE_HZ * 2));
+    printf("1st decim. rate: %d\n",SDR_SAMPLE_RATE / (WF_RANGE_HZ * 2));
+    printf("1st FFT resol.:  %d Hz\n",WF_RANGE_HZ / WF_WIDTH);
+    printf("1st FTT smp/pass:%d\n",((WF_RANGE_HZ * 2) / (WF_RANGE_HZ / WF_WIDTH)));
+}
+
+void start_SDR()
+{
+	#ifdef WIDEBAND
+		// only SDRplay can be used in wideband mode
+		if(init_SDRplay())
+            hwtype = 1;
+	#else
+		// for NB transponder try RTLsdr first
+		// and if not exists, try SDRplay
+		if(init_rtlsdr())
+		{
+		    hwtype = 2;
+		    samplesPerPacket = SAMPLES_PER_PASS;
+		}
+
+		#ifdef SDR_PLAY
+		    if(hwtype == 0)
+		    {
+		        if(init_SDRplay())
+                    hwtype = 1;
+		    }
+    	#endif
+	#endif
+       
+
+    if(hwtype == 0)
+    {
+        printf("no SDR hardware found.\n");
+        save_config();
+        exit(0);
+    }
+}
+
+void stop_SDR()
+{
+#ifdef SDR_PLAY
+    if(hwtype == 1) remove_SDRplay();
+#endif
+    if(hwtype == 2) rtlsdr_close(0);
 }
 
 int main(int argc, char *argv[])
@@ -247,15 +302,7 @@ int main(int argc, char *argv[])
 	sigact_mem.sa_flags = 0;
     sigaction(SIGSEGV, &sigact_mem, NULL);*/
     
-    printf("\nSDR parameters:\n\n");
-    printf("SDR base QRG:    %d Hz\n",TUNED_FREQUENCY);
-    printf("SDR sample rate: %d S/s\n",SDR_SAMPLE_RATE);
-    printf("WF width:        %d Hz\n",WF_RANGE_HZ);
-    printf("WF width:        %d pixel\n",WF_WIDTH);
-    printf("1st downsampling:%d S/s\n",(WF_RANGE_HZ * 2));
-    printf("1st decim. rate: %d\n",SDR_SAMPLE_RATE / (WF_RANGE_HZ * 2));
-    printf("1st FFT resol.:  %d Hz\n",WF_RANGE_HZ / WF_WIDTH);
-    printf("1st FTT smp/pass:%d\n",((WF_RANGE_HZ * 2) / (WF_RANGE_HZ / WF_WIDTH)));
+    calc_system_parameters();
     
     #ifdef WIDEBAND
         init_fwb();
@@ -283,44 +330,32 @@ int main(int argc, char *argv[])
     // init SDRplay hardware
     // this MUST be the LAST initialisation because
     // the callback starts immediately after init_SDRplay
-	#ifdef WIDEBAND
-		// only SDRplay can be used in wideband mode
-		init_SDRplay();
-		hwtype = 1;
-	#else
-		// for NB transponder try RTLsdr first
-		// and if not exists, try SDRplay
-		if(init_rtlsdr())
-		{
-		    hwtype = 2;
-		    samplesPerPacket = SAMPLES_PER_PASS;
-		}
-
-		#ifdef SDR_PLAY
-		    if(hwtype == 0)
-		    {
-		        init_SDRplay();
-		        hwtype = 1;
-		    }
-    	#endif
-	#endif
-       
-
-    if(hwtype == 0)
-    {
-        printf("no SDR hardware found.\n");
-        exit(0);
-    }
+    start_SDR();
 
     // infinite loop, 
     // stop program with Ctrl-C
     while(1)
     {
+        if(retune_setup)
+        {
+            // setup requested new settings of the tuner
+            retune_setup = 0;
+            
+            save_config();
+            //stop_SDR();
+            calc_system_parameters();
+            //start_SDR();
+            re_set_freq();
+        }
+        
         set_frequency();
+        if(configrequest)
+            sendConfigToBrowser();
         usleep(1000);
     }
     
     removepipe();
+    save_config();
     
     return 0;
 }

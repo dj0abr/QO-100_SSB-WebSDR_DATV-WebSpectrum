@@ -44,6 +44,7 @@
 #include "../minitiouner.h"
 #include "../setqrg.h"
 #include "../fifo.h"
+#include "../setup.h"
 
 void get_ownIP();
 
@@ -136,20 +137,28 @@ USERMSG tx_usermsg;
         tx_usermsg.command = 0;
         
         // check if IP is authorized to control the SDRplay
-        // allow only internal computers
+        // never allow CAT on/off via the internet, only local stations
         if(memcmp(cli,myIP,strlen(myIP)) && useCAT)
         {
             access_blocked = 1;
+            printf("CAT active, BLOCKED user message: %s, from: %s/%d\n", msg, cli, fd);
+            return;
         }
         
-        printf("user message: %s, from: %s/%d\n", msg, cli, fd);
+        if(memcmp(cli,myIP,strlen(myIP)) && !allowRemoteAccess)
+        {
+            access_blocked = 1;
+            printf("BLOCK some user messages: %s, from: %s/%d\n", msg, cli, fd);
+        }
+        else
+            printf("user message: %s, from: %s/%d\n", msg, cli, fd);
         
         if(strstr((char *)msg,"mousepo:"))  // mouse click upper WF
         {
             long long v1 = atoll((char *)msg+8);   // full qrg from browser
-            long long v2 = v1 - LNB_LO;
-            long long v = v2 - (long long)TUNED_FREQUENCY;        // we need the offset only
-            //printf("%lld %lld %lld %lld %lld\n",v1,v2,v,(long long)LNB_LO,(long long)TUNED_FREQUENCY);
+            long long v2 = v1 - lnb_lo;
+            long long v = v2 - (int64_t)tuned_frequency;        // we need the offset only
+            //printf("%lld %lld %lld %lld %lld\n",v1,v2,v,(int64_t)lnb_lo,(int64_t)TUNED_FREQUENCY);
             tx_usermsg.command = 1;
             tx_usermsg.para = (int)v;
         }
@@ -198,18 +207,28 @@ USERMSG tx_usermsg;
             tx_usermsg.command = 12;
             tx_usermsg.para = atoi((char *)msg+8);
         }
+        if(strstr((char *)msg,"getconf:"))
+        {
+            configrequest = 1;
+        }
+        
+        if(strstr((char *)msg,"cfgdata:") && !access_blocked)
+        {
+            getConfigfromBrowser((char *)msg+8);
+        }
         
         #ifdef WIDEBAND
         if(strstr((char *)msg,"datvqrg:"))
         {
-            #if MINITIOUNER_LOCAL == 1
+            if(minitiouner_local == 1)
+            {
                 if(!access_blocked) 
                     setMinitiouner((char *)msg+8);
                 else
                     printf("remote access to minitiouner blocked\n");
-            #else
+            }
+            else
                 setMinitiouner((char *)msg+8);
-            #endif
         }
         #endif
         

@@ -40,6 +40,7 @@
 #include "qo100websdr.h"
 #include "fifo.h"
 #include "ssbfft.h"
+#include "setup.h"
 
 void *rtldevproc(void *pdata);
 void *rtlproc(void *pdata);
@@ -71,11 +72,10 @@ int init_rtlsdr()
     if(retval != 0) 
     {
         printf("requested sample rate %d is invalid, result= %d\n",samprate,retval);
-        exit(0);
+        return 0;
     }
     
-    unsigned long tqrg = (TUNED_FREQUENCY * (1000000L+(float)RTL_TUNER_CORRECTION))/1000000L;
-    retval = rtlsdr_set_center_freq(dev, (unsigned long)tqrg);
+    retval = rtlsdr_set_center_freq(dev, tuned_frequency);
     if(retval != 0) printf("freqset= %d\n",retval);
     
     // gain mode: 0=auto, 1=manual
@@ -120,23 +120,20 @@ int init_rtlsdr()
     return 1;
 }
 
-/*
- * void setTunedQrgOffset(unsigned int hz)
-{
-    double dqrg = TUNED_FREQUENCY - hz;
-    dqrg = (dqrg * (1000000L+SDRPLAY_TUNER_CORRECTION))/1000000L;
-    mir_sdr_SetRf(dqrg,1,0);
-    printf("rf : %.6f MHz\n",dqrg/1e6);
-}
-
-*/
 void rtlsetTunedQrgOffset(unsigned int hz)
 {
     printf("rtl hz : %d\n",hz);
-    unsigned long qrg = TUNED_FREQUENCY - hz;
+    unsigned long qrg = tuned_frequency - hz;
     printf("rtl qrg : %ld\n",qrg);
-    qrg = (qrg * (1000000L+(float)RTL_TUNER_CORRECTION))/1000000L;
-    printf("rtl qrg corr: %ld\n",qrg);
+    int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
+    if(retval != 0) printf("freqset= %d\n",retval);
+    printf("rtl rf : %ld\n",qrg);
+}
+
+void reset_Qrg_RTLsdr()
+{
+    unsigned long qrg = tuned_frequency;
+    printf("rtl qrg : %ld\n",qrg);
     int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
     if(retval != 0) printf("freqset= %d\n",retval);
     printf("rtl rf : %ld\n",qrg);

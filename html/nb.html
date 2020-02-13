@@ -2,11 +2,13 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <title>QO-100 WebSDR</title>
+        <script src="jquery.min.js"></script>
         <script src="pcmplayer.js"></script>
         <script src="coltab.js"></script>
         <script src="bandplan.js"></script>
-        <style>
+        <script src="config.js"></script>
+<style>
 
 body { 
   font-family: Helvetica, Arial, Geneva, sans-serif;
@@ -38,7 +40,7 @@ body {
 {
     position: relative;
     width: 300px;
-    height: 140px;
+    height: 150px;
     background-color: #f0f0f0;
 }
 
@@ -53,11 +55,26 @@ body {
     bottom: 0px;
 }
 
+.myflex
+{
+    display: flex;
+}
+
 .midrow_menuline
 {
     font-size:16px;
     font-weight: 500;
     width: 560px;
+    display: flex;
+    position: absolute;
+    bottom: 0px;
+}
+
+.rightrow_menuline
+{
+    font-size:16px;
+    font-weight: 500;
+    width: 300px;
     display: flex;
     position: absolute;
     bottom: 0px;
@@ -253,6 +270,7 @@ canvas {
 <script type="text/javascript">
     
     window.onload = onstart;
+    window.onbeforeunload = closingCode;
     
     var intv;
     var interval;
@@ -896,22 +914,23 @@ canvas {
         return dbm - basenoiselevel;
     }
 
-    var arrmidlen = 20;
-    var cmaxvalarr = new Array(arrmidlen);
-    var cminvalarr = new Array(arrmidlen);
-    var cmaxval;
-    var cminval;
+    var arrmidlen0 = 20;
+    var cmaxvalarr0 = new Array(arrmidlen0);
+    var cminvalarr0 = new Array(arrmidlen0);
+    var cmaxval0;
+    var cminval0;
 
-    var hWFrefval = 50;     // shifts the black value (higher=darker)
-    var hWFgain = 0.00001;   // contrast (must be > 0, low=high contrast)
+    var hWFrefval0 = 50;     // shifts the black value (higher=darker)
+    var hWFgain0 = 0.00001;   // contrast (must be > 0, lower value = higher contrast)
 
-    var minlog;
-    var factor;
-    var frs = 1;
+    var minlog0;
+    var factor0;
+    var frs0 = 1;
 
-    // find min/max the values of one pixel line
     function calcColorParms(d, len)
     {
+        // find min/max values in one pixel line
+        // calc the average value to avoid flickering
         var max = -9999;
         var min = 9999;
         
@@ -923,42 +942,42 @@ canvas {
             if(d[i] > max) max = d[i];
         }
         
-        if(frs)
+        if(frs0)
         {
             // init array
-            frs=0;
-            for(var i=0; i<arrmidlen; i++)
+            frs0=0;
+            for(var i=0; i<arrmidlen0; i++)
             {
-                cminvalarr[i] = min;
-                cmaxvalarr[i] = max;
+                cminvalarr0[i] = min;
+                cmaxvalarr0[i] = max;
             }
+            
+            // prepare values used by getPixelColor
+            factor0 = hWFgain0/10;
+            minlog0 = Math.log(factor0 + 1) / 255;
         }
         
         // insert into mid array
-        for(var i=(arrmidlen-1); i>=1; i--)
+        for(var i=(arrmidlen0-1); i>=1; i--)
         {
-            cminvalarr[i] = cminvalarr[i-1];
-            cmaxvalarr[i] = cmaxvalarr[i-1];
+            cminvalarr0[i] = cminvalarr0[i-1];
+            cmaxvalarr0[i] = cmaxvalarr0[i-1];
         }
-        cminvalarr[0] = min;
-        cmaxvalarr[0] = max;
+        cminvalarr0[0] = min;
+        cmaxvalarr0[0] = max;
         
-        cminval  = 0;
-        cmaxval = 0;
-        for(var i=0; i<arrmidlen; i++)
+        cminval0  = 0;
+        cmaxval0 = 0;
+        for(var i=0; i<arrmidlen0; i++)
         {
-            cminval += cminvalarr[i];
-            cmaxval += cmaxvalarr[i];
+            cminval0 += cminvalarr0[i];
+            cmaxval0 += cmaxvalarr0[i];
         }
-        cminval /= arrmidlen;
-        cmaxval /= arrmidlen;
+        cminval0 /= arrmidlen0;
+        cmaxval0 /= arrmidlen0;
         
-        cminval = -cminval;
-        cmaxval = -cmaxval;
-        
-        // prepare values used my getPixelColor
-        factor = hWFgain/10;
-        minlog = Math.log(factor + 1) / 255;
+        cminval0 = -cminval0;
+        cmaxval0 = -cmaxval0;
         
         //console.log("cminval:" + cminval + " cmaxval:" + cmaxval);
     }
@@ -968,27 +987,124 @@ canvas {
         // === black value, no signal, background noise ===
         // shift the value up, so that cminval is color=0
         val = -val;
-        val -= cminval;
-        val -= (hWFrefval/10);
+        val -= cminval0;
+        val -= (hWFrefval0/10);
         
         // === max level, strongest signal ===
         // make the loudest signal to 255
         // shift cmaxval the same factor as the signal value, so both start at 0
-        var cmax = (cmaxval - cminval);
+        var cmax = (cmaxval0 - cminval0);
         // expand the signal value so that the maxval is 255
         // do this with a log formular, high values are more effected
-        var lin = val * factor / cmax;
-        var revlin = factor - lin + 1;
+        var lin = val * factor0 / cmax;
+        var revlin = factor0 - lin + 1;
         var mylog = Math.log(revlin);
-        var logTo255 = mylog/ minlog;
+        var logTo255 = mylog/ minlog0;
         //var val1 = 255 - logTo255;
         var val1 = logTo255;
         
-        // low colors reserver for other purposes
+        // low value (<=2) colors reserved for other purposes
         if (val1 <= 2) val1 = 3;
         if (val1 > 250) val1 = 255;
         return val1;
     }
+
+    var arrmidlen1 = 20;
+    var cmaxvalarr1 = new Array(arrmidlen1);
+    var cminvalarr1 = new Array(arrmidlen1);
+    var cmaxval1;
+    var cminval1;
+
+    var hWFrefval1 = 300;     // shifts the black value (higher=darker)
+    var hWFgain1 = 0.00001;   // contrast (must be > 0, lower value = higher contrast)
+
+    var minlog1;
+    var factor1;
+    var frs1 = 1;
+
+    function calcColorParms1(d, len)
+    {
+        // find min/max values in one pixel line
+        // calc the average value to avoid flickering
+        var max = -9999;
+        var min = 9999;
+        
+        for(var i=0; i<len; i++)
+        {
+            // d[i] is the dBm value at the antenna input (if calibrated and AGC off)
+            // it is a negative value, max range: -180 ... 0
+            if(d[i] < min) min = d[i];
+            if(d[i] > max) max = d[i];
+        }
+        
+        if(frs1)
+        {
+            // init array
+            frs1=0;
+            for(var i=0; i<arrmidlen1; i++)
+            {
+                cminvalarr1[i] = min;
+                cmaxvalarr1[i] = max;
+            }
+            
+            // prepare values used by getPixelColor
+            factor1 = hWFgain1/10;
+            minlog1 = Math.log(factor1 + 1) / 255;
+        }
+        
+        // insert into mid array
+        for(var i=(arrmidlen1-1); i>=1; i--)
+        {
+            cminvalarr1[i] = cminvalarr1[i-1];
+            cmaxvalarr1[i] = cmaxvalarr1[i-1];
+        }
+        cminvalarr1[0] = min;
+        cmaxvalarr1[0] = max;
+        
+        cminval1  = 0;
+        cmaxval1 = 0;
+        for(var i=0; i<arrmidlen1; i++)
+        {
+            cminval1 += cminvalarr1[i];
+            cmaxval1 += cmaxvalarr1[i];
+        }
+        cminval1 /= arrmidlen1;
+        cmaxval1 /= arrmidlen1;
+        
+        cminval1 = -cminval1;
+        cmaxval1 = -cmaxval1;
+        
+        //console.log("cminval:" + cminval + " cmaxval:" + cmaxval);
+    }
+    
+    function getPixelColor1(val)
+    {
+        // === black value, no signal, background noise ===
+        // shift the value up, so that cminval is color=0
+        val = -val;
+        val -= cminval1;
+        val -= (hWFrefval1/10);
+        
+        // === max level, strongest signal ===
+        // make the loudest signal to 255
+        // shift cmaxval the same factor as the signal value, so both start at 0
+        var cmax = (cmaxval1 - cminval1);
+        // expand the signal value so that the maxval is 255
+        // do this with a log formular, high values are more effected
+        var lin = val * factor1 / cmax;
+        var revlin = factor1 - lin + 1;
+        var mylog = Math.log(revlin);
+        var logTo255 = mylog/ minlog1;
+        //var val1 = 255 - logTo255;
+        var val1 = logTo255;
+        
+        // low value (<=2) colors reserved for other purposes
+        if (val1 <= 2) val1 = 3;
+        if (val1 > 250) val1 = 255;
+
+        return val1;
+    }
+   
     
     function drawWF()
     {
@@ -1208,12 +1324,14 @@ canvas {
         // insert the new data into this line
         for( var y=0; y<linethickness; y++)
         {
+            calcColorParms1(pix1, line_width1);
+            
             var qrg = 0;
             for (var x = 0; x < line_width1; x++) 
             {
                 var off = y*(line_width1*4) + x*4;
                 
-                var pval = getPixelColor(pix1[x]);
+                var pval = getPixelColor1(pix1[x]);
                 pval = pval * (Number(wfgain)/50) + (Number(wflevel) - 200);
                 pval = pval.toFixed(0);
                 if(pval < 3) pval = 3;
@@ -1320,7 +1438,7 @@ canvas {
         val += myarr[3];
         return val;
     }
-    
+
     function get16(myarr)
     {
         var val = myarr[0];
@@ -1606,6 +1724,14 @@ canvas {
                 player.feed(arr.slice(pos,pos+len));
             }
         }
+        
+        if(type == 3)
+        {
+            // config data
+            var idx = pos+2;
+            extract_data(arr,idx);
+            $('#setupbutton').show();
+        }
     }
     
     function showLock()
@@ -1625,6 +1751,8 @@ canvas {
         switch(openints)
         {
             case 0: websocket.send("ssbmode:1\0"); 
+                    break;
+            case 1: websocket.send("getconf:1\0"); 
                     break;
             default: clear = 1;
                     break;
@@ -2020,6 +2148,7 @@ canvas {
             filter_cutoff = v;
             player.setHPfilter(v);
             slider_audiolowfilter.value = filter_cutoff;
+            showFilterMargins();
         }
             
         slider_audiolowfilter.oninput = function() 
@@ -2027,6 +2156,7 @@ canvas {
             filter_cutoff = this.value;
             player.setHPfilter(filter_cutoff);
             localStorage.setItem('lowfilter',filter_cutoff);
+            showFilterMargins();
         }
 
         var slider_audiohighfilter = document.getElementById("highfilter");
@@ -2036,6 +2166,7 @@ canvas {
             filter_cutoff_low = v;
             player.setLPfilter(v);
             slider_audiohighfilter.value = filter_cutoff_low;
+            showFilterMargins();
         }
             
         slider_audiohighfilter.oninput = function() 
@@ -2043,15 +2174,52 @@ canvas {
             filter_cutoff_low = this.value;
             player.setLPfilter(filter_cutoff_low);
             localStorage.setItem('highfilter',filter_cutoff_low);
+            showFilterMargins();
         }
 }
-    
+
+function showFilterMargins()
+{
+    var flab = "Filter: " + filter_cutoff + " Hz ... " + filter_cutoff_low + " Hz";
+    document.getElementById("filterlabel").innerHTML = flab;
+}
+
+var setupwindow;
+
+function setup()
+{
+    // open if setup not exists
+    if(setupwindow == undefined || setupwindow == null)
+    {
+        setupwindow = window.open("sdrsetup.html","setupwindow");
+        var timer = setInterval(function() {
+            if(setupwindow.closed) 
+            {
+                clearInterval(timer);
+                sendSetup();
+                setupwindow = null;
+            }
+        },500);
+        return;
+    }
+        
+    // focus setup if exists
+    if(setupwindow.closed)
+        setupwindow = window.open("sdrsetup.html","setupwindow");
+}
+
+function closingCode()
+{
+    setupwindow.close();
+    return null;
+}
+
 </script>
 </head>
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.5</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.7</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2110,7 +2278,9 @@ canvas {
                         <div id="status">Status</div>
                     </div>
                     <div class="controls_left_right">
-                        <div></div>
+                        <div>
+                            <label id="filterlabel"></label>
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -2210,18 +2380,27 @@ canvas {
                     </div>
                 </div>
             </div>
+            
             <div class="rl_space">
             </div>
+            
             <div class="rightside">
-                <div>
-                    <input type="checkbox" id="catonoff" onclick="CATonoff()">Icom CAT
+                <div class="myflex">
+                    <div>
+                        <input type="checkbox" id="catonoff" onclick="CATonoff()">Icom CAT
+                    </div>
+                    <div style="position:absolute; right:0">
+                        <button class="mybutton" id="setupbutton" onclick="setup()" style="display:none" align="right">SETUP</button>
+                    </div>
                 </div>
                 <div class="cat_message">
-                CAT control works only for local users !<hr>
+                ! for local users only !<hr>
                 </div>
                 <div id="mousepos" class="measurements"></div>
                 <div id="transpondernoise" class="measurements"></div>
                 <div id="loggedinusers" class="measurements"></div>
+                <div class="rightrow_menuline">
+                </div>
             </div>
         </div>
         

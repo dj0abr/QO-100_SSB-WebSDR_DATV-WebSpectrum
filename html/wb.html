@@ -2,12 +2,25 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <script src="jquery.min.js"></script>
         <script src="coltab.js"></script>
+        <script src="config.js"></script>
         <style>
 
 body { 
   font-family: Helvetica, Arial, Geneva, sans-serif;
+}
+
+.cat_message {
+    font: "Courier New";
+    font-size:12px;
+    font-weight: 200;
+    color: red;
+}
+
+.myflex
+{
+    display: flex;
 }
 
 .leftside
@@ -185,1575 +198,1612 @@ canvas {
 
 <script type="text/javascript">
             
-            window.onload = onstart;
-            
-            var intv;
-            var interval;
-            var sockintv;
-            var sockOpen = 0;
-            var websocket;
+window.onload = onstart;
 
-            var tunerqrg = 0;
-            var end = 0;
-            var tuneqrg = 0;
-            var foffset = 0;
-            var resolution = 1;
-            var vertlines = 1;
-            var vertmarker = 1;
-            var ssbmode = 0;
-            
-            var end1 = 0;
-            var tuneqrg1 = 0;
-            var foffset1 = 0;
-            var resolution1 = 1;
-            
-            var player;
-            var playON = 0;
-            
-            function mouseXtoQRG(x)
-            {
-                var mval = tuneqrg/1e3 + (x * 5000)/1e6;
-                mval -= 0.0300; // needed to get right value from mouse pointer, reason unknown
-                return mval;
-            }
-            
-            function MouseMoveHandler(e)
-            {
-                var e = window.event || e; // old IE support
-                var mval = mouseXtoQRG(e.pageX);
-                
-                var sd = "Mousepos. RX: " + mval.toFixed(6) + " MHz, TX: " + (mval-ftx/1000).toFixed(6) + " MHz";
-                $("#tuneinfo").html(sd);
-            }
-            
-            function MouseClickHandler(e)
-            {
-                // get clicked frequency
-                var e = window.event || e; // old IE support
-                var frequency = mouseXtoQRG(e.pageX) * 1000000; // clicked qrg in Hz
-                frequency = Math.round(frequency);
+var intv;
+var interval;
+var sockintv;
+var sockOpen = 0;
+var websocket;
 
-                for(var xx=0; xx<qrgarridx; xx++)
-                {
-                    if(startqrgarr[xx] <= frequency && endqrgarr[xx] >= frequency)
-                    {
-                        //console.log("FOUND:" + startqrgarr[xx] + " to " + endqrgarr[xx] + " BW:" + bwarr[xx]);
-                        websocket.send("datvqrg:" + frequency + "," + bwarr[xx] + "\0");
-                    }
-                }
-            }
-            
-            var filter_cutoff = 2400;
-            
-            function filter18()
-            {
-                websocket.send("filterw:0\0");
-                filter_cutoff = 1800;
-            }
-            
-            function filter24()
-            {
-                websocket.send("filterw:1\0");
-                filter_cutoff = 2400;
-            }
-            
-            function filter28()
-            {
-                websocket.send("filterw:2\0");
-                filter_cutoff = 2800;
-            }
+var tunerqrg = 0;
+var end = 0;
+var tuneqrg = 0;
+var foffset = 0;
+var resolution = 1;
+var vertlines = 1;
+var vertmarker = 1;
+var ssbmode = 0;
 
-            function filter30()
-            {
-                websocket.send("filterw:3\0");
-                filter_cutoff = 3000;
-            }
+var end1 = 0;
+var tuneqrg1 = 0;
+var foffset1 = 0;
+var resolution1 = 1;
 
-            function filter36()
-            {
-                websocket.send("filterw:4\0");
-                filter_cutoff = 3600;
-            }
+var player;
+var playON = 0;
 
-            function onstart()
-            {
-                setListboxes();
-                
-                // click into WF
-                var myitem = document.getElementById("wf_overlay");
-                if (myitem.addEventListener)
-                {
-                    myitem.addEventListener("click", MouseClickHandler, false);
-                }
-                
-                // click into spec
-                var myitem = document.getElementById("spec");
-                if (myitem.addEventListener)
-                {
-                    myitem.addEventListener("click", MouseClickHandler, false);
-                }
-                
-                // mouse in WF
-                var myitem = document.getElementById("wf_overlay");
-                if (myitem.addEventListener)
-                {
-                    myitem.addEventListener("mousemove", MouseMoveHandler, false);
-                }
-                
-                // mouse in Spec
-                var myitem = document.getElementById("spec");
-                if (myitem.addEventListener)
-                {
-                    myitem.addEventListener("mousemove", MouseMoveHandler, false);
-                }
-                
-                sockintv = setInterval(checkSocket, 1000);
-            }
-            
-            var reload = 0;
-            
-            function reloadData()
-            {
-                reload = 1;
-            }
-            
-			var intervalset = 0;
+function mouseXtoQRG(x)
+{
+    var mval = tuneqrg/1e3 + (x * 5000)/1e6;
+    mval -= 0.0300; // needed to get right value from mouse pointer, reason unknown
+    return mval;
+}
 
-            function checkSocket()
-            {
-                if(sockOpen == 0)
-                {
-                    if(websocket != null)
-                        websocketclose();
-                    openWebSocket();
-                }
+function MouseMoveHandler(e)
+{
+    var e = window.event || e; // old IE support
+    var mval = mouseXtoQRG(e.pageX);
+    
+    var sd = "Mousepos. RX: " + mval.toFixed(6) + " MHz, TX: " + (mval-ftx/1000).toFixed(6) + " MHz";
+    $("#tuneinfo").html(sd);
+}
 
-                // set interval to 5s, this ensures that it can reconnect 
-                // if the server was down. This does not work with faster intervals
-                if(intervalset == 0)
-                {
-                    intervalset = 1;
-                    clearInterval(sockintv);
-                    sockintv = setInterval(checkSocket, 5000);
-                }
-            }
+function MouseClickHandler(e)
+{
+    // get clicked frequency
+    var e = window.event || e; // old IE support
+    var frequency = mouseXtoQRG(e.pageX) * 1000000; // clicked qrg in Hz
+    frequency = Math.round(frequency);
 
-            function websocketclose()
-            {
-                if(websocket != null)
-                {
-                    console.log("close websocket");
-                    websocket.close();
-                    websocket = null;
-                }
-                else
-                {
-                    console.log("close websocket, already closed");
-                }
-            }
+    for(var xx=0; xx<qrgarridx; xx++)
+    {
+        if(startqrgarr[xx] <= frequency && endqrgarr[xx] >= frequency)
+        {
+            //console.log("FOUND:" + startqrgarr[xx] + " to " + endqrgarr[xx] + " BW:" + bwarr[xx]);
+            websocket.send("datvqrg:" + frequency + "," + bwarr[xx] + "\0");
+        }
+    }
+}
 
-            var pix = new Array();
-            var pixwidth;
-            
-            var pix1 = new Array();
-            var pixwidth1;
-            
-            function drawWFtitle(id,fstart, fend, resolution)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "16px Arial";
-                ctx.fillStyle = "#0000c0";
-                ctx.fillRect(0,0,width,height);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText(fstart/1e3,0,16);
-                
-                var txt = (((fend-fstart)/4+fstart)/1e3).toFixed(6);
-                ctx.fillText(txt,width/4-10,16);
-                
-                ctx.textAlign = "center";
-                txt = (((fend-fstart)/2+fstart)/1e3).toFixed(6);
-                ctx.fillText(txt,width/2,16);
-                
-                txt = (((fend-fstart)*3/4+fstart)/1e3).toFixed(6);
-                ctx.fillText(txt,width*3/4-7,16);
+var filter_cutoff = 2400;
 
-                ctx.textAlign = "right";
-                txt = (fend/1e3).toFixed(6);
-                ctx.fillText(txt,width,16);
-            }
-            
-            function drawWFtitle_eshail_rx(id)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "bold 16px Arial";
-                ctx.fillStyle = "#0000c0";
-                ctx.fillRect(0,0,width,height);
-                
-                ctx.fillStyle = "#ffffff";
-                var qrg = 10492000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+function filter18()
+{
+    websocket.send("filterw:0\0");
+    filter_cutoff = 1800;
+}
 
-                var qrg = 10493000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+function filter24()
+{
+    websocket.send("filterw:1\0");
+    filter_cutoff = 2400;
+}
 
-                var qrg = 10494000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+function filter28()
+{
+    websocket.send("filterw:2\0");
+    filter_cutoff = 2800;
+}
 
-                var qrg = 10495000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+function filter30()
+{
+    websocket.send("filterw:3\0");
+    filter_cutoff = 3000;
+}
 
-                var qrg = 10496000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+function filter36()
+{
+    websocket.send("filterw:4\0");
+    filter_cutoff = 3600;
+}
 
-                var qrg = 10497000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
-                
-                var qrg = 10498000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
-                
-                var qrg = 10499000;
-                ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
-            }
-            
-            function drawWFtitle_eshail_tx(id)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "bold 16px Arial";
-                ctx.fillStyle = "#0000c0";
-                ctx.fillRect(0,0,width,height);
-                
-                ctx.fillStyle = "#ffffff";
-                var qrg = 10492000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+function onstart()
+{
+    setListboxes();
+    
+    // click into WF
+    var myitem = document.getElementById("wf_overlay");
+    if (myitem.addEventListener)
+    {
+        myitem.addEventListener("click", MouseClickHandler, false);
+    }
+    
+    // click into spec
+    var myitem = document.getElementById("spec");
+    if (myitem.addEventListener)
+    {
+        myitem.addEventListener("click", MouseClickHandler, false);
+    }
+    
+    // mouse in WF
+    var myitem = document.getElementById("wf_overlay");
+    if (myitem.addEventListener)
+    {
+        myitem.addEventListener("mousemove", MouseMoveHandler, false);
+    }
+    
+    // mouse in Spec
+    var myitem = document.getElementById("spec");
+    if (myitem.addEventListener)
+    {
+        myitem.addEventListener("mousemove", MouseMoveHandler, false);
+    }
+    
+    sockintv = setInterval(checkSocket, 1000);
+}
 
-                var qrg = 10493000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+var reload = 0;
 
-                var qrg = 10494000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+function reloadData()
+{
+    reload = 1;
+}
 
-                var qrg = 10495000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+var intervalset = 0;
 
-                var qrg = 10496000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+function checkSocket()
+{
+    if(sockOpen == 0)
+    {
+        if(websocket != null)
+            websocketclose();
+        openWebSocket();
+    }
 
-                var qrg = 10497000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+    // set interval to 5s, this ensures that it can reconnect 
+    // if the server was down. This does not work with faster intervals
+    if(intervalset == 0)
+    {
+        intervalset = 1;
+        clearInterval(sockintv);
+        sockintv = setInterval(checkSocket, 5000);
+    }
+}
 
-                var qrg = 10498000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+function websocketclose()
+{
+    if(websocket != null)
+    {
+        console.log("close websocket");
+        websocket.close();
+        websocket = null;
+    }
+    else
+    {
+        console.log("close websocket, already closed");
+    }
+}
 
-                var qrg = 10499000;
-                ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
-            }
-            
-            function drawMODEtitle(id)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "bold 16px Arial";
-                // background
-                ctx.fillStyle = "#0000c0";
-                ctx.fillRect(0,0,width,height);
-                
-                // Beacons
-                ctx.fillStyle = "#ff0000";
-                var x1 = cpos(10491000);
-                var x2 = cpos(10494000);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Beacon & Simplex DATV",cpos(10492000),15);
-                
-                // Simplex DATV
-                ctx.fillStyle = "#00afef";
-                var x1 = cpos(10494000);
-                var x2 = cpos(10497000);
-                ctx.fillRect(x1,1,x2-x1,19);
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Simplex DATV",cpos(10495200),15);
-                
-                // RB-TV
-                ctx.fillStyle = "#6f2f9f";
-                var x1 = cpos(10497000);
-                var x2 = cpos(10499500);
-                ctx.fillRect(x1,1,x2-x1,19);
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("RB-TV",cpos(10498000),15);
-            }
-            
-            function drawMODEtitle1(id)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "bold 16px Arial";
-                // background
-                ctx.fillStyle = "#606060";
-                ctx.fillRect(0,0,width,height);
-                
-                // Beacons
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10491000);
-                var x2 = cpos(10492490);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                var x1 = cpos(10492510);
-                var x2 = cpos(10493990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Simplex 1MS1",cpos(10491700),15);
-                ctx.fillText("Simplex 1MS2",cpos(10493000),15);
-                
-                // Simplex DATV
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10494010);
-                var x2 = cpos(10494740);
-                ctx.fillRect(x1,1,x2-x1,19);
+var pix = new Array();
+var pixwidth;
 
-                var x1 = cpos(10494760);
-                var x2 = cpos(10495490);
-                ctx.fillRect(x1,1,x2-x1,19);
+var pix1 = new Array();
+var pixwidth1;
 
-                var x1 = cpos(10495510);
-                var x2 = cpos(10496240);
-                ctx.fillRect(x1,1,x2-x1,19);
+function drawWFtitle(id,fstart, fend, resolution)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#0000c0";
+    ctx.fillRect(0,0,width,height);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(fstart/1e3,0,16);
+    
+    var txt = (((fend-fstart)/4+fstart)/1e3).toFixed(6);
+    ctx.fillText(txt,width/4-10,16);
+    
+    ctx.textAlign = "center";
+    txt = (((fend-fstart)/2+fstart)/1e3).toFixed(6);
+    ctx.fillText(txt,width/2,16);
+    
+    txt = (((fend-fstart)*3/4+fstart)/1e3).toFixed(6);
+    ctx.fillText(txt,width*3/4-7,16);
 
-                var x1 = cpos(10496260);
-                var x2 = cpos(10496990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 14px Arial";
-                ctx.fillText("500KS1",cpos(10494250),15);
-                ctx.fillText("500KS2",cpos(10495000),15);
-                ctx.fillText("500KS3",cpos(10495750),15);
-                ctx.fillText("500KS4",cpos(10496500),15);
-                
-                // RB-TV
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10497010);
-                var x2 = cpos(10497240);
-                ctx.fillRect(x1,1,x2-x1,19);
+    ctx.textAlign = "right";
+    txt = (fend/1e3).toFixed(6);
+    ctx.fillText(txt,width,16);
+}
 
-                var x1 = cpos(10497260);
-                var x2 = cpos(10497490);
-                ctx.fillRect(x1,1,x2-x1,19);
+function drawWFtitle_eshail_rx(id)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "bold 16px Arial";
+    ctx.fillStyle = "#0000c0";
+    ctx.fillRect(0,0,width,height);
+    
+    ctx.fillStyle = "#ffffff";
+    var qrg = 10492000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10497510);
-                var x2 = cpos(10497740);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10493000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10497760);
-                var x2 = cpos(10497990);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10494000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10498010);
-                var x2 = cpos(10498240);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10495000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10498260);
-                var x2 = cpos(10498490);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10496000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10498510);
-                var x2 = cpos(10498740);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10497000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+    
+    var qrg = 10498000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+    
+    var qrg = 10499000;
+    ctx.fillText(qrg/1e3,cpos(qrg)-30,16);
+}
 
-                var x1 = cpos(10498760);
-                var x2 = cpos(10498990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                var x1 = cpos(10499010);
-                var x2 = cpos(10499240);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                var x1 = cpos(10499260);
-                var x2 = cpos(10499490);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("125S1", cpos(10497030),15);
-                ctx.fillText("125S2", cpos(10497280),15);
-                ctx.fillText("125S3", cpos(10497530),15);
-                ctx.fillText("125S4", cpos(10497780),15);
-                ctx.fillText("125S5", cpos(10498030),15);
-                ctx.fillText("125S6", cpos(10498280),15);
-                ctx.fillText("125S7", cpos(10498530),15);
-                ctx.fillText("125S8", cpos(10498780),15);
-                ctx.fillText("125S9", cpos(10499030),15);
-                ctx.fillText("125S10",cpos(10499280),15);
-            }
+function drawWFtitle_eshail_tx(id)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "bold 16px Arial";
+    ctx.fillStyle = "#0000c0";
+    ctx.fillRect(0,0,width,height);
+    
+    ctx.fillStyle = "#ffffff";
+    var qrg = 10492000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
-            function drawMODEtitle2(id)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "bold 16px Arial";
-                // background
-                ctx.fillStyle = "#606060";
-                ctx.fillRect(0,0,width,height);
-                
-                // Beacons
-                ctx.fillStyle = "#c0c000";
-                var x1 = cpos(10491000);
-                var x2 = cpos(10492490);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10492510);
-                var x2 = cpos(10493990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Narrow Beacon",cpos(10491700),15);
-                ctx.fillText("Simplex 1MS2",cpos(10493000),15);
-                
-                // Simplex DATV
-                                
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10494010);
-                var x2 = cpos(10495490);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                var x1 = cpos(10495510);
-                var x2 = cpos(10496990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Simplex 1MS3",cpos(10494500),15);
-                ctx.fillText("Simplex 1MS4",cpos(10496000),15);
+    var qrg = 10493000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
-                
-                // RB-TV
-            }
+    var qrg = 10494000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
-            function drawMODEtitle3(id)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "bold 16px Arial";
-                // background
-                ctx.fillStyle = "#606060";
-                ctx.fillRect(0,0,width,height);
-                
-                // Beacons
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10491000);
-                var x2 = cpos(10493990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Simplex 2MS1",cpos(10492200),15);
-                
-                // Simplex DATV
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10494010);
-                var x2 = cpos(10496990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Simplex 2MS2",cpos(10495200),15);
-                
-                // RB-TV
-                ctx.fillStyle = "#8080ff";
-                var x1 = cpos(10497010);
-                var x2 = cpos(10497490);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10495000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10497510);
-                var x2 = cpos(10497990);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10496000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10498010);
-                var x2 = cpos(10498490);
-                ctx.fillRect(x1,1,x2-x1,19);
+    var qrg = 10497000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
-                var x1 = cpos(10498510);
-                var x2 = cpos(10498990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                var x1 = cpos(10499010);
-                var x2 = cpos(10499490);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 14px Arial";
-                ctx.fillText("333KS1",cpos(10497110),15);
-                ctx.fillText("333KS2",cpos(10497610),15);
-                ctx.fillText("333KS3",cpos(10498110),15);
-                ctx.fillText("333KS4",cpos(10498610),15);
-                ctx.fillText("333KS5",cpos(10499110),15);
-            }
+    var qrg = 10498000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
 
-            function drawMODEtitle4(id)
-            {
-                var cnv = document.getElementById(id); 
-                var ctx = cnv.getContext("2d");
-                var width = cnv.width;
-                var height = cnv.height;
-                
-                ctx.font = "bold 16px Arial";
-                // background
-                ctx.fillStyle = "#606060";
-                ctx.fillRect(0,0,width,height);
-                
-                // Beacons
-                ctx.fillStyle = "#c0c000";
-                var x1 = cpos(10491000);
-                var x2 = cpos(10493990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Wide Beacon",cpos(10492200),15);
-                
-                // Simplex DATV
-                ctx.fillStyle = "#c04080";
-                var x1 = cpos(10494010);
-                var x2 = cpos(10496990);
-                ctx.fillRect(x1,1,x2-x1,19);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText("Maintenance Uplink",cpos(10495200),15);
-                
-                // RB-TV
-            }
+    var qrg = 10499000;
+    ctx.fillText((qrg-8089500)/1e3,cpos(qrg)-30,16);
+}
 
+function drawMODEtitle(id)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "bold 16px Arial";
+    // background
+    ctx.fillStyle = "#0000c0";
+    ctx.fillRect(0,0,width,height);
+    
+    // Beacons
+    ctx.fillStyle = "#ff0000";
+    var x1 = cpos(10491000);
+    var x2 = cpos(10494000);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Beacon & Simplex DATV",cpos(10492000),15);
+    
+    // Simplex DATV
+    ctx.fillStyle = "#00afef";
+    var x1 = cpos(10494000);
+    var x2 = cpos(10497000);
+    ctx.fillRect(x1,1,x2-x1,19);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Simplex DATV",cpos(10495200),15);
+    
+    // RB-TV
+    ctx.fillStyle = "#6f2f9f";
+    var x1 = cpos(10497000);
+    var x2 = cpos(10499500);
+    ctx.fillRect(x1,1,x2-x1,19);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("RB-TV",cpos(10498000),15);
+}
 
-            var wfcolor = "red";
-            var linethickness = 1;
-            var next_linethickness = 1;
-            var sockurl = '?';
-            
-            
-            var specarrlen = 25;
-            var midarr = new Array(200);
-            var arrfirst = 1;
-            var speclevel = -50;
-            var specgain = -25;
-            var wflevel = 230;
-            var wfgain = 50;
-            var minval = 999999;
-            var maxval = -999999;
-            var startqrgarr = new Array(100);
-            var endqrgarr = new Array(100);
-            var bwarr = new Array(100);
-            var qrgarridx=0;
-            
-            function draw_spec()
-            {
-				// variables to store min/max values for this single path
-				// get the elemt IDs and dimensions
-                var canvas = document.getElementById("spec"); 
-                var context = canvas.getContext("2d");
-                var width = canvas.width;
-                var height = canvas.height;
+function drawMODEtitle1(id)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "bold 16px Arial";
+    // background
+    ctx.fillStyle = "#606060";
+    ctx.fillRect(0,0,width,height);
+    
+    // Beacons
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10491000);
+    var x2 = cpos(10492490);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    var x1 = cpos(10492510);
+    var x2 = cpos(10493990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Simplex 1MS1",cpos(10491700),15);
+    ctx.fillText("Simplex 1MS2",cpos(10493000),15);
+    
+    // Simplex DATV
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10494010);
+    var x2 = cpos(10494740);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-				// variables to store min/max values for this single path
-                var n_maxval = -999999;
-                var n_minval = 999999;
+    var x1 = cpos(10494760);
+    var x2 = cpos(10495490);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-                // WB-Transponder, take minval only at specific frequencies                
-                var xm1 = cpos(10493810);
-                var xm2 = cpos(10493910);
+    var x1 = cpos(10495510);
+    var x2 = cpos(10496240);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-                // storage for Y values
-				// used to find rising and falling edges of a signal
-                var yarr = new Array(width);
+    var x1 = cpos(10496260);
+    var x2 = cpos(10496990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText("500KS1",cpos(10494250),15);
+    ctx.fillText("500KS2",cpos(10495000),15);
+    ctx.fillText("500KS3",cpos(10495750),15);
+    ctx.fillText("500KS4",cpos(10496500),15);
+    
+    // RB-TV
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10497010);
+    var x2 = cpos(10497240);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-				// draw background
-                context.fillStyle = '#404040';
-                context.fillRect(0,0,width,height);
-                
-                // set colors of spectrum lines and fill
-                context.strokeStyle = '#ffffff';
-                context.fillStyle = '#c0c0c0';
+    var x1 = cpos(10497260);
+    var x2 = cpos(10497490);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-				// midarr is used to calculate the mean value according
-                // to the Average-Slider setting
-                // generate and initialize the array
-                if(arrfirst == 1)
-                {
-                    for(var i=0; i<200; i++)
-                    {
-                        midarr[i] = new Array(width);
-                        
-                        for(var x=0; x<width; x++)
-                        {
-                            midarr[i][x] = -pix[x];
-                        }
-                    }
-                    arrfirst = 0;
-                }
-                
+    var x1 = cpos(10497510);
+    var x2 = cpos(10497740);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-                // draw spectrum as a filled area
-				// start drawing in left-bottom corner
-                context.beginPath();
-                context.moveTo(0, height-1);
-                
-				// loop through all horizontal pixels
-                for(var x=0; x<width; x++)
-                {
-                    // horizontal smoothing
-					// average of "midsize" horizontal pixels
-                    var midsize = 5; //smooth value
-                    var midv = 0;
-                    for(var mz = -midsize; mz <= midsize; mz++)
-                        midv += pix[x+mz];
-					midv /= (midsize*2);
+    var x1 = cpos(10497760);
+    var x2 = cpos(10497990);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-					// calculate the average value, first
-                    // shift the array and put new data at the beginning
-					for(var idx=(specarrlen-1); idx>=1; idx--)
-                        midarr[idx][x] = midarr[idx-1][x];
+    var x1 = cpos(10498010);
+    var x2 = cpos(10498240);
+    ctx.fillRect(x1,1,x2-x1,19);
+
+    var x1 = cpos(10498260);
+    var x2 = cpos(10498490);
+    ctx.fillRect(x1,1,x2-x1,19);
+
+    var x1 = cpos(10498510);
+    var x2 = cpos(10498740);
+    ctx.fillRect(x1,1,x2-x1,19);
+
+    var x1 = cpos(10498760);
+    var x2 = cpos(10498990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    var x1 = cpos(10499010);
+    var x2 = cpos(10499240);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    var x1 = cpos(10499260);
+    var x2 = cpos(10499490);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("125S1", cpos(10497030),15);
+    ctx.fillText("125S2", cpos(10497280),15);
+    ctx.fillText("125S3", cpos(10497530),15);
+    ctx.fillText("125S4", cpos(10497780),15);
+    ctx.fillText("125S5", cpos(10498030),15);
+    ctx.fillText("125S6", cpos(10498280),15);
+    ctx.fillText("125S7", cpos(10498530),15);
+    ctx.fillText("125S8", cpos(10498780),15);
+    ctx.fillText("125S9", cpos(10499030),15);
+    ctx.fillText("125S10",cpos(10499280),15);
+}
+
+function drawMODEtitle2(id)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "bold 16px Arial";
+    // background
+    ctx.fillStyle = "#606060";
+    ctx.fillRect(0,0,width,height);
+    
+    // Beacons
+    ctx.fillStyle = "#c0c000";
+    var x1 = cpos(10491000);
+    var x2 = cpos(10492490);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10492510);
+    var x2 = cpos(10493990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Narrow Beacon",cpos(10491700),15);
+    ctx.fillText("Simplex 1MS2",cpos(10493000),15);
+    
+    // Simplex DATV
                     
-                    // add new value
-                    midarr[0][x] = -midv;
-                    
-					// calculate the average
-                    var mv = 0; // mid value
-                    for(var idx=0; idx<specarrlen; idx++)
-                        mv += midarr[idx][x];
-                    mv /= specarrlen;
-					// mv is now the dB value of the signal at position x
-                        
-                    // find the value of the noise
-					// xm1 and xm2 is positioned a little bit right of the DATV beacon
-					// where usually is no signal, so measure the noise level here
-					// it is not possible to measure left of the beacon because the SDRplay
-					// already attenuates the signal left of the beacon (because of 8MHz bandwidth)
-                    if(mv < n_minval && x > xm1 && x < xm2)
-                      n_minval = mv;
-                      
-                    // read the maximum value of the signals into maxval
-					// used for automatic level/gain setting
-                    if(mv > n_maxval)
-                        n_maxval = mv;
-                      
-					// calculate y-pixel position, draw the spectrum point and
-					// store for later use (rising/falling edge detection)
-                    var yval = scale(mv);
-                    yarr[x] = yval;
-                    context.lineTo(x,yval);
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10494010);
+    var x2 = cpos(10495490);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    var x1 = cpos(10495510);
+    var x2 = cpos(10496990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Simplex 1MS3",cpos(10494500),15);
+    ctx.fillText("Simplex 1MS4",cpos(10496000),15);
 
-                }
-               
-				// finish the spectrum display by closing and filling the area
-                context.lineTo(width-1,height-1);
-                context.fill();
-                context.stroke();
-                
-                // mark 3dB levels with a line and a label
-				// use the width at +3dB for bandwitch calculation for a signal
-                var y3db = scale(minval + 3);
-                context.strokeStyle = '#ff0000';
-                context.fillStyle = "#ffffff";
-                context.font = "16px Arial";
-                context.textAlign = "center";
+    
+    // RB-TV
+}
 
-                var redge = 0;
-                var arridx = 0;
-                for(var x=1; x<(width-1); x++)
-                {
-                    /*if(x<=20)
-                    {
-                    console.log("x:"+x+" y:"+yarr[x]);
-                    }*/
-                
-                    // rising edge
-                    if( (yarr[x-1] > y3db && yarr[x+1] < y3db) ||
-                        (x == 5 && yarr[x] < y3db))
-                    {
-                        context.beginPath();
-                        context.moveTo(x, y3db-8);
-                        context.lineTo(x, y3db+8);
-                        context.stroke();
-                        redge = x;
-                        last_redge = x;
-                    }
-                    
-                    // falling edge
-                    if(yarr[x-1] < y3db && yarr[x+1] > y3db && redge > 0)
-                    {
-                        context.beginPath();
-                        context.moveTo(x, y3db-8);
-                        context.lineTo(x, y3db+8);
-                        context.stroke();
-                        
-                        // and hor line for this signal
-                        context.beginPath();
-                        context.moveTo(redge, y3db);
-                        context.lineTo(x, y3db);
-                        context.stroke();
-                        
-                        // description
-                        var bw = ((x-redge)*5000)/1000;
-                        if(bw > 1900) bw = 2000;
-                        else if(bw > 1400) bw = 1500;
-                        else if(bw > 900) bw = 1000;
-                        else if(bw > 450) bw = 500;
-                        else if(bw > 310) bw = 333;
-                        else if(bw > 220) bw = 250;
-                        else if(bw > 110) bw = 125;
-                        else if(bw > 50) bw = 66;
-                        else if(bw > 20) bw = 33;
-                        else bw = "?";
-                        context.fillText(bw,(x-redge)/2+redge,y3db-7);
-                        bwarr[arridx] = bw;
-                        
-                        var startfreq = redge*5000 / 1000;
-                        startfreq = Number(startfreq) + tuneqrg;
-                        startqrgarr[arridx] = startfreq*1000;
-                        
-                        var endfreq = x*5000 / 1000;
-                        endfreq = Number(endfreq) + tuneqrg;
-                        endqrgarr[arridx] = endfreq*1000;
-                        
-                        arridx++;
-                        
-                        var freq = ((x-redge)/2+redge)*5000 / 1000000;
-                        freq = Number(freq) + tuneqrg/1000;
-                        freq = Number(freq) - 10000;
-                        context.fillText(freq.toFixed(2) + "0",(x-redge)/2+redge,y3db+15);
-                        
-                        
-                        redge = 0;
-                    }
-                }
-                
-                qrgarridx = arridx;
-                
-                context.textAlign = "left";
-                
-                // change minval only if bigger difference to old value to avaiod flickering
-                if(Math.abs(minval - n_minval) > 0.6)
-                {
-                    minval = n_minval;
-                }
-                maxval = n_maxval;
-				if(maxval < (minval+10))
-					maxval = minval + 10;	// always see minimum 10dB
+function drawMODEtitle3(id)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "bold 16px Arial";
+    // background
+    ctx.fillStyle = "#606060";
+    ctx.fillRect(0,0,width,height);
+    
+    // Beacons
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10491000);
+    var x2 = cpos(10493990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Simplex 2MS1",cpos(10492200),15);
+    
+    // Simplex DATV
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10494010);
+    var x2 = cpos(10496990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Simplex 2MS2",cpos(10495200),15);
+    
+    // RB-TV
+    ctx.fillStyle = "#8080ff";
+    var x1 = cpos(10497010);
+    var x2 = cpos(10497490);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-                // auto set bottom line (noise line) to bottom of spectrum
-                // minval must have a little lower value than
-                // the bottom of the spectrum, which is "height"
-                
-                var ckb = $("#spekautolevel").is(':checked');
-                if(ckb && minval < 0 /*ignore if default 999999 */)
-                {
-					// calculate speclevel and specgain so that
-                    // minval goes to y=(height-5) and maxval goes to y=15
-                    var ymin = 330; // min/max positions in screen coordinates
-                    var ymax = 15;
-                    var a = (height - ymin)/height;
-                    var b = (height - ymax)/height;
-                    specgain =(minval*(b-1)-maxval*(a-1))/(a*(b-1)-b*(a-1));
-                    speclevel = (a*specgain-minval)/(a-1);
+    var x1 = cpos(10497510);
+    var x2 = cpos(10497990);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-                    // adjust WF parameters
-                    wflevel = 230;
-                    wfgain = 50;
+    var x1 = cpos(10498010);
+    var x2 = cpos(10498490);
+    ctx.fillRect(x1,1,x2-x1,19);
 
-                    var slider_speclevel = document.getElementById("speclevel");
-                    slider_speclevel.value = speclevel;
-                    
-                    var slider_specgain = document.getElementById("specgain");
-                    slider_specgain.value = specgain;
-                    
-                    var slider_wflevel = document.getElementById("wflevel");
-                    slider_wflevel.value = wflevel;
-                    
-                    var slider_wfgain = document.getElementById("wfgain");
-                    slider_wfgain.value = wfgain;
-                }
+    var x1 = cpos(10498510);
+    var x2 = cpos(10498990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    var x1 = cpos(10499010);
+    var x2 = cpos(10499490);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText("333KS1",cpos(10497110),15);
+    ctx.fillText("333KS2",cpos(10497610),15);
+    ctx.fillText("333KS3",cpos(10498110),15);
+    ctx.fillText("333KS4",cpos(10498610),15);
+    ctx.fillText("333KS5",cpos(10499110),15);
+}
 
-                // hor line at lowest value (noise level)
-                var yvalue = minval;
-                context.strokeStyle = '#80ff80';
-                context.beginPath();
-                context.moveTo(50, scale(yvalue));
-                context.lineTo(width-1, scale(yvalue));
-                context.stroke();
-                
-                // 1 dB lines
-                for(var db = 1; db < 24; db++)
-                {
-                    context.beginPath();
-                    if(db != 5 && db != 10 && db != 15 && db != 20)
-                    {
-                        context.globalAlpha = 0.3;
-                        context.strokeStyle = '#808080';
-                        context.moveTo(0, scale(db+minval));
-                    }
-                    else
-                    {
-                        context.strokeStyle = '#00c080';
-                        context.moveTo(50, scale(db+minval));
-                    }
-                    context.lineTo(width-1, scale(db+minval));
-                    context.stroke();
-                    context.globalAlpha = 1;
-                }
-                
-                // write horizontal dBs
-                context.fillText("  0 dB",5,scale(0+minval)+5);
-                context.fillText(" +5 dB",5,scale(5+minval)+5);
-                context.fillText("+10 dB",5,scale(10+minval)+5);
-                context.fillText("+15 dB",5,scale(15+minval)+5);
-                context.fillText("+20 dB",5,scale(20+minval)+5);
-                
-                // scale dBm value to y-pixelpos
-                function scale(v)
-                {
-                    var y = -height*(v-speclevel)/(specgain-speclevel) + height;
-                    return y;
-                }
-                
-                function vertline(qrg, alpha)
-                {
-                    var x = cpos(qrg);
-                
-                    context.globalAlpha = alpha;
-                    context.strokeStyle = '#6060e0';
-                    context.beginPath();
-                    context.moveTo(x, 0);
-                    context.lineTo(x, height-1);
-                    context.stroke();
-                    context.globalAlpha = 1;
-                }
-                
-                // vert lines
-                if(vertlines == 1)
-                {
-                    vertline(10492000,0.2);
-                    vertline(10493000,0.2);
-                    vertline(10495000,0.2);
-                    vertline(10496000,0.2);
-                    vertline(10498000,0.2);
-                    vertline(10499000,0.2);
-                    
-                    vertline(10494000,1);
-                    vertline(10497000,1);
-                }
-            }
+function drawMODEtitle4(id)
+{
+    var cnv = document.getElementById(id); 
+    var ctx = cnv.getContext("2d");
+    var width = cnv.width;
+    var height = cnv.height;
+    
+    ctx.font = "bold 16px Arial";
+    // background
+    ctx.fillStyle = "#606060";
+    ctx.fillRect(0,0,width,height);
+    
+    // Beacons
+    ctx.fillStyle = "#c0c000";
+    var x1 = cpos(10491000);
+    var x2 = cpos(10493990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Wide Beacon",cpos(10492200),15);
+    
+    // Simplex DATV
+    ctx.fillStyle = "#c04080";
+    var x1 = cpos(10494010);
+    var x2 = cpos(10496990);
+    ctx.fillRect(x1,1,x2-x1,19);
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Maintenance Uplink",cpos(10495200),15);
+    
+    // RB-TV
+}
+
+
+var wfcolor = "red";
+var linethickness = 1;
+var next_linethickness = 1;
+var sockurl = '?';
+
+
+var specarrlen = 25;
+var midarr = new Array(200);
+var arrfirst = 1;
+var speclevel = -50;
+var specgain = -25;
+var wflevel = 230;
+var wfgain = 50;
+var minval = 999999;
+var maxval = -999999;
+var startqrgarr = new Array(100);
+var endqrgarr = new Array(100);
+var bwarr = new Array(100);
+var qrgarridx=0;
+
+function draw_spec()
+{
+    // variables to store min/max values for this single path
+    // get the elemt IDs and dimensions
+    var canvas = document.getElementById("spec"); 
+    var context = canvas.getContext("2d");
+    var width = canvas.width;
+    var height = canvas.height;
+
+    // variables to store min/max values for this single path
+    var n_maxval = -999999;
+    var n_minval = 999999;
+
+    // WB-Transponder, take minval only at specific frequencies                
+    var xm1 = cpos(10493810);
+    var xm2 = cpos(10493910);
+
+    // storage for Y values
+    // used to find rising and falling edges of a signal
+    var yarr = new Array(width);
+
+    // draw background
+    context.fillStyle = '#404040';
+    context.fillRect(0,0,width,height);
+    
+    // set colors of spectrum lines and fill
+    context.strokeStyle = '#ffffff';
+    context.fillStyle = '#c0c0c0';
+
+    // midarr is used to calculate the mean value according
+    // to the Average-Slider setting
+    // generate and initialize the array
+    if(arrfirst == 1)
+    {
+        for(var i=0; i<200; i++)
+        {
+            midarr[i] = new Array(width);
             
-            var arrmidlen = 20;
-            var cmaxvalarr = new Array(arrmidlen);
-            var cminvalarr = new Array(arrmidlen);
-            var cmaxval;
-            var cminval;
-
-            var hWFrefval = 50;     // shifts the black value (higher=darker)
-            var hWFgain = 0.00001;   // contrast (must be > 0, low=high contrast)
-
-            var minlog;
-            var factor;
-            var frs = 1;
-
-            // find min/max the values of one pixel line
-            function calcColorParms(d, len)
+            for(var x=0; x<width; x++)
             {
-                var max = -9999;
-                var min = 9999;
-                
-                for(var i=0; i<len; i++)
-                {
-                    // d[i] is the dBm value at the antenna input (if calibrated and AGC off)
-                    // it is a negative value, max range: -180 ... 0
-                    if(d[i] < min) min = d[i];
-                    if(d[i] > max) max = d[i];
-                }
-                
-                if(frs)
-                {
-                    // init array
-                    frs=0;
-                    for(var i=0; i<arrmidlen; i++)
-                    {
-                        cminvalarr[i] = min;
-                        cmaxvalarr[i] = max;
-                    }
-                }
-                
-                // insert into mid array
-                for(var i=(arrmidlen-1); i>=1; i--)
-                {
-                    cminvalarr[i] = cminvalarr[i-1];
-                    cmaxvalarr[i] = cmaxvalarr[i-1];
-                }
-                cminvalarr[0] = min;
-                cmaxvalarr[0] = max;
-                
-                cminval  = 0;
-                cmaxval = 0;
-                for(var i=0; i<arrmidlen; i++)
-                {
-                    cminval += cminvalarr[i];
-                    cmaxval += cmaxvalarr[i];
-                }
-                cminval /= arrmidlen;
-                cmaxval /= arrmidlen;
-                
-                cminval = -cminval;
-                cmaxval = -cmaxval;
-                
-                // prepare values used my getPixelColor
-                factor = hWFgain/10;
-                minlog = Math.log(factor + 1) / 255;
-                
-                //console.log("cminval:" + cminval + " cmaxval:" + cmaxval);
+                midarr[i][x] = -pix[x];
             }
-            
-            function getPixelColor(val)
-            {
-                // === black value, no signal, background noise ===
-                // shift the value up, so that cminval is color=0
-                val = -val;
-                val -= cminval;
-                val -= (hWFrefval/10);
-                
-                // === max level, strongest signal ===
-                // make the loudest signal to 255
-                // shift cmaxval the same factor as the signal value, so both start at 0
-                var cmax = (cmaxval - cminval);
-                // expand the signal value so that the maxval is 255
-                // do this with a log formular, high values are more effected
-                var lin = val * factor / cmax;
-                var revlin = factor - lin + 1;
-                var mylog = Math.log(revlin);
-                var logTo255 = mylog/ minlog;
-                //var val1 = 255 - logTo255;
-                var val1 = logTo255;
-                
-                // low colors reserver for other purposes
-                if (val1 <= 2) val1 = 3;
-                if (val1 > 250) val1 = 255;
-                return val1;
-            }
-            
-            function drawWF()
-            {
-                linethickness = next_linethickness;
-                
-                // Get the WF canvas and WF context
-                var canvas = document.getElementById("wf"); 
-                var context = canvas.getContext("2d");
-            
-                // Get the canvas dimensions
-                var width = canvas.width;
-                var height = canvas.height;
-                
-                // create a 1-line canvas for the new data
-                var line_cnv = document.getElementById("makeline"); 
-                var line_ctx = line_cnv.getContext("2d");
-                var line_width = line_cnv.width;
-                line_cnv.height = linethickness;
-                var imagedata = line_ctx.createImageData(line_width, linethickness);
-                // insert the new data into this line
-                for( var y=0; y<linethickness; y++)
-                {
-                    calcColorParms(pix, line_width);
-                    
-                    var qrg = 0;
-                    for (var x = 0; x < line_width; x++) 
-                    {
-                        var off = y*(line_width*4) + x*4;
-                        
-                        // pix[n] is the dBm value of the input signal (positive)
-                        // it must be converted to the color table index
-                        var pval = getPixelColor(pix[x]);
-                        
-                        // user adjustments
-                        pval = pval * (Number(wfgain)/50) + (Number(wflevel) -200);
-                        pval = pval.toFixed(0);
-                        if(pval < 3) pval = 3;
-                        if(pval > 255) pval = 255;
-                        
-                        if(wfcolor == "red")
-                        {
-                            imagedata.data[off] = 256*(coltab[pval][0]);
-                            imagedata.data[off+1] = 256*(coltab[pval][1]);
-                            imagedata.data[off+2] = 256*(coltab[pval][2]);
-                        }
-                        if(wfcolor == "green")
-                        {
-                            imagedata.data[off] = 256*(coltab[pval][1]);
-                            imagedata.data[off+1] = 256*(coltab[pval][0]);
-                            imagedata.data[off+2] = 256*(coltab[pval][2]);
-                        }
-                        if(wfcolor == "blue")
-                        {
-                            imagedata.data[off] = 256*(coltab[pval][2]);
-                            imagedata.data[off+1] = 256*(coltab[pval][1]);
-                            imagedata.data[off+2] = 256*(coltab[pval][1]);
-                        }
-                        if(wfcolor == "white")
-                        {
-                            imagedata.data[off] = 256*(coltab[pval][0]);
-                            imagedata.data[off+1] = 256*(coltab[pval][0]);
-                            imagedata.data[off+2] = 256*(coltab[pval][0]);
-                        }
-                        imagedata.data[off+3] = 255;
-                        
-                        qrg += resolution;
-                    }
-                }
-                // and draw it into the 1-line canvas
-                line_ctx.putImageData(imagedata, 0, 0);
-                
-                // now draw the 1-line canvas followed by the old WF canvas
-                // this automatically shifts the old picture down one line
-                context.drawImage(line_cnv, 0, 0);
-                context.drawImage(canvas, 0, linethickness);
-            }
-            
-            function drawOverlay()
-            {
-                var canvas = document.getElementById("wf_overlay"); 
-                var context = canvas.getContext("2d");
-            
-                // Get the canvas dimensions
-                var width = canvas.width;
-                var height = canvas.height;
-                
-                context.clearRect(0,0,width,height);
+        }
+        arrfirst = 0;
+    }
+    
 
-                var ImageData = context.getImageData(0,0,width,height);
+    // draw spectrum as a filled area
+    // start drawing in left-bottom corner
+    context.beginPath();
+    context.moveTo(0, height-1);
+    
+    // loop through all horizontal pixels
+    for(var x=0; x<width; x++)
+    {
+        // horizontal smoothing
+        // average of "midsize" horizontal pixels
+        var midsize = 5; //smooth value
+        var midv = 0;
+        for(var mz = -midsize; mz <= midsize; mz++)
+            midv += pix[x+mz];
+        midv /= (midsize*2);
 
-                if(vertmarker == 1)
-                {
-                
-                    // draw transparent rectangle at the zoomed qrg range
-                    for(var i=0; i<height; i++)
-                    {
-                        // right part USB
-                        for(var j=calcpos(end1/2); j<calcpos(end1);j++)
-                        {
-                            ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 50;
-                        }
-                        
-                        // left part LSB
-                        for(var j=calcpos(0); j<calcpos(end1/2);j++)
-                        {
-                            ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 20;
-                        }
-                    }
-                    
-                    // make a vertical line in the middle (which is the carrier frequency)
-                    j = calcpos(0 + end1/2);
-                    for(var i=0; i<height; i++)
-                    {
-                        ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
-                        ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
-                        ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                        ImageData.data[((i*(width*4)) + (j*4) + 3)] = 80;
-                    }
-                }
-                
-                if(vertlines == 1)
-                {
-                    // draw es'hail-2 vertical lines
-                    function vl(xpos,i)
-                    {
-                        var j = cpos(xpos);
-                        ImageData.data[((i*(width*4)) + (j*4) + 0)] = 100;
-                        ImageData.data[((i*(width*4)) + (j*4) + 1)] = 100;
-                        ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                        ImageData.data[((i*(width*4)) + (j*4) + 3)] = 255;
-                    }
-                    
-                    for(var i=0; i<height; i++)
-                    {
-                        vl(10494000,i);
-                        vl(10497000,i);
-                    }
-                }
-                context.putImageData(ImageData,0,0);
-            }
-            
-            
-            // calc px-pos of an offset of WF1 in WF
-            function calcpos(x_wf1)
-            {
-                var A = tuneqrg;
-                var B = tuneqrg+end/1000;
-                var f = tuneqrg1+(x_wf1-7500)/1000;
-                
-                var res = 1600 * (f-A)/(B-A);
-                
-                return Math.floor(res);
-            }
-            
-            function cpos(x)
-            {
-                var A = tuneqrg;
-                var B = tuneqrg+end/1000;
-                
-                var res = 1600 * (x-A)/(B-A);
-                
-                return Math.floor(res);
-            }
-
-            function get32(myarr)
-            {
-                var val = myarr[0];
-                val <<= 8;
-                val += myarr[1];
-                val <<= 8;
-                val += myarr[2];
-                val <<= 8;
-                val += myarr[3];
-                return val;
-            }
-            
-            function get16(myarr)
-            {
-                var val = myarr[0];
-                val <<= 8;
-                val += myarr[1];
-                return val;
-            }
-            
-            function get8(myarr)
-            {
-                var val = myarr[0];
-                return val;
-            }
-
-            
-            var ftx = 8089500;
-            var rflock = 0;
-            
-            
-            // arr is an uint8 array containing the pixel data at arr+20
-            // each value is 16 bit, MSB first, so in total 3200 bytes = 1600 fft values
-            
-            var rxpix = new Array();
-            var log1122 = Math.log(1.122);
-            var db_maxval = Math.log(32768.0*1600) / log1122;
-            var fusers = 0;
-
-            // fill pix with dBm values
-            function scaledBm()
-            {
-                var idx = 0;
-                for(var i=0; i<1600; i++)
-                {
-                    // reconstruct the fft value
-                    var fftval = rxpix[idx++];
-                    fftval <<= 8;
-                    fftval += rxpix[idx++];
-                    
-                    // calculate the dBm value
-                    if (fftval < 1) fftval = 1;    
+        // calculate the average value, first
+        // shift the array and put new data at the beginning
+        for(var idx=(specarrlen-1); idx>=1; idx--)
+            midarr[idx][x] = midarr[idx-1][x];
         
-                    var dval = Math.log(fftval) / log1122;
-                    dval = dval - db_maxval;
-                    pix[i] = -dval;
-                }
-            }
+        // add new value
+        midarr[0][x] = -midv;
+        
+        // calculate the average
+        var mv = 0; // mid value
+        for(var idx=0; idx<specarrlen; idx++)
+            mv += midarr[idx][x];
+        mv /= specarrlen;
+        // mv is now the dB value of the signal at position x
+            
+        // find the value of the noise
+        // xm1 and xm2 is positioned a little bit right of the DATV beacon
+        // where usually is no signal, so measure the noise level here
+        // it is not possible to measure left of the beacon because the SDRplay
+        // already attenuates the signal left of the beacon (because of 8MHz bandwidth)
+        if(mv < n_minval && x > xm1 && x < xm2)
+            n_minval = mv;
+            
+        // read the maximum value of the signals into maxval
+        // used for automatic level/gain setting
+        if(mv > n_maxval)
+            n_maxval = mv;
+            
+        // calculate y-pixel position, draw the spectrum point and
+        // store for later use (rising/falling edge detection)
+        var yval = scale(mv);
+        yarr[x] = yval;
+        context.lineTo(x,yval);
 
-            function handle_type(type,arr,pos,len)
+    }
+    
+    // finish the spectrum display by closing and filling the area
+    context.lineTo(width-1,height-1);
+    context.fill();
+    context.stroke();
+    
+    // mark 3dB levels with a line and a label
+    // use the width at +3dB for bandwitch calculation for a signal
+    var y3db = scale(minval + 3);
+    context.strokeStyle = '#ff0000';
+    context.fillStyle = "#ffffff";
+    context.font = "16px Arial";
+    context.textAlign = "center";
+
+    var redge = 0;
+    var arridx = 0;
+    for(var x=1; x<(width-1); x++)
+    {
+        /*if(x<=20)
+        {
+        console.log("x:"+x+" y:"+yarr[x]);
+        }*/
+    
+        // rising edge
+        if( (yarr[x-1] > y3db && yarr[x+1] < y3db) ||
+            (x == 5 && yarr[x] < y3db))
+        {
+            context.beginPath();
+            context.moveTo(x, y3db-8);
+            context.lineTo(x, y3db+8);
+            context.stroke();
+            redge = x;
+            last_redge = x;
+        }
+        
+        // falling edge
+        if(yarr[x-1] < y3db && yarr[x+1] > y3db && redge > 0)
+        {
+            context.beginPath();
+            context.moveTo(x, y3db-8);
+            context.lineTo(x, y3db+8);
+            context.stroke();
+            
+            // and hor line for this signal
+            context.beginPath();
+            context.moveTo(redge, y3db);
+            context.lineTo(x, y3db);
+            context.stroke();
+            
+            // description
+            var bw = ((x-redge)*5000)/1000;
+            if(bw > 1900) bw = 2000;
+            else if(bw > 1400) bw = 1500;
+            else if(bw > 900) bw = 1000;
+            else if(bw > 450) bw = 500;
+            else if(bw > 310) bw = 333;
+            else if(bw > 220) bw = 250;
+            else if(bw > 110) bw = 125;
+            else if(bw > 50) bw = 66;
+            else if(bw > 20) bw = 33;
+            else bw = "?";
+            context.fillText(bw,(x-redge)/2+redge,y3db-7);
+            bwarr[arridx] = bw;
+            
+            var startfreq = redge*5000 / 1000;
+            startfreq = Number(startfreq) + tuneqrg;
+            startqrgarr[arridx] = startfreq*1000;
+            
+            var endfreq = x*5000 / 1000;
+            endfreq = Number(endfreq) + tuneqrg;
+            endqrgarr[arridx] = endfreq*1000;
+            
+            arridx++;
+            
+            var freq = ((x-redge)/2+redge)*5000 / 1000000;
+            freq = Number(freq) + tuneqrg/1000;
+            freq = Number(freq) - 10000;
+            context.fillText(freq.toFixed(2) + "0",(x-redge)/2+redge,y3db+15);
+            
+            
+            redge = 0;
+        }
+    }
+    
+    qrgarridx = arridx;
+    
+    context.textAlign = "left";
+    
+    // change minval only if bigger difference to old value to avaiod flickering
+    if(Math.abs(minval - n_minval) > 0.6)
+    {
+        minval = n_minval;
+    }
+    maxval = n_maxval;
+    if(maxval < (minval+10))
+        maxval = minval + 10;	// always see minimum 10dB
+
+    // auto set bottom line (noise line) to bottom of spectrum
+    // minval must have a little lower value than
+    // the bottom of the spectrum, which is "height"
+    
+    var ckb = $("#spekautolevel").is(':checked');
+    if(ckb && minval < 0 /*ignore if default 999999 */)
+    {
+        // calculate speclevel and specgain so that
+        // minval goes to y=(height-5) and maxval goes to y=15
+        var ymin = 330; // min/max positions in screen coordinates
+        var ymax = 15;
+        var a = (height - ymin)/height;
+        var b = (height - ymax)/height;
+        specgain =(minval*(b-1)-maxval*(a-1))/(a*(b-1)-b*(a-1));
+        speclevel = (a*specgain-minval)/(a-1);
+
+        // adjust WF parameters
+        wflevel = 230;
+        wfgain = 50;
+
+        var slider_speclevel = document.getElementById("speclevel");
+        slider_speclevel.value = speclevel;
+        
+        var slider_specgain = document.getElementById("specgain");
+        slider_specgain.value = specgain;
+        
+        var slider_wflevel = document.getElementById("wflevel");
+        slider_wflevel.value = wflevel;
+        
+        var slider_wfgain = document.getElementById("wfgain");
+        slider_wfgain.value = wfgain;
+    }
+
+    // hor line at lowest value (noise level)
+    var yvalue = minval;
+    context.strokeStyle = '#80ff80';
+    context.beginPath();
+    context.moveTo(50, scale(yvalue));
+    context.lineTo(width-1, scale(yvalue));
+    context.stroke();
+    
+    // 1 dB lines
+    for(var db = 1; db < 24; db++)
+    {
+        context.beginPath();
+        if(db != 5 && db != 10 && db != 15 && db != 20)
+        {
+            context.globalAlpha = 0.3;
+            context.strokeStyle = '#808080';
+            context.moveTo(0, scale(db+minval));
+        }
+        else
+        {
+            context.strokeStyle = '#00c080';
+            context.moveTo(50, scale(db+minval));
+        }
+        context.lineTo(width-1, scale(db+minval));
+        context.stroke();
+        context.globalAlpha = 1;
+    }
+    
+    // write horizontal dBs
+    context.fillText("  0 dB",5,scale(0+minval)+5);
+    context.fillText(" +5 dB",5,scale(5+minval)+5);
+    context.fillText("+10 dB",5,scale(10+minval)+5);
+    context.fillText("+15 dB",5,scale(15+minval)+5);
+    context.fillText("+20 dB",5,scale(20+minval)+5);
+    
+    // scale dBm value to y-pixelpos
+    function scale(v)
+    {
+        var y = -height*(v-speclevel)/(specgain-speclevel) + height;
+        return y;
+    }
+    
+    function vertline(qrg, alpha)
+    {
+        var x = cpos(qrg);
+    
+        context.globalAlpha = alpha;
+        context.strokeStyle = '#6060e0';
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, height-1);
+        context.stroke();
+        context.globalAlpha = 1;
+    }
+    
+    // vert lines
+    if(vertlines == 1)
+    {
+        vertline(10492000,0.2);
+        vertline(10493000,0.2);
+        vertline(10495000,0.2);
+        vertline(10496000,0.2);
+        vertline(10498000,0.2);
+        vertline(10499000,0.2);
+        
+        vertline(10494000,1);
+        vertline(10497000,1);
+    }
+}
+
+var arrmidlen = 20;
+var cmaxvalarr = new Array(arrmidlen);
+var cminvalarr = new Array(arrmidlen);
+var cmaxval;
+var cminval;
+
+var hWFrefval = 50;     // shifts the black value (higher=darker)
+var hWFgain = 0.00001;   // contrast (must be > 0, low=high contrast)
+
+var minlog;
+var factor;
+var frs = 1;
+
+// find min/max the values of one pixel line
+function calcColorParms(d, len)
+{
+    var max = -9999;
+    var min = 9999;
+    
+    for(var i=0; i<len; i++)
+    {
+        // d[i] is the dBm value at the antenna input (if calibrated and AGC off)
+        // it is a negative value, max range: -180 ... 0
+        if(d[i] < min) min = d[i];
+        if(d[i] > max) max = d[i];
+    }
+    
+    if(frs)
+    {
+        // init array
+        frs=0;
+        for(var i=0; i<arrmidlen; i++)
+        {
+            cminvalarr[i] = min;
+            cmaxvalarr[i] = max;
+        }
+    }
+    
+    // insert into mid array
+    for(var i=(arrmidlen-1); i>=1; i--)
+    {
+        cminvalarr[i] = cminvalarr[i-1];
+        cmaxvalarr[i] = cmaxvalarr[i-1];
+    }
+    cminvalarr[0] = min;
+    cmaxvalarr[0] = max;
+    
+    cminval  = 0;
+    cmaxval = 0;
+    for(var i=0; i<arrmidlen; i++)
+    {
+        cminval += cminvalarr[i];
+        cmaxval += cmaxvalarr[i];
+    }
+    cminval /= arrmidlen;
+    cmaxval /= arrmidlen;
+    
+    cminval = -cminval;
+    cmaxval = -cmaxval;
+    
+    // prepare values used my getPixelColor
+    factor = hWFgain/10;
+    minlog = Math.log(factor + 1) / 255;
+    
+    //console.log("cminval:" + cminval + " cmaxval:" + cmaxval);
+}
+
+function getPixelColor(val)
+{
+    // === black value, no signal, background noise ===
+    // shift the value up, so that cminval is color=0
+    val = -val;
+    val -= cminval;
+    val -= (hWFrefval/10);
+    
+    // === max level, strongest signal ===
+    // make the loudest signal to 255
+    // shift cmaxval the same factor as the signal value, so both start at 0
+    var cmax = (cmaxval - cminval);
+    // expand the signal value so that the maxval is 255
+    // do this with a log formular, high values are more effected
+    var lin = val * factor / cmax;
+    var revlin = factor - lin + 1;
+    var mylog = Math.log(revlin);
+    var logTo255 = mylog/ minlog;
+    //var val1 = 255 - logTo255;
+    var val1 = logTo255;
+    
+    // low colors reserver for other purposes
+    if (val1 <= 2) val1 = 3;
+    if (val1 > 250) val1 = 255;
+    return val1;
+}
+
+function drawWF()
+{
+    linethickness = next_linethickness;
+    
+    // Get the WF canvas and WF context
+    var canvas = document.getElementById("wf"); 
+    var context = canvas.getContext("2d");
+
+    // Get the canvas dimensions
+    var width = canvas.width;
+    var height = canvas.height;
+    
+    // create a 1-line canvas for the new data
+    var line_cnv = document.getElementById("makeline"); 
+    var line_ctx = line_cnv.getContext("2d");
+    var line_width = line_cnv.width;
+    line_cnv.height = linethickness;
+    var imagedata = line_ctx.createImageData(line_width, linethickness);
+    // insert the new data into this line
+    for( var y=0; y<linethickness; y++)
+    {
+        calcColorParms(pix, line_width);
+        
+        var qrg = 0;
+        for (var x = 0; x < line_width; x++) 
+        {
+            var off = y*(line_width*4) + x*4;
+            
+            // pix[n] is the dBm value of the input signal (positive)
+            // it must be converted to the color table index
+            var pval = getPixelColor(pix[x]);
+            
+            // user adjustments
+            pval = pval * (Number(wfgain)/50) + (Number(wflevel) -200);
+            pval = pval.toFixed(0);
+            if(pval < 3) pval = 3;
+            if(pval > 255) pval = 255;
+            
+            if(wfcolor == "red")
             {
-                if(type == 0 && reload)
-                {
-                    var idx = pos+2;
-                    rflock = arr[pos];
-                    tunerqrg = get32(arr.slice(idx));
-                    end = get32(arr.slice(idx+4));
-                    tuneqrg = get32(arr.slice(idx+8));
-                    resolution = get32(arr.slice(idx+12));
-                    foffset = get32(arr.slice(idx+16));
-                    fusers = get8(arr.slice(idx+20));       // number of logged in users
-                    var fspare1 = get8(arr.slice(idx+21));
-                    var fspare2 = get8(arr.slice(idx+22));
-                    var fspare3 = get8(arr.slice(idx+23));
-                    rxpix  = arr.slice(idx+24);
-                    scaledBm();
-                    pixwidth = end / resolution;
-                    
-                    $("#qrg").val((tunerqrg / 1e6).toFixed(6));
-                    
-                    drawWFtitle_eshail_rx("wf_title");
-                    drawWFtitle_eshail_tx("wf_txtitle");
-                    drawMODEtitle("wf_mdtitle");
-                    drawMODEtitle1("wf_mdtitle1");
-                    drawMODEtitle2("wf_mdtitle2");
-                    drawMODEtitle3("wf_mdtitle3");
-                    drawMODEtitle4("wf_mdtitle4");
-                    drawWF();
-                    draw_spec();
-                    drawOverlay();
-                    reload = 0;
-                }
-                
-                if(type == 1)
-                {
-                    var idx = pos + 2;
-                    tunerqrg = get32(arr.slice(idx));
-                    end1 = get32(arr.slice(idx+4));
-                    tuneqrg1 = get32(arr.slice(idx+8));
-                    resolution1 = get32(arr.slice(idx+12));
-                    foffset1 = get32(arr.slice(idx+16));
-                    pix1  = arr.slice(idx+20);
-                    pixwidth1 = end / resolution;
-                }
+                imagedata.data[off] = 256*(coltab[pval][0]);
+                imagedata.data[off+1] = 256*(coltab[pval][1]);
+                imagedata.data[off+2] = 256*(coltab[pval][2]);
             }
-            
-            
-            var openintv;
-            var openints = 0;
-            function nowOpen()
+            if(wfcolor == "green")
             {
-                switch(openints)
-                {
-                    case 0: //websocket.send("ssbmode:1\0"); 
-                            break;
-                    case 1: checkQRG();
-                            break;
-                }
-                
-                openints++;
-                if(openints == 2)
-                    clearInterval(openintv);
+                imagedata.data[off] = 256*(coltab[pval][1]);
+                imagedata.data[off+1] = 256*(coltab[pval][0]);
+                imagedata.data[off+2] = 256*(coltab[pval][2]);
             }
-
-            function openWebSocket()
+            if(wfcolor == "blue")
             {
-                window.WebSocket = window.WebSocket || window.MozWebSocket;
-
-                // get socket URL from actual browser-URL
-                var x = location.href;
-                var a = x.split("/");
-                var y = "?";
-                for(var i=0; i<a.length; i++)
-                {
-                    if(a[i].length > 6)
-                    {
-                        y = a[i];
-                        break;
-                    }
-                }
-                var ya = y.split(":");
-                sockurl = "ws://" + ya[0] + ":8090";
-                //console.log("open websocket");
-                console.log(sockurl);
-                //$('#myinfo').html(sockurl);
-                websocket = new WebSocket(sockurl);
-                websocket.binaryType = "arraybuffer";
-
-                websocket.onopen = function () {
-                    sockOpen = 1;
-                    $("#status").html("Connected to Stream: " + sockurl);
-                    console.log("WebSocket is now OPEN");
-                    openintv = setInterval(nowOpen, 500);
-                };
-
-                websocket.onerror = function () {
-                    $("#status").html("Error ... reconnecting ...");
-                    console.log("Error ... reconnecting ...");
-                    websocketclose();
-                    sockOpen = 0;
-                };
-                
-                websocket.onclose = function () {
-                    $("#status").html("Disconnected ... connecting ...");
-                    console.log("Disconnected ... connecting ...");
-                    websocketclose();
-                    sockOpen = 0;
-                };
-
-                websocket.onmessage = function (message) 
-                {
-                    var arr = new Uint8Array(message.data);
-                    // handle first element
-                    var pos = 0;
-                    var type = arr[pos++];
-                    var len = (arr[pos++] << 8);
-                    len += arr[pos++];
-                    
-                    handle_type(type,arr,pos,len);
-                    pos += len;
-
-                    if(arr.length > pos)
-                    {
-                        // handle second element
-                        var type = arr[pos++];
-                        var len = (arr[pos++] << 8);
-                        len += arr[pos++];
-                        handle_type(type,arr,pos,len);
-                        pos += len;
-                    }
-
-                    if(arr.length > pos)
-                    {
-                        // handle 3rd element
-                        var type = arr[pos++];
-                        var len = (arr[pos++] << 8);
-                        len += arr[pos++];
-                        handle_type(type,arr,pos,len);
-                    }
-                    // remark: window.requestAnimationFrame(drawWF); do NOT use this, high CPU load and corrupts picture if in background
-                };
-                
-                // store settings and send to server
-                $('#color').click(function(e) {
-                    e.preventDefault();
-                    wfcolor = $(this).children("option:selected").val();
-                    localStorage.setItem('wb_color',wfcolor);
-                });
-                
-                $('#speed').click(function(e) {
-                    e.preventDefault();
-                    clearInterval(intv);
-                    interval = $(this).children("option:selected").val();
-                    intv = setInterval(reloadData, interval);
-                    localStorage.setItem('wb_speed',interval);
-                });
-                
-                $('#yzoom').click(function(e) {
-                    e.preventDefault();
-                    next_linethickness = Number($(this).children("option:selected").val());
-                    localStorage.setItem('wb_yzoom',next_linethickness);
-                });
-
-                $('#yline').click(function(e) {
-                    e.preventDefault();
-                    vertlines = Number($(this).children("option:selected").val());
-                    localStorage.setItem('wb_ylines',vertlines);
-                });
-
-                
-                $(document).ready(function(){
-                $('#qrg').bind('mousewheel', function(e){
-                        if($("#sync").is(':checked') == false)
-                        {
-                            $('#qrg').blur();
-                            if(e.originalEvent.wheelDelta > 0) {
-                                websocket.send("tunerfr:1\0");
-                            }
-                            else{
-                                websocket.send("tunerfr:0\0");
-                            }
-                        }
-                    });
-                });
-                
-                $('#qrg').keyup(function(event){
-                    var keycode = (event.keyCode ? event.keyCode : event.which);
-                    if(keycode == '13'){
-                        var qrgval = $('#qrg').val();
-                        websocket.send("tunervl:" + qrgval + "\0");
-                    }
-
-                });
-                
+                imagedata.data[off] = 256*(coltab[pval][2]);
+                imagedata.data[off+1] = 256*(coltab[pval][1]);
+                imagedata.data[off+2] = 256*(coltab[pval][1]);
             }
-            
-            function checkQRG()
+            if(wfcolor == "white")
             {
-                websocket.send("autosyn:0\0");
+                imagedata.data[off] = 256*(coltab[pval][0]);
+                imagedata.data[off+1] = 256*(coltab[pval][0]);
+                imagedata.data[off+2] = 256*(coltab[pval][0]);
             }
+            imagedata.data[off+3] = 255;
             
-            
-            function setListboxes()
-            {
-                var v = localStorage.getItem('wb_color');
-                if(v != null)
-                {
-                    wfcolor = v;
-                    $('#color').val(wfcolor);
-                }
-                    
-                v = localStorage.getItem('wb_speed');
-                if(v != null)
-                {
-                    interval = v;
-                    clearInterval(intv);
-                    intv = setInterval(reloadData, interval);
-                    $('#speed').val(interval);
-                }
-                else
-                {
-                    intv = setInterval(reloadData, 10);
-                }
-                    
-                v = localStorage.getItem('wb_yzoom');
-                if(v != null)
-                {
-                    next_linethickness = v;
-                    $('#yzoom').val(next_linethickness);
-                }
-                    
-                v = localStorage.getItem('wb_ylines');
-                if(v != null)
-                {
-                    vertlines = v;
-                    $('#yline').val(vertlines);
-                }
-                    
+            qrg += resolution;
+        }
+    }
+    // and draw it into the 1-line canvas
+    line_ctx.putImageData(imagedata, 0, 0);
+    
+    // now draw the 1-line canvas followed by the old WF canvas
+    // this automatically shifts the old picture down one line
+    context.drawImage(line_cnv, 0, 0);
+    context.drawImage(canvas, 0, linethickness);
+}
 
-                var slider_specmid = document.getElementById("specmid");
-                v = localStorage.getItem('wb_specmid');
-                if(v != null)
-                {
-                    specarrlen = v;
-                    slider_specmid.value = specarrlen;
-                }
-                
-                slider_specmid.oninput = function() 
-                {
-                    specarrlen = this.value;
-                    //console.log(specarrlen);
-                    if(specarrlen <= 0) specarrlen = 1;
-                    localStorage.setItem('wb_specmid',specarrlen);
-                }
-                
-                var slider_speclevel = document.getElementById("speclevel");
-                v = localStorage.getItem('wb_speclevel');
-                if(v != null)
-                {
-                    speclevel = v;
-                    slider_speclevel.value = speclevel;
-                }
-                    
-                slider_speclevel.oninput = function() 
-                {
-                    var ckb = $("#spekautolevel").is(':checked');
-                    if(ckb) return;
-                    
-                    speclevel = this.value;
-                    //console.log("speclevel:" + speclevel);
-                    if(Number(speclevel) > Number(specgain)) specgain = Number(speclevel) + 10.0;
-                    localStorage.setItem('wb_speclevel',speclevel);
-                    
-                }
-                
-                var slider_specgain = document.getElementById("specgain");
-                v = localStorage.getItem('wb_specgain');
-                if(v != null)
-                {
-                    specgain = v;
-                    slider_specgain.value = specgain;
-                }
-                    
-                slider_specgain.oninput = function() 
-                {
-                    var ckb = $("#spekautolevel").is(':checked');
-                    if(ckb) return;
-                    
-                    specgain = this.value;
-                    //console.log("specgain:" + specgain);
-                    if(Number(specgain) < Number(speclevel)) speclevel = Number(specgain) - 10.0;
-                    localStorage.setItem('wb_specgain',specgain);
-                }
-                
-                var checkbox_autolevel = document.getElementById("spekautolevel");
-                checkbox_autolevel.checked = true;
-                /*var v1x = localStorage.getItem('wb_spekautolevelx');
-                if(v1x != null)
-                {
-                    if(v1x == 0)
-                        checkbox_autolevel.checked = false;
-                    else
-                        checkbox_autolevel.checked = true;
-                }*/
-                
-                checkbox_autolevel.onclick = function() 
-                {
-                    autoclk = this.checked;
-                    if(this.checked)
-                        localStorage.setItem('wb_spekautolevelx',1);
-                    else
-                        localStorage.setItem('wb_spekautolevelx',0);
-                }
-                
-                var slider_wflevel = document.getElementById("wflevel");
-                v = localStorage.getItem('wb_wflevel');
-                if(v != null)
-                {
-                    wflevel = v;
-                    slider_wflevel.value = wflevel;
-                }
-                    
-                slider_wflevel.oninput = function() 
-                {
-                    var ckb = $("#spekautolevel").is(':checked');
-                    if(ckb) return;
-                    
-                    wflevel = this.value;
-                    //console.log(wflevel);
-                    localStorage.setItem('wb_wflevel',wflevel);
-                }
-                
-                var slider_wfgain = document.getElementById("wfgain");
-                v = localStorage.getItem('wb_wfgain');
-                if(v != null)
-                {
-                    wfgain = v;
-                    slider_wfgain.value = wfgain;
-                }
-                    
-                slider_wfgain.oninput = function() 
-                {
-                    var ckb = $("#spekautolevel").is(':checked');
-                    if(ckb) return;
-                    
-                    wfgain = this.value;
-                    //console.log(wfgain);
-                    localStorage.setItem('wb_wfgain',wfgain);
-                }
-            }
-            
-            var qrgfocus = 0;
-            function qrgFocusOut()
+function drawOverlay()
+{
+    var canvas = document.getElementById("wf_overlay"); 
+    var context = canvas.getContext("2d");
+
+    // Get the canvas dimensions
+    var width = canvas.width;
+    var height = canvas.height;
+    
+    context.clearRect(0,0,width,height);
+
+    var ImageData = context.getImageData(0,0,width,height);
+
+    if(vertmarker == 1)
+    {
+    
+        // draw transparent rectangle at the zoomed qrg range
+        for(var i=0; i<height; i++)
+        {
+            // right part USB
+            for(var j=calcpos(end1/2); j<calcpos(end1);j++)
             {
-                qrgfocus = 0;
+                ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
+                ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
+                ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
+                ImageData.data[((i*(width*4)) + (j*4) + 3)] = 50;
             }
             
-            function qrgFocus()
+            // left part LSB
+            for(var j=calcpos(0); j<calcpos(end1/2);j++)
             {
-                qrgfocus = 1;
+                ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
+                ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
+                ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
+                ImageData.data[((i*(width*4)) + (j*4) + 3)] = 20;
             }
-            
-        </script>
-        </head>
+        }
+        
+        // make a vertical line in the middle (which is the carrier frequency)
+        j = calcpos(0 + end1/2);
+        for(var i=0; i<height; i++)
+        {
+            ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
+            ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
+            ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
+            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 80;
+        }
+    }
+    
+    if(vertlines == 1)
+    {
+        // draw es'hail-2 vertical lines
+        function vl(xpos,i)
+        {
+            var j = cpos(xpos);
+            ImageData.data[((i*(width*4)) + (j*4) + 0)] = 100;
+            ImageData.data[((i*(width*4)) + (j*4) + 1)] = 100;
+            ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
+            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 255;
+        }
+        
+        for(var i=0; i<height; i++)
+        {
+            vl(10494000,i);
+            vl(10497000,i);
+        }
+    }
+    context.putImageData(ImageData,0,0);
+}
+
+
+// calc px-pos of an offset of WF1 in WF
+function calcpos(x_wf1)
+{
+    var A = tuneqrg;
+    var B = tuneqrg+end/1000;
+    var f = tuneqrg1+(x_wf1-7500)/1000;
+    
+    var res = 1600 * (f-A)/(B-A);
+    
+    return Math.floor(res);
+}
+
+function cpos(x)
+{
+    var A = tuneqrg;
+    var B = tuneqrg+end/1000;
+    
+    var res = 1600 * (x-A)/(B-A);
+    
+    return Math.floor(res);
+}
+
+function get32(myarr)
+{
+    var val = myarr[0];
+    val <<= 8;
+    val += myarr[1];
+    val <<= 8;
+    val += myarr[2];
+    val <<= 8;
+    val += myarr[3];
+    return val;
+}
+
+function get16(myarr)
+{
+    var val = myarr[0];
+    val <<= 8;
+    val += myarr[1];
+    return val;
+}
+
+function get8(myarr)
+{
+    var val = myarr[0];
+    return val;
+}
+
+
+var ftx = 8089500;
+var rflock = 0;
+
+
+// arr is an uint8 array containing the pixel data at arr+20
+// each value is 16 bit, MSB first, so in total 3200 bytes = 1600 fft values
+
+var rxpix = new Array();
+var log1122 = Math.log(1.122);
+var db_maxval = Math.log(32768.0*1600) / log1122;
+var fusers = 0;
+
+// fill pix with dBm values
+function scaledBm()
+{
+    var idx = 0;
+    for(var i=0; i<1600; i++)
+    {
+        // reconstruct the fft value
+        var fftval = rxpix[idx++];
+        fftval <<= 8;
+        fftval += rxpix[idx++];
+        
+        // calculate the dBm value
+        if (fftval < 1) fftval = 1;    
+
+        var dval = Math.log(fftval) / log1122;
+        dval = dval - db_maxval;
+        pix[i] = -dval;
+    }
+}
+
+function handle_type(type,arr,pos,len)
+{
+    if(type == 0 && reload)
+    {
+        var idx = pos+2;
+        rflock = arr[pos];
+        tunerqrg = get32(arr.slice(idx));
+        end = get32(arr.slice(idx+4));
+        tuneqrg = get32(arr.slice(idx+8));
+        resolution = get32(arr.slice(idx+12));
+        foffset = get32(arr.slice(idx+16));
+        fusers = get8(arr.slice(idx+20));       // number of logged in users
+        var fspare1 = get8(arr.slice(idx+21));
+        var fspare2 = get8(arr.slice(idx+22));
+        var fspare3 = get8(arr.slice(idx+23));
+        rxpix  = arr.slice(idx+24);
+        scaledBm();
+        pixwidth = end / resolution;
+        
+        $("#qrg").val((tunerqrg / 1e6).toFixed(6));
+        
+        drawWFtitle_eshail_rx("wf_title");
+        drawWFtitle_eshail_tx("wf_txtitle");
+        drawMODEtitle("wf_mdtitle");
+        drawMODEtitle1("wf_mdtitle1");
+        drawMODEtitle2("wf_mdtitle2");
+        drawMODEtitle3("wf_mdtitle3");
+        drawMODEtitle4("wf_mdtitle4");
+        drawWF();
+        draw_spec();
+        drawOverlay();
+        reload = 0;
+    }
+    
+    if(type == 1)
+    {
+        var idx = pos + 2;
+        tunerqrg = get32(arr.slice(idx));
+        end1 = get32(arr.slice(idx+4));
+        tuneqrg1 = get32(arr.slice(idx+8));
+        resolution1 = get32(arr.slice(idx+12));
+        foffset1 = get32(arr.slice(idx+16));
+        pix1  = arr.slice(idx+20);
+        pixwidth1 = end / resolution;
+    }
+    
+    if(type == 3)
+    {
+        // config data
+        var idx = pos+2;
+        extract_data(arr,idx);
+        $('#setupbutton').show();
+    }
+}
+
+
+var openintv;
+var openints = 0;
+function nowOpen()
+{
+    switch(openints)
+    {
+        case 0: websocket.send("getconf:1\0"); 
+                break;
+        case 1: checkQRG();
+                break;
+    }
+    
+    openints++;
+    if(openints == 2)
+        clearInterval(openintv);
+}
+
+function openWebSocket()
+{
+    window.WebSocket = window.WebSocket || window.MozWebSocket;
+
+    // get socket URL from actual browser-URL
+    var x = location.href;
+    var a = x.split("/");
+    var y = "?";
+    for(var i=0; i<a.length; i++)
+    {
+        if(a[i].length > 6)
+        {
+            y = a[i];
+            break;
+        }
+    }
+    var ya = y.split(":");
+    sockurl = "ws://" + ya[0] + ":8090";
+    //console.log("open websocket");
+    console.log(sockurl);
+    //$('#myinfo').html(sockurl);
+    websocket = new WebSocket(sockurl);
+    websocket.binaryType = "arraybuffer";
+
+    websocket.onopen = function () {
+        sockOpen = 1;
+        $("#status").html("Connected to Stream: " + sockurl);
+        console.log("WebSocket is now OPEN");
+        openintv = setInterval(nowOpen, 500);
+    };
+
+    websocket.onerror = function () {
+        $("#status").html("Error ... reconnecting ...");
+        console.log("Error ... reconnecting ...");
+        websocketclose();
+        sockOpen = 0;
+    };
+    
+    websocket.onclose = function () {
+        $("#status").html("Disconnected ... connecting ...");
+        console.log("Disconnected ... connecting ...");
+        websocketclose();
+        sockOpen = 0;
+    };
+
+    websocket.onmessage = function (message) 
+    {
+        var arr = new Uint8Array(message.data);
+        // handle first element
+        var pos = 0;
+        var type = arr[pos++];
+        var len = (arr[pos++] << 8);
+        len += arr[pos++];
+        
+        handle_type(type,arr,pos,len);
+        pos += len;
+
+        if(arr.length > pos)
+        {
+            // handle second element
+            var type = arr[pos++];
+            var len = (arr[pos++] << 8);
+            len += arr[pos++];
+            handle_type(type,arr,pos,len);
+            pos += len;
+        }
+
+        if(arr.length > pos)
+        {
+            // handle 3rd element
+            var type = arr[pos++];
+            var len = (arr[pos++] << 8);
+            len += arr[pos++];
+            handle_type(type,arr,pos,len);
+        }
+        // remark: window.requestAnimationFrame(drawWF); do NOT use this, high CPU load and corrupts picture if in background
+    };
+    
+    // store settings and send to server
+    $('#color').click(function(e) {
+        e.preventDefault();
+        wfcolor = $(this).children("option:selected").val();
+        localStorage.setItem('wb_color',wfcolor);
+    });
+    
+    $('#speed').click(function(e) {
+        e.preventDefault();
+        clearInterval(intv);
+        interval = $(this).children("option:selected").val();
+        intv = setInterval(reloadData, interval);
+        localStorage.setItem('wb_speed',interval);
+    });
+    
+    $('#yzoom').click(function(e) {
+        e.preventDefault();
+        next_linethickness = Number($(this).children("option:selected").val());
+        localStorage.setItem('wb_yzoom',next_linethickness);
+    });
+
+    $('#yline').click(function(e) {
+        e.preventDefault();
+        vertlines = Number($(this).children("option:selected").val());
+        localStorage.setItem('wb_ylines',vertlines);
+    });
+
+    
+    $(document).ready(function(){
+    $('#qrg').bind('mousewheel', function(e){
+            if($("#sync").is(':checked') == false)
+            {
+                $('#qrg').blur();
+                if(e.originalEvent.wheelDelta > 0) {
+                    websocket.send("tunerfr:1\0");
+                }
+                else{
+                    websocket.send("tunerfr:0\0");
+                }
+            }
+        });
+    });
+    
+    $('#qrg').keyup(function(event){
+        var keycode = (event.keyCode ? event.keyCode : event.which);
+        if(keycode == '13'){
+            var qrgval = $('#qrg').val();
+            websocket.send("tunervl:" + qrgval + "\0");
+        }
+
+    });
+    
+}
+
+function checkQRG()
+{
+    websocket.send("autosyn:0\0");
+}
+
+
+function setListboxes()
+{
+    var v = localStorage.getItem('wb_color');
+    if(v != null)
+    {
+        wfcolor = v;
+        $('#color').val(wfcolor);
+    }
+        
+    v = localStorage.getItem('wb_speed');
+    if(v != null)
+    {
+        interval = v;
+        clearInterval(intv);
+        intv = setInterval(reloadData, interval);
+        $('#speed').val(interval);
+    }
+    else
+    {
+        intv = setInterval(reloadData, 10);
+    }
+        
+    v = localStorage.getItem('wb_yzoom');
+    if(v != null)
+    {
+        next_linethickness = v;
+        $('#yzoom').val(next_linethickness);
+    }
+        
+    v = localStorage.getItem('wb_ylines');
+    if(v != null)
+    {
+        vertlines = v;
+        $('#yline').val(vertlines);
+    }
+        
+
+    var slider_specmid = document.getElementById("specmid");
+    v = localStorage.getItem('wb_specmid');
+    if(v != null)
+    {
+        specarrlen = v;
+        slider_specmid.value = specarrlen;
+    }
+    
+    slider_specmid.oninput = function() 
+    {
+        specarrlen = this.value;
+        //console.log(specarrlen);
+        if(specarrlen <= 0) specarrlen = 1;
+        localStorage.setItem('wb_specmid',specarrlen);
+    }
+    
+    var slider_speclevel = document.getElementById("speclevel");
+    v = localStorage.getItem('wb_speclevel');
+    if(v != null)
+    {
+        speclevel = v;
+        slider_speclevel.value = speclevel;
+    }
+        
+    slider_speclevel.oninput = function() 
+    {
+        var ckb = $("#spekautolevel").is(':checked');
+        if(ckb) return;
+        
+        speclevel = this.value;
+        //console.log("speclevel:" + speclevel);
+        if(Number(speclevel) > Number(specgain)) specgain = Number(speclevel) + 10.0;
+        localStorage.setItem('wb_speclevel',speclevel);
+        
+    }
+    
+    var slider_specgain = document.getElementById("specgain");
+    v = localStorage.getItem('wb_specgain');
+    if(v != null)
+    {
+        specgain = v;
+        slider_specgain.value = specgain;
+    }
+        
+    slider_specgain.oninput = function() 
+    {
+        var ckb = $("#spekautolevel").is(':checked');
+        if(ckb) return;
+        
+        specgain = this.value;
+        //console.log("specgain:" + specgain);
+        if(Number(specgain) < Number(speclevel)) speclevel = Number(specgain) - 10.0;
+        localStorage.setItem('wb_specgain',specgain);
+    }
+    
+    var checkbox_autolevel = document.getElementById("spekautolevel");
+    checkbox_autolevel.checked = true;
+    /*var v1x = localStorage.getItem('wb_spekautolevelx');
+    if(v1x != null)
+    {
+        if(v1x == 0)
+            checkbox_autolevel.checked = false;
+        else
+            checkbox_autolevel.checked = true;
+    }*/
+    
+    checkbox_autolevel.onclick = function() 
+    {
+        autoclk = this.checked;
+        if(this.checked)
+            localStorage.setItem('wb_spekautolevelx',1);
+        else
+            localStorage.setItem('wb_spekautolevelx',0);
+    }
+    
+    var slider_wflevel = document.getElementById("wflevel");
+    v = localStorage.getItem('wb_wflevel');
+    if(v != null)
+    {
+        wflevel = v;
+        slider_wflevel.value = wflevel;
+    }
+        
+    slider_wflevel.oninput = function() 
+    {
+        var ckb = $("#spekautolevel").is(':checked');
+        if(ckb) return;
+        
+        wflevel = this.value;
+        //console.log(wflevel);
+        localStorage.setItem('wb_wflevel',wflevel);
+    }
+    
+    var slider_wfgain = document.getElementById("wfgain");
+    v = localStorage.getItem('wb_wfgain');
+    if(v != null)
+    {
+        wfgain = v;
+        slider_wfgain.value = wfgain;
+    }
+        
+    slider_wfgain.oninput = function() 
+    {
+        var ckb = $("#spekautolevel").is(':checked');
+        if(ckb) return;
+        
+        wfgain = this.value;
+        //console.log(wfgain);
+        localStorage.setItem('wb_wfgain',wfgain);
+    }
+}
+
+var qrgfocus = 0;
+function qrgFocusOut()
+{
+    qrgfocus = 0;
+}
+
+function qrgFocus()
+{
+    qrgfocus = 1;
+}
+
+var setupwindow;
+
+function setup()
+{
+    // open if setup not exists
+    if(setupwindow == undefined || setupwindow == null)
+    {
+        setupwindow = window.open("sdrsetup.html","setupwindow");
+        var timer = setInterval(function() {
+            if(setupwindow.closed) 
+            {
+                clearInterval(timer);
+                sendSetup();
+                setupwindow = null;
+            }
+        },500);
+        return;
+    }
+        
+    // focus setup if exists
+    if(setupwindow.closed)
+        setupwindow = window.open("sdrsetup.html","setupwindow");
+}
+
+function closingCode()
+{
+    setupwindow.close();
+    return null;
+}
+</script>
+</head>
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 Wideband DATV Live Spectrum</div>
-        <div class="header_subtitle" id="header_subtitle">SDRplay RSP1a by DJ0ABR V2.5</div>
+        <div class="header_subtitle" id="header_subtitle">SDRplay RSP1a by DJ0ABR V2.7</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -1869,11 +1919,12 @@ canvas {
             <div class="rl_space">
             </div>
             <div class="rightside">
-                <div>Callsign: DL0ZW Location: JN68NT</div>
-                <div>Club Station DARC U02 District Bavaria East</div>
-                <div><a href="https://s3.amazonaws.com/files.qrz.com/r/dj0abr/s2.JPG" target="_blank">
-                <img style="padding: 0 15px; float: left;" src="https://s3.amazonaws.com/files.qrz.com/r/dj0abr/s2.JPG" alt="dish" width="72" height="63"></a></div>
-                <p>running on Odroid-N2 Ubuntu<br>1.2m dish, Megasat LNB + GPSDO</p>
+                <div>
+                    <button class="mybutton" id="setupbutton" onclick="setup()" style="display:none" align="right">SETUP</button>
+                </div>
+                <div class="cat_message">
+                    ! for local users only !<hr>
+                </div>
             </div>
         </div>
         

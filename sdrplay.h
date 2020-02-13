@@ -7,5 +7,6 @@ void streamCallback(short *xi, short *xq, unsigned int firstSampleNum,
     unsigned int reset, unsigned int hwRemoved, void *cbContext);
 void gainCallback(unsigned int gRdB, unsigned int lnaGRdB, void *cbContext);
 void setTunedQrgOffset(unsigned int hz);
+void reset_Qrg_SDRplay();
 
 
