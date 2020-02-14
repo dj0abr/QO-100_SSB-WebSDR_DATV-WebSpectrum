@@ -15,3 +15,4 @@ extern int allowRemoteAccess;
 extern int configrequest;
 extern int retune_setup;
 extern int tx_correction;
+extern int icom_satmode;

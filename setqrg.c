@@ -48,6 +48,8 @@ void set_frequency()
 {
 unsigned int frdiff;
 static int f=1;
+int off;
+static int last_setIcomQRG = 0;
 
     if(f)
     {
@@ -117,6 +119,21 @@ static int f=1;
                 #ifndef WIDEBAND
                 printf("switch audio %d for client %d\n",rx_usermsg.para,rx_usermsg.client);
                 audioon[rx_usermsg.client] = rx_usermsg.para;
+                #endif
+                break;
+        case 13:// set ICOM on double click
+                setIcomQRG = rx_usermsg.para;
+                last_setIcomQRG = setIcomQRG;
+                break;
+        case 14:// right click in lower WF
+                #ifndef WIDEBAND
+                if(last_setIcomQRG > 0)
+                {
+                    off = (rx_usermsg.para - WF_WIDTH/2) * NB_RESOLUTION;
+                    setIcomQRG = last_setIcomQRG + off;
+                    printf("off: %d, new qrg:%d\n",off,setIcomQRG);
+                    last_setIcomQRG = setIcomQRG;
+                }
                 #endif
                 break;
     }

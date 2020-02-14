@@ -140,6 +140,16 @@ function onstart()
         $("#txt24").text("TX Frequenzkorrektur [Hz]:");
         $("#txt25").text("NUR wenn der Icom TRX als Sender (nicht Empfänger) benutzt wird ! Trage einen kleinen Korrekturwert ein um die Abweichung zwischen RX und TX zu kompensieren");
         $("#setupbutton").text("SPEICHERN und BEENDEN");
+        $("#txt26").text("ICOM Satelliten Modus:");
+        $("#txt27").text("wähle ob der Transceiver im Satelliten Modus oder nur als TX betrieben wird");
+        $("#txt28").text("Rechter Mausklick: stellt einen ICOM Transceiver auf die angeklickte Frequenz. Sat-Modus: RX und TX (500 kHz tiefer) oder TX-Modus: nur das Hauptband (500 kHz unter die RX Frequenz)");
+        $("#txt29").text("Satelliten Modus");
+        $("#txt30").text("nur TX");
+        $("#txt31").text("AUS (INET Zugriff blockiert)");
+        $("#txt32").text("EIN (INET Zugriff erlaubt)");
+        $("#txt31a").text("AUS (INET Zugriff blockiert)");
+        $("#txt32a").text("EIN (INET Zugriff erlaubt)");
+        $("#txt33").text("Zugriffsbeschränkung für SETUP und andere Systemeinstellungen");
     }
     else
     {
@@ -169,6 +179,16 @@ function onstart()
         $("#txt24").text("TX freq correction [Hz]:");
         $("#txt25").text("ONLY: if the Icom TRX is used as transmitter (not receiver). Enter a small correction value in Hz to compensate TX and/or converter frequency offset");
         $("#setupbutton").text("SAVE and EXIT");
+        $("#txt26").text("ICOM Satellite Mode:");
+        $("#txt27").text("choose if the transceiver is used in satellite mode or for TX only");
+        $("#txt28").text("a RIGHT mouse click in the waterfall sets the QRG of an ICOM transceiver. In Sat-mode the RX (main band) and the TX (sub band -500kc), or in TX-only mode just the main band (500kc below the RX QRG");
+        $("#txt29").text("Satellite Mode");
+        $("#txt30").text("TX only");
+        $("#txt31").text("OFF (INET access blocked)");
+        $("#txt32").text("ON (INET access allowed)");
+        $("#txt31a").text("OFF (INET access blocked)");
+        $("#txt32a").text("ON (INET access allowed)");
+        $("#txt33").text("access restrictions for SETUP and other system related settings");
     }
 
     // read config data from local storage
@@ -185,6 +205,7 @@ function onstart()
     document.getElementById('minituningok').value = config.minitiouner_local;
     document.getElementById('CIV_address').value = config.CIV_address.toString(16);
     document.getElementById('tx_correction').value = config.tx_correction;
+    document.getElementById('icom_satmode').value = config.icom_satmode;
 }
 
 function save()
@@ -200,6 +221,7 @@ function save()
     config.minitiouner_local = document.getElementById('minituningok').value;
     config.CIV_address = parseInt(document.getElementById('CIV_address').value.substring(0,2), 16);
     config.tx_correction = document.getElementById('tx_correction').value;
+    config.icom_satmode = document.getElementById('icom_satmode').value;
     
     saveConfig(); 
     
@@ -236,8 +258,8 @@ function save()
     <td id="txt6"></td>
     <td>
     <select id="remoteok" name="remoteok">
-        <option value="0">OFF (INET access blocked)</option>
-        <option value="1">ON  (INET access allowed)</option>
+        <option value="0" id="txt31"></option>
+        <option value="1" id="txt32"></option>
     </select>
     </td>
     <td></td>
@@ -308,8 +330,8 @@ function save()
     <td id="txt19"></td>
     <td>
     <select id="minituningok" name="minituningok">
-        <option value="0">OFF (INET tuning blocked)</option>
-        <option value="1">ON  (INET tuning allowed)</option>
+        <option value="0" id="txt31a"></option>
+        <option value="1" id="txt32a"></option>
     </select>
     </td>
     <td id="txt20"></td>
@@ -332,8 +354,22 @@ function save()
     </td>
     <td id="txt25"></td>
   </tr>
+  <tr>
+    <td id="txt28" colspan="3">
+    </td>
+  </tr>
+  <tr>
+    <td id="txt26"></td>
+    <td>
+    <select id="icom_satmode" name="icom_satmode">
+        <option value="0" id="txt29"></option>
+        <option value="1" id="txt30"></option>
+    </select>
+    </td>
+    <td id="txt27"></td>
+  </tr>
 </table>
-<button class="mybutton" id="setupbutton" onclick="save()">SAVE and EXIT</button>
+<button class="mybutton" id="setupbutton" onclick="save()"></button>
 
 </body>
 

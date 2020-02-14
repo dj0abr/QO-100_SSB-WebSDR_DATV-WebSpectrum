@@ -22,6 +22,7 @@
 #include <sys/file.h>
 #include "civ.h"
 #include "cat.h"
+#include "setup.h"
 #include "qo100websdr.h"
 
 void civ_send_valu32(unsigned char cmd, unsigned int ulval);
@@ -31,7 +32,10 @@ uint32_t bcdToint32(uint8_t *d, int mode);
 
 unsigned char civRXdata[MAXCIVDATA];
 unsigned int civ_freq = 0;
+unsigned int civ_txfreq = 0;
 int civ_adr = 0xA2;
+
+int bandswitch = 0;
 
 /*
  * evaluate a message from icom civ
@@ -78,7 +82,7 @@ int debug = 0;
         // check confirmation
         if(civRXdata[1] == 0xfb && civRXdata[3] == 0xe0 && civRXdata[4] == 0xfe && civRXdata[5] == 0xfe)
         {
-            printf("OK message from ICOM\n");
+            //printf("OK message from ICOM\n");
             return 1;
         }
         
@@ -109,7 +113,16 @@ int debug = 0;
 		//printf("CIV: frequency = %d\n",rx_freq);
         if(rx_freq != 0)
         {
-            civ_freq = rx_freq;
+            // at the first time read the subband (TX) frequency
+            if(bandswitch == 0)
+            {
+                civ_txfreq = rx_freq;
+                printf("CIV: Subband TX-frequency = %d\n",civ_txfreq);
+                bandswitch++;
+            }
+            else
+                civ_freq = rx_freq;
+            
             return 3;
         }
 	}
@@ -130,6 +143,21 @@ void civ_ptt(int onoff, unsigned char civad)
 // query the Icom's Frequency
 void civ_queryQRG()
 {
+    if(bandswitch == 0)
+    {
+        printf("switch to ICOM subband (TX)\n");
+        civ_send(7,0xd1,1,NULL,0);
+        usleep(10000);
+    }
+    if(bandswitch == 1)
+    {
+        printf("switch to ICOM mainband (RX)\n");
+        civ_send(7,0xd0,1,NULL,0);
+        usleep(10000);
+        bandswitch++;
+    }
+    
+    
     unsigned char tx[6] = {0xfe, 0xfe, 0x00, 0xe0,    0x03, 0xfd};
     tx[2] = civ_adr;
     write_port(tx, 6);
@@ -140,8 +168,32 @@ void civ_setQRG(int freq)
 {
     if(freq > 0.1)
     {
-        printf("set TRX to QRG: %d\n",freq);
-        civ_send_valu32(5,freq);
+        if(icom_satmode == 0)
+        {
+            // Icom in satellite mode
+            int kHz = freq - (freq / 1000000) * 1000000;
+            int MHz_TX = (civ_txfreq / 1000000) * 1000000;
+            int MHz_RX = (civ_freq / 1000000) * 1000000;
+            
+            int tx = MHz_TX + kHz;
+            int rx = MHz_RX + kHz + 500000;
+            
+            printf("tx:%d  rx:%d\n",tx,rx);
+            
+            civ_send(7,0xd1,1,NULL,0);
+            usleep(10000);
+            civ_send_valu32(5,tx);
+            usleep(10000);
+            civ_send(7,0xd0,1,NULL,0);
+            usleep(10000);
+            civ_send_valu32(5,rx);
+        }
+        else
+        {
+            // Icom as TX only !
+            printf("set TRX to QRG: %d\n",freq);
+            civ_send_valu32(5,freq);
+        }
     }
 }
 

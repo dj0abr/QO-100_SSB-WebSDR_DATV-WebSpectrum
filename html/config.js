@@ -10,9 +10,10 @@ var config = {
     minitiouner_local:  13,
     CIV_address:        0xa2,
     tx_correction:      0,
+    icom_satmode:       0,
 }
 
-var configname = 'config1'
+var configname = 'config2'
 
 function get32(myarr)
 {
@@ -65,6 +66,9 @@ function extract_data(arr, idx)
     config.tx_correction = get32(arr.slice(idx+72));
     //console.log("tx_correction:" + config.tx_correction);
     
+    config.icom_satmode = get32(arr.slice(idx+76));
+    //console.log("icom_satmode:" + config.icom_satmode);
+    
     localStorage.setItem(configname,JSON.stringify(config));
 }
 
@@ -84,6 +88,7 @@ function getConfig()
     console.log("minitiouner_local:" + config.minitiouner_local);
     console.log("CIV_address:" + config.CIV_address);
     console.log("tx_correction:" + config.tx_correction);
+    console.log("icom_satmode:" + config.icom_satmode);
     */
 }
 
@@ -108,7 +113,8 @@ function sendSetup()
     config.minitiouner_port + ";" +
     config.minitiouner_local + ";" +
     config.CIV_address + ";" +
-    config.tx_correction + ";"
+    config.tx_correction + ";" + 
+    config.icom_satmode + ";"
     ; 
 
     //console.log(txstr);

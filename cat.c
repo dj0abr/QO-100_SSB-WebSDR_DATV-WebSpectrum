@@ -26,6 +26,7 @@
 #include "qo100websdr.h"
 #include "cat.h"
 #include "civ.h"
+#include "setup.h"
 
 void closeSerial();
 int activate_serial();
@@ -44,6 +45,7 @@ int ser_command = 0;    // 0=no action 1=queryQRG 2=setPTT 3=releasePTT 4=setQRG
 int useCAT = 0;         // 0= don't use the serial port, 1= use the serial port for Icom CIV
 int trx_frequency = 0;
 int ttynum = 0;
+int setIcomQRG = 0;
 
 // creates a thread to run all serial specific jobs
 // call this once after program start
@@ -129,29 +131,41 @@ int cret = 0;
                         break;
                         
                 case 2: // wait for a response from icom
-                        readCIVmessage(rxbyte);
-                        // this loop takes 100us, the icom may take up to 100ms
-                        // so we wait maximum 1000 loops
-                        if(++respcnt > 1000)
-                        {
-                            // no answer from icom 
-                            printf("no answer from Icom within 100ms, try next serial port\n");
-                            status = 0;
-                            // try with the next serial port
-                            closeSerial();
-                            if(++ttynum >= 4) ttynum = 0;
-                            break;
-                        }
+                        cret = readCIVmessage(rxbyte);
                         
-                        if(civ_freq > 0)
+                        if(cret == 3 )
                         {
                             // got an answer from icom, so we found the transceiver
                             printf("Icom TRX found, goto normal processing\n");
                             status = 3; // normal processing
+                            break;
                         }
+                        
+                        // this loop takes 100us, the icom may take up to 1000ms
+                        // so we wait maximum 10000 loops
+                        if(++respcnt > 10000)
+                        {
+                            // no answer from icom 
+                            printf("no answer from Icom within 1000ms, try next serial port\n");
+                            status = 0;
+                            // try with the next serial port
+                            closeSerial();
+                            if(++ttynum >= 4) ttynum = 0;
+                        }
+                        
                         break;
                         
-                case 3: // normal processing: query CIV
+                case 3: // normal processing: query CIV and set frequency
+                        if(setIcomQRG > 0)
+                        {
+                            // user requested to set the ICOM to a frequency
+                            int civ_freq_MHz = civ_freq / 1000000;
+                            int newQRG = civ_freq_MHz * 1000000 + setIcomQRG - 500000 - tx_correction;
+                            civ_setQRG(newQRG);
+                            setIcomQRG = 0;
+                            break;
+                        }
+                        
                         usleep(100000); // query every 100ms
                         civ_queryQRG();
                         respcnt = 0;
@@ -167,6 +181,7 @@ int cret = 0;
                             // this QRG is read in wf_univ.c and sent to the browser
                             //printf("got QRG\n");
                             tries = 0;
+                            respcnt = 0;
                             status = 3;
                             break;
                         }

@@ -287,7 +287,8 @@ canvas {
     var vertmarker = 1;
     var ssbmode = 0;
     
-    var end1 = 0;
+    var end1 = 0;    
+    
     var tuneqrg1 = 0;
     var foffset1 = 0;
     var resolution1 = 1;
@@ -295,14 +296,19 @@ canvas {
     var player;
     var playON = 0;
 
-    function MouseClickHandler(e)
+    
+    function MouseDownHandler(e)
     {
         var e = window.event || e; // old IE support
         var mval = tuneqrg/1e3 + (e.pageX * resolution)/1e6;
         mval -= 0.001200;   // needed to get right value from mouse pointer, reason unknown
         mval *= 1000000;    // to Hz
         
-        websocket.send("mousepo:"+ mval.toFixed(0) + "\0");
+        if(e.which == 1)    // left click
+            websocket.send("mousepo:"+ mval.toFixed(0) + "\0");
+        
+        if(e.which == 3)    // right click
+            websocket.send("seticom:"+ mval.toFixed(0) + "\0");
     }
 
     function MouseMoveHandler(e)
@@ -385,8 +391,13 @@ canvas {
         var myitem = document.getElementById("wf_overlay");
         if (myitem.addEventListener)
         {
-            myitem.addEventListener("click", MouseClickHandler, false);
+            myitem.addEventListener("mousedown", MouseDownHandler, false);
         }
+        
+        // disable contect menu on right clock
+        $('#wf_overlay').bind('contextmenu', function(e) {
+            return false;
+        });
         
         // mouse in Spec
         var myitem = document.getElementById("spec");
@@ -414,13 +425,30 @@ canvas {
         
         // click into lower WF
         document.getElementById('wf1_overly').addEventListener
-        ('click',
+        (/*'click',
             function(evt){
                 var xpos = evt.clientX;
                 var rect = document.getElementById("wf_overlay").getBoundingClientRect();
                 websocket.send("mouselo:"+ (xpos - rect.left) + "\0");
+            },false*/
+            
+            'mousedown',
+            function(evt)
+            {
+                var xpos = evt.clientX;
+                var rect = document.getElementById("wf_overlay").getBoundingClientRect();
+                if(evt.which == 1) // left click
+                    websocket.send("mouselo:"+ (xpos - rect.left) + "\0");
+                if(evt.which == 3) // right click
+                    websocket.send("seticlo:"+ (xpos - rect.left) + "\0");
             },false
         );
+        
+        // disable contect menu on right clock
+        $('#wf1_overly').bind('contextmenu', function(e) {
+            return false;
+        });
+
         
         // mouse wheel in lower WF
         var myitem = document.getElementById("wf1_overly");
@@ -1754,7 +1782,14 @@ canvas {
                     break;
             case 1: websocket.send("getconf:1\0"); 
                     break;
-            default: clear = 1;
+            case 2: var ckb = $("#catonoff").is(':checked');
+                    if(ckb == true)
+                        websocket.send("catonof:1\0");
+                    else
+                        websocket.send("catonof:0\0");
+                    break;
+            default:document.title = config.call + "'s QO100 WebSDR";
+                    clear = 1;
                     break;
         }
         
@@ -1790,6 +1825,7 @@ canvas {
             sockOpen = 1;
             $("#status").html(sockurl);
             //alert("WebSocket is now OPEN");
+            openints = 0;
             openintv = setInterval(nowOpen, 500);
         };
 
@@ -1940,8 +1976,8 @@ canvas {
         bandplan = b;
         
         document.getElementById("full").checked = false;
-        document.getElementById("band").checked = false;
-        document.getElementById("future").checked = false;
+        document.getElementById("old_band").checked = false;
+        document.getElementById("new_band").checked = false;
         
         if(b == 0) 
         {
@@ -1951,15 +1987,15 @@ canvas {
         
         if(b == 1) 
         {
-            document.getElementById("future").checked = true;
+            document.getElementById("new_band").checked = true;
             // enable _2 as soon as the new bandplan is officially active
-            //qo100_bp = qo100_bp_2;
-            qo100_bp = qo100_bp_1;
+            qo100_bp = qo100_bp_2;
+            //qo100_bp = qo100_bp_1;
         }
         
         if(b == 2) 
         {
-            document.getElementById("band").checked = true;
+            document.getElementById("old_band").checked = true;
             qo100_bp = qo100_bp_1;
         }
         
@@ -2219,7 +2255,7 @@ function closingCode()
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.71</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.72</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2294,10 +2330,10 @@ function closingCode()
                         <input type="checkbox" id="full" onclick="clickSelBand(0)">Full
                     </div>
                     <div style="width: 140px;">
-                        <input type="checkbox" id="band" onclick="clickSelBand(2)" checked>Band
+                        <input type="checkbox" id="old_band" onclick="clickSelBand(2)" checked>old Bandplan
                     </div>
                     <div style="width: 140px;">
-                        <input type="checkbox" id="future" onclick="clickSelBand(1)">Future
+                        <input type="checkbox" id="new_band" onclick="clickSelBand(1)">new Bandplan
                     </div>
                 </div>
             </div>

@@ -132,7 +132,7 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
         wfdata[idx++] = (unsigned char)fdata[i];
         if(idx > sizeof(wfdata)) 
         {
-            printf("wfdata overflow ! wfdata-idx:%d, max. allowed:%d\n",idx,sizeof(wfdata));
+            printf("wfdata overflow ! wfdata-idx:%d, max. allowed:%ld\n",idx,(unsigned long)sizeof(wfdata));
             break;
         }
     }

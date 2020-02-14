@@ -217,6 +217,22 @@ USERMSG tx_usermsg;
             getConfigfromBrowser((char *)msg+8);
         }
         
+        if(strstr((char *)msg,"seticom:") && !access_blocked)
+        {
+            tx_usermsg.command = 13;
+            long long f = atoll((char *)msg+8); // requested frequency 
+            long long MHz = (f / 1000000)*1000000;
+            f -= MHz;
+            printf("got kHz: %d",(int)f);
+            tx_usermsg.para = (int)f;
+        }
+        
+        if(strstr((char *)msg,"seticlo:") && !access_blocked)
+        {
+            tx_usermsg.command = 14;
+            tx_usermsg.para = atoi((char *)msg+8);
+        }
+        
         #ifdef WIDEBAND
         if(strstr((char *)msg,"datvqrg:"))
         {
