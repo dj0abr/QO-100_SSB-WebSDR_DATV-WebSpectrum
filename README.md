@@ -4,6 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V2.71:
+- SETUP menu: sometimes the contents was not loaded, this is fixed now.
+
 Update V2.7:
 - NEW SETUP menu: DO NOT make ANY changes to qo100websdr.h ! All settings can now be done in the browser's SETUP menu.
 

@@ -86,10 +86,31 @@
 
 <script type="text/javascript">
     
-window.onload = onstart;
+window.onload = start;
+
+function start()
+{
+    // make sure the config.js is loaded before using it
+    // also fake this bullshit of browser cache which usually delivers old versions, this
+    // is done by adding a random number to the URL
+    addScript("config.js?"+ (new Date()).getTime());
+    
+    // wait until above script has been loaded
+    interval_id = setInterval(onstart, 1000);
+}
+
+function addScript( src ) 
+{
+    var s = document.createElement('script');
+    s.setAttribute( 'src', src );
+    document.body.appendChild( s );
+}
+
 
 function onstart()
 {
+    clearInterval(interval_id);
+
     var userLang = navigator.language || navigator.userLanguage;
     if(userLang.substring(0,2) == 'de')
     {
