@@ -654,10 +654,10 @@ canvas {
         var mittel = 0;
         
         // NB-Transponder, position of beacons
-        var xm1 = cpos(10489547);
-        var xm2 = cpos(10489553);
-        var xm3 = cpos(10489797);
-        var xm4 = cpos(10489803);
+        var xm1 = cpos(10489497);
+        var xm2 = cpos(10489503);
+        var xm3 = cpos(10489997);
+        var xm4 = cpos(10490003);
 
         // storage for the dB value for each horizontal pixel
         // used for dB label
@@ -1561,7 +1561,9 @@ canvas {
     var outband_noise = 0;  // level of unused frequency
     var basenoiselevel = 0; // level of transponder noise
     var trsmoothing = 25;
-    var trnoisearr = new Array(10); // smooth transponder noise
+    var trnoisesmoothing = 50;
+    var trnoisearr = new Array(50); // smooth transponder noise
+    var basenoisearr = new Array(25);
     var tridx = 0;
     var trfirst = 1;
     
@@ -1622,13 +1624,33 @@ canvas {
     
     function get_noiselevels()
     {
-        basenoiselevel = measure_noise_level(10489.560,10489.600);
+        var v1 = measure_noise_level(10489.753,10489.757);
+        var v2 = measure_noise_level(10489.748,10489.752);
+        basenoiselevel = (v1+v2)/2;
+        
+        // smooth
+        if(trfirst == 1)
+        {
+            for(var i=0; i<trsmoothing; i++)
+                basenoisearr[i] = diff;
+        }
+        else
+        {
+            for(var i=0; i<(trsmoothing-1); i++)
+                basenoisearr[i] = basenoisearr[i+1];
+            basenoisearr[trsmoothing-1] = basenoiselevel;
+        }
+        
+        basenoiselevel = 0;
+        for(var i=0; i<trsmoothing; i++)
+            basenoiselevel += basenoisearr[i];
+        basenoiselevel /= trsmoothing;
 
         // correction:
         // at ,300 the transponder noise is already there with about 0,2 dB
         // also the SDR generates additional 0,2dB because its so close to its tuning frequency
         // substract this as correction
-        outband_noise = measure_noise_level(10489.290,10489.300) - 0.4;
+        outband_noise = measure_noise_level(10489.270,10489.310) - 0.4;
         
         // difference between outband and transponder noise
         var diff = basenoiselevel - outband_noise;
@@ -1639,20 +1661,20 @@ canvas {
         if(trfirst == 1)
         {
             trfirst = 0;
-            for(var i=0; i<trsmoothing; i++)
+            for(var i=0; i<trnoisesmoothing; i++)
                 trnoisearr[i] = diff;
         }
         else
         {
-            for(var i=0; i<(trsmoothing-1); i++)
+            for(var i=0; i<(trnoisesmoothing-1); i++)
                 trnoisearr[i] = trnoisearr[i+1];
-            trnoisearr[trsmoothing-1] = diff;
+            trnoisearr[trnoisesmoothing-1] = diff;
         }
         
         diff = 0;
-        for(var i=0; i<trsmoothing; i++)
+        for(var i=0; i<trnoisesmoothing; i++)
             diff += trnoisearr[i];
-        diff /= trsmoothing;
+        diff /= trnoisesmoothing;
         
         $("#transpondernoise").html("Transponder Noise:" + diff.toFixed(1) + "dB");
     }
