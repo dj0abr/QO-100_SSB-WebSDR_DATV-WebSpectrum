@@ -184,11 +184,11 @@ double real, imag;
                 else
                     memcpy(&(binline_shifted[0]), &(binline[corr_start]), sizeof(double) * corr_len);
             }
-            
+            /*
             // kill spike on 10490 +- 900 Hz
             for(int q=(75000-90); q<(75000+90); q++)
                 binline_shifted[q] = binline_shifted[q+2000];
-
+            */
             for(wfbins=0; wfbins<(NB_FFT_LENGTH/2); wfbins+=NB_OVERSAMPLING)
             {
                 if(idx >= DATASIZE) break; // all wf pixels are filled

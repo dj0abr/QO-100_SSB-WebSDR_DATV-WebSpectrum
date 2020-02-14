@@ -119,7 +119,7 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
     wfdata[idx++] = foffset[client];
     
     wfdata[idx++] = get_useranz();  // number of users logged in
-    wfdata[idx++] = 0;  // spare
+    wfdata[idx++] = isTrxAvailable();   // 1 if an TRX is connected via cat
     wfdata[idx++] = 0;  // spare
     wfdata[idx++] = 0;  // spare
 

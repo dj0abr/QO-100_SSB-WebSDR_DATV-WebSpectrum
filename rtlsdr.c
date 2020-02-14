@@ -45,7 +45,7 @@
 void *rtldevproc(void *pdata);
 void *rtlproc(void *pdata);
 
-#define RTL_TUNER_CORRECTION 0
+#define RTL_TUNER_CORRECTION -72
 
 #ifndef WIDEBAND
 static rtlsdr_dev_t *dev;

@@ -69,6 +69,9 @@ int notfound = 0;
 
 void bcnLock1(uint16_t *vals, int len)
 {
+    
+    return;
+    
 uint16_t max = 0;
 int maxpos = 0;
 static int oldmaxpos = 0;
@@ -205,6 +208,8 @@ static int swait = 0;
 
 void bcnLock2(double *binline)
 {
+    return;
+    
     int start = BEACON_10HZ_OFFSET - LOCKRANGE_10HZ;
     int end = BEACON_10HZ_OFFSET + LOCKRANGE_10HZ;
 

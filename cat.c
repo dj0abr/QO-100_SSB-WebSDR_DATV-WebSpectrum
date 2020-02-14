@@ -65,9 +65,10 @@ int cat_init()
     return 1;
 }
 
+int status = 0;
+
 void *catproc(void *pdata)
 {
-int status = 0;
 int rxbyte = 0;
 int respcnt = 0;
 int tries = 0;
@@ -213,6 +214,12 @@ int cret = 0;
     printf("exit serial thread\n");
     closeSerial();
     pthread_exit(NULL);
+}
+
+int isTrxAvailable()
+{
+    if(status >= 3 && fd_ser != -1) return 1;
+    return 0;
 }
 
 void closeSerial()

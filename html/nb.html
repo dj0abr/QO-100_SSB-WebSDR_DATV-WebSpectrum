@@ -1657,11 +1657,12 @@ canvas {
         $("#transpondernoise").html("Transponder Noise:" + diff.toFixed(1) + "dB");
     }
     
-    var bandplan = 2;
-    var qo100_bp = qo100_bp_1;
+    var bandplan = 1;
+    var qo100_bp = qo100_bp_2;
     var startqrg = 10489250000;
     var endqrg   = 10490150000;
     var fusers = 0;
+    var trxavail = 0;
     
     // process data received via the web socket
     function handle_type(type,arr,pos,len)
@@ -1676,10 +1677,6 @@ canvas {
                 startqrg = 10489475000;
                 endqrg   = 10490025000;
                 break;
-        case 2: // old bandplan
-                startqrg = 10489525000;
-                endqrg   = 10489825000;
-                break;
         }
         
         if(type == 0 && reload)
@@ -1692,7 +1689,7 @@ canvas {
             resolution = get32(arr.slice(idx+12));  // Hz per pixel
             foffset = get32(arr.slice(idx+16));     // offset of the RX (lower WF) freq to the SDR tuned freq
             fusers = get8(arr.slice(idx+20));       // number of logged in users
-            var fspare1 = get8(arr.slice(idx+21));
+            trxavail = get8(arr.slice(idx+21));     // 1 if TRX is connected via CAT
             var fspare2 = get8(arr.slice(idx+22));
             var fspare3 = get8(arr.slice(idx+23));
             rxpix  = arr.slice(idx+24);
@@ -1704,6 +1701,10 @@ canvas {
             $("#tuneinfo").html(sd);
             
             $("#loggedinusers").html("Users:" + fusers);
+            if(trxavail)
+                document.getElementById("alive_icon").src = "green.png";
+            else
+                document.getElementById("alive_icon").src = "red.png";
 
             //console.log("old:"+tunerqrg+" "+end+" "+tuneqrg+" "+resolution+" "+foffset);
             
@@ -1976,27 +1977,18 @@ canvas {
         bandplan = b;
         
         document.getElementById("full").checked = false;
-        document.getElementById("old_band").checked = false;
         document.getElementById("new_band").checked = false;
         
         if(b == 0) 
         {
             document.getElementById("full").checked = true;
-            qo100_bp = qo100_bp_1short;
+            qo100_bp = qo100_bp_2;
         }
         
         if(b == 1) 
         {
             document.getElementById("new_band").checked = true;
-            // enable _2 as soon as the new bandplan is officially active
             qo100_bp = qo100_bp_2;
-            //qo100_bp = qo100_bp_1;
-        }
-        
-        if(b == 2) 
-        {
-            document.getElementById("old_band").checked = true;
-            qo100_bp = qo100_bp_1;
         }
         
         // clean WF
@@ -2255,7 +2247,7 @@ function closingCode()
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.72</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.73</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2330,10 +2322,7 @@ function closingCode()
                         <input type="checkbox" id="full" onclick="clickSelBand(0)">Full
                     </div>
                     <div style="width: 140px;">
-                        <input type="checkbox" id="old_band" onclick="clickSelBand(2)" checked>old Bandplan
-                    </div>
-                    <div style="width: 140px;">
-                        <input type="checkbox" id="new_band" onclick="clickSelBand(1)">new Bandplan
+                        <input type="checkbox" id="new_band" onclick="clickSelBand(1)">Bandplan
                     </div>
                 </div>
             </div>
@@ -2424,6 +2413,10 @@ function closingCode()
                 <div class="myflex">
                     <div>
                         <input type="checkbox" id="catonoff" onclick="CATonoff()">Icom CAT
+                        
+                    </div>
+                    <div>
+                        <img id="alive_icon" style="margin-top:2px; margin-left:2px">
                     </div>
                     <div style="position:absolute; right:0">
                         <button class="mybutton" id="setupbutton" onclick="setup()" style="display:none" align="right">SETUP</button>
