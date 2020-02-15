@@ -139,12 +139,8 @@ double real, imag;
             
             // binline now has the absolute spectrum levels of one waterfall line with 10Hz resolution
             
-            if(offset_tuned == 1)
-            {
-                // the tuner has been corrected already
-                // now make a fine correction by shifting the spectrum
-                bcnLock2(binline);
-            }
+            // make a correction by retuning and/or shifting the spectrum
+            bcnLock(binline);
             
             // this fft has generated NB_FFT_LENGTH bins in cpout
             #define DATASIZE ((NB_FFT_LENGTH/2)/NB_OVERSAMPLING)    // (180.000/2)/10 = 9000 final values
@@ -213,9 +209,6 @@ double real, imag;
             }
             // here we have wfsamp filled with DATASIZE values
             
-            if(offset_tuned == 0)
-                bcnLock1(wfsamp,DATASIZE);       // make Beacon Lock
-
             // left-margin-frequency including clicked-frequency
             unsigned int realrf = tuned_frequency - newrf;
             

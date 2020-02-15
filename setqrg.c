@@ -55,7 +55,7 @@ static int last_setIcomQRG = 0;
     {
         f=0;
         for(int i=0; i<MAX_CLIENTS; i++)
-            foffset[i] = 300000;
+            foffset[i] = 250000;
     }
 
     // look if user command available

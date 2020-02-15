@@ -1,5 +1,4 @@
-void bcnLock1(uint16_t *vals, int len);
-void bcnLock2(double *binline);
+void bcnLock(double *vals);
 
 extern int offqrg;
 extern int offset_tuned;

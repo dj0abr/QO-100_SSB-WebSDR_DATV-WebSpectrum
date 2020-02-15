@@ -52,227 +52,118 @@ int notfound = 0;
 // not used for WB Transponder
 #ifndef WIDEBAND
 
-// CW Beacon - Step-1: this function changes the tuner frequency. Max. precision: 100Hz and with the RTLsdr
-// about 400 Hz
+// wide lockrange around the lower F1A beacon
+#define CW_BEACON_INDEX (((int)((long long)CW_BEACON/1000) - LEFT_MARGIN_QRG_KHZ)*100)
+#define BCN_WIDERANGE   (200000/10) // +-100 kHz = 200 kHz wide lock range
+#define BCN_WIDESTART   (CW_BEACON_INDEX - BCN_WIDERANGE/2)
+#define BCN_WIDEEND     (CW_BEACON_INDEX + BCN_WIDERANGE/2)
+#define BCN_ARRLEN      (BCN_WIDERANGE*sizeof(double))
 
-// calculate the position (offset in the FFT output values) of the CW beacon
-// NB_FFT_LENGTH/2 goes over a range of WF_RANGE_HZ Hz starting at LEFT_MARGIN_QRG_KHZ
-// with a resolution of 10Hz per FFT value
-#define BEACON_OFFSET   (((long long)CW_BEACON - (long long)LEFT_MARGIN_QRG_KHZ * (long long)1000L) / ((long long)NB_HZ_PER_PIXEL))
-#define BEACON_LOCKRANGE        (long long)1000     // check beacon QRG +- lockrange (1=100Hz)
+// averaging array (circular buffer)
+#define ARRLEN  25     // averages ARRLEN*10 = 0,25s
+double valarr[ARRLEN][BCN_WIDERANGE];
+double midarr[BCN_WIDERANGE];
+int arridx = 0;
 
-// PSK Beacon
-// has a width of +-600Hz
-#define PSK_BEACON_OFFSET   (((long long)PSK_BEACON - (long long)LEFT_MARGIN_QRG_KHZ * (long long)1000L) / ((long long)NB_HZ_PER_PIXEL))
-#define PSK_BEACON_LOCKRANGE        (long long)6     // check beacon QRG +- lockrange (1=100Hz)
-#define PSK_CW_OFFSET (PSK_BEACON_OFFSET - BEACON_OFFSET)
-
-void bcnLock1(uint16_t *vals, int len)
+void bcnLock(double *vals)
 {
+    // vals: RXed values, 90.000 values for 900kHz with a resolutioin of 10 Hz
     
-    return;
+    // add the new value to the circular buffer
+    memcpy(&(valarr[arridx][0]), &(vals[BCN_WIDESTART]), BCN_ARRLEN);
+    if(++arridx == ARRLEN) arridx=0;
     
-uint16_t max = 0;
-int maxpos = 0;
-static int oldmaxpos = 0;
-static int maxcnt = 0;
-int pskfound=0;
-static int swait = 0;
-
-    if(swait > 0)
+    // calc avarage values
+    memset(midarr,0,BCN_ARRLEN);
+    for(int i=0; i<BCN_WIDERANGE; i++)
     {
-        swait--;
-        return;
+        for(int ln=0; ln<ARRLEN; ln++)
+            midarr[i] += valarr[ln][i];
     }
-
-    //printf("captured %d vals, check %ld with offset:%lld\n",len,CW_BEACON,BEACON_OFFSET);
-    //printf("search peak in: %lld %lld\n",BEACON_OFFSET-BEACON_LOCKRANGE,BEACON_OFFSET+BEACON_LOCKRANGE);
-    for(int pos=(BEACON_OFFSET-BEACON_LOCKRANGE); pos<(BEACON_OFFSET+BEACON_LOCKRANGE); pos++)
+    
+    double max = 0;
+    for(int i=0; i<BCN_WIDERANGE; i++)
     {
-        // measure the peak value for 1s
-        if(vals[pos] > max)
+        midarr[i] /= ARRLEN;
+        if(midarr[i] > max) max = midarr[i];
+    }
+    
+    // null all values < 3/4 max
+    for(int i=0; i<BCN_WIDERANGE; i++)
+    {
+        if(midarr[i] < (max*3/4))
+            midarr[i] = 0;
+    }
+    
+    // test if right maximum is 400 Hz higher then left maximum (range: 37 to 41)
+    int fidx = 0;
+    static int okcnt = 0;
+    for(int i=0; i<BCN_WIDERANGE; i++)
+    {
+        if(midarr[i] > 0 && (midarr[i+38] > 0 ||
+                             midarr[i+39] > 0 ||
+                             midarr[i+40] > 0 ||
+                             midarr[i+41] > 0))
         {
-            max = vals[pos];
-            maxpos = pos;
+            fidx = i;
+            //printf("match %d: %d\n",okcnt,i);
         }
     }
-    //printf("Maximum found at idx: %d = %.6f MHz\n",maxpos,((double)LEFT_MARGIN_QRG_KHZ*1000.0+(double)maxpos*100.0)/1e6);
     
-    int pskcenter = maxpos + PSK_CW_OFFSET;
-    //printf("searching PSK-beacon center at %d = %.6f MHz\n",pskcenter,((double)LEFT_MARGIN_QRG_KHZ*1000.0+(double)pskcenter*100.0)/1e6);
-    int lowsig = 0;
-    int highsig = 0;
-    int sig = 0;
-    // measure the central signal and the lower and upper range of the PSK beacon
-    for(int pos=(pskcenter-PSK_BEACON_LOCKRANGE-1); pos<(pskcenter-1); pos++)
-        lowsig += vals[pos];
-    lowsig /= (PSK_BEACON_LOCKRANGE-1);
+    if(fidx > 0) okcnt++;
+    else         okcnt = 0;
     
-    for(int pos=(pskcenter+2); pos<(pskcenter+PSK_BEACON_LOCKRANGE+1); pos++)
-        highsig += vals[pos];
-    highsig /= (PSK_BEACON_LOCKRANGE-1);
+    fidx += 2;  // correction value, looks like we need that
     
-    sig = vals[pskcenter];
-    
-    //printf("l,c,h: %05d %05d %05d : %05d %05d %05d\n",lowsig,sig,highsig,vals[pskcenter-3],vals[pskcenter],vals[pskcenter+3]);
-    //printf("l,c,h: %05d %05d %05d\n",lowsig,sig,highsig);
-    
-    // we see the PSK beacon, if lowsig and highsig is at least double of sig
-    if(((lowsig*2)/4) > sig && ((highsig*2)/4) > sig)
+    int offset = BCN_WIDERANGE/2 - fidx;
+    static int old_offset = 0;
+    if(okcnt > 4)  // if we found the beacon 10 times
     {
-        //printf("PSK Beacon found\n");
-        pskfound = 1;
-    }
-    
-    // check if same position is detected for check_times times
-    int check_times = 6;
-    if(maxpos != oldmaxpos || pskfound == 0)
-    {
-        oldmaxpos = maxpos;
-        maxcnt = 0;
-    }
-    else
-    {
-        maxcnt++;
-        if(maxcnt >= check_times)
+        if(offset < (old_offset-1) || offset > (old_offset+1))
         {
-            // diff to expected position
-            int diff = BEACON_OFFSET - maxpos;
-            
-            if(diff != 0 && autosync == 1)
+            if(offset < 100)
             {
-                int qrgoffset = diff * NB_HZ_PER_PIXEL;
-                
-                int maxabw = 4;
-                //if(hwtype == 2) maxabw = 16;
-
-                printf("*Beacon found at pos:%d diff:%d -> %d Hz\n",maxpos,diff,qrgoffset);
-
-                if(abs(diff) > maxabw)
-                {
-                    printf("Beacon found at pos:%d diff:%d -> %d(+%d) = %d\n",maxpos,diff,newrf,qrgoffset,qrgoffset+newrf);
-                    newrf += qrgoffset;
-                    rflock = 0;
-
-                    // store the offset in Hz for the frequency correction
-                    //offqrg = qrgoffset;                    
-                    offqrg =  0;
-                    
-                    if(hwtype == 1)
-                    {
-                        #ifdef SDR_PLAY
-                        setTunedQrgOffset(qrgoffset);
-                        offset_tuned = 1;
-						notfound = 0;
-                        #endif
-                    }
-                    
-                    if(hwtype == 2)
-                    {
-                        #ifndef WIDEBAND
-                        rtlsetTunedQrgOffset(qrgoffset);
-                        offset_tuned = 1;
-						notfound = 0;
-                        #endif
-                    }
-                }
-                else
-                {
-                    if(offset_tuned == 0)
-                        printf("small offset, do not re-tune, use software correction\n");
-                    offset_tuned = 1;
-					notfound = 0;
-                }
-                
-                // wait a bit for next beacon check to give the SDR a chance to set the new qrg
-                swait = 10;
+                // shift spectrum
+                printf("BCN found: %d fine correct offset:%d Hz\n",fidx,offset*10);
+                offqrg = offset;
+                rflock = 1;
             }
             else
             {
-                offset_tuned = 0;
-                rflock = 1;
-            }
-        }
-    }
-}
-
-// do a fine tuning
-// calculate the offset of the beacon in 10Hz steps
-// the tuner has been corrected already, so the beacon should be within +- 500 Hz
-
-// the becons should be on this index of the fft output values in cpout
-#define BEACON_10HZ_OFFSET   (((long long)CW_BEACON - (long long)LEFT_MARGIN_QRG_KHZ * (long long)1000L) / ((long long)NB_RESOLUTION))
-
-// search for the beacon +- LOCKRANGE_10HZ, which is 1kHz
-#define LOCKRANGE_10HZ  (long long)(5000/NB_RESOLUTION) 
-
-void bcnLock2(double *binline)
-{
-    return;
-    
-    int start = BEACON_10HZ_OFFSET - LOCKRANGE_10HZ;
-    int end = BEACON_10HZ_OFFSET + LOCKRANGE_10HZ;
-
-    double maxval = -9999;
-    int maxpos = 0;
-    for(int i=start; i<end; i++)
-    {
-        double v = binline[i];
-        if(v > maxval) 
-        {
-            maxval = v;
-            maxpos = i;
-        }
-    }
-    //printf("fine max: %d\n",maxpos);
-    
-    // accept fine max if the same value for multiple times 
-    static int lastmax = 0;
-    static int lastoffset = 0;
-    static int maxcnt = 0;
-	if(lastmax == maxpos)
-    {
-        if(++maxcnt > 5)
-        {
-			notfound = 0;
-            int offset = ((int)BEACON_10HZ_OFFSET - maxpos);
-            if(abs(offset) > LOCKRANGE_10HZ)
-            {
-                printf("very wide offset, use tuner correction\n");
-                offqrg = 0;
-                rflock = 0;
-                lastmax = 0;
-                maxcnt = 0;
-                offset_tuned = 0;
-                return;
-            }
-            
-            // correct only if >10Hz difference to avoid jumping around the center value
-            if(maxpos < ((int)BEACON_10HZ_OFFSET-1) || maxpos > ((int)BEACON_10HZ_OFFSET+1))
-            {
-                if(offset != lastoffset)
+                // re tune
+                printf("BCN found: %d re-tune correct offset:%d Hz\n",fidx,offset*10);
+                offqrg =  0;
+                    
+                if(hwtype == 1)
                 {
-                    lastoffset = offset;
-                    //printf("fine correct offset: %d Hz\n",(maxpos - (int)BEACON_10HZ_OFFSET)*10);
-                    offqrg = offset;
-                    rflock = 1;
+                    #ifdef SDR_PLAY
+                    setTunedQrgOffset(offset*10);
+                    offset_tuned = 1;
+                    notfound = 0;
+                    #endif
+                }
+                
+                if(hwtype == 2)
+                {
+                    #ifndef WIDEBAND
+                    rtlsetTunedQrgOffset(offset*10);
+                    offset_tuned = 1;
+                    notfound = 0;
+                    #endif
                 }
             }
+            old_offset = offset;
         }
     }
-    else
-	{
-        maxcnt = 0;
-		notfound++;
-		if(notfound > 100)
-		{
-			printf("beacon not found, use tuner correction\n");
-			notfound = 0;
-			offset_tuned = 0;
-		}
-	}
-
-    lastmax = maxpos;
+    
+    /*
+    for(int i=(BCN_WIDERANGE/2-5); i<(BCN_WIDERANGE/2+90); i++)
+    {
+        if(midarr[i] > 0) printf("%d",i);
+        else printf("-");
+    }
+    printf("\n");
+    */
 }
 
 #endif //WIDEBAND

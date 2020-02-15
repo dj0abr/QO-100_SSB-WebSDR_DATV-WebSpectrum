@@ -4,6 +4,9 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V2.8:
+- beacon LOCK now working with the new bandplan
+
 Update V2.73:
 - adapted to new bandplan. Beaconlock temporarily deactivated. RTLsdr offset can be corrected in rtlsdr.c #define RTL_TUNER_CORRECTION. New beacon lock follows in the next update.
 
