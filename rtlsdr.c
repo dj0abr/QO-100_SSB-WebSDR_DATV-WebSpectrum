@@ -45,8 +45,6 @@
 void *rtldevproc(void *pdata);
 void *rtlproc(void *pdata);
 
-#define RTL_TUNER_CORRECTION 0
-
 #ifndef WIDEBAND
 static rtlsdr_dev_t *dev;
 
@@ -76,9 +74,7 @@ int init_rtlsdr()
         return 0;
     }
     
-    unsigned long tqrg = (tuned_frequency * (1000000L+RTL_TUNER_CORRECTION))/1000000L;
-    retval = rtlsdr_set_center_freq(dev, (unsigned long)tqrg);
-    //retval = rtlsdr_set_center_freq(dev, tuned_frequency);
+    retval = rtlsdr_set_center_freq(dev, tuned_frequency);
     if(retval != 0) printf("freqset= %d\n",retval);
     
     // gain mode: 0=auto, 1=manual
@@ -126,19 +122,17 @@ int init_rtlsdr()
 void rtlsetTunedQrgOffset(unsigned int hz)
 {
     unsigned long qrg = tuned_frequency - hz;
-    qrg = (qrg * (1000000L+RTL_TUNER_CORRECTION))/1000000L;
     int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
     if(retval != 0) printf("freqset= %d\n",retval);
-    printf("rtl rf : %ld\n",qrg);
+    printf("rtl rf setoffset: %d -> %ld Hz\n",hz,qrg);
 }
 
 void reset_Qrg_RTLsdr()
 {
     unsigned long qrg = tuned_frequency;
-    qrg = (qrg * (1000000L+RTL_TUNER_CORRECTION))/1000000L;
     int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
     if(retval != 0) printf("freqset= %d\n",retval);
-    printf("rtl rf : %ld\n",qrg);
+    printf("rtl rf : %ld Hz\n",qrg);
 }
 
 void rtlsdrCallback(unsigned char *buf, uint32_t len, void *ctx)

@@ -117,12 +117,13 @@ void bcnLock(double *vals)
     fidx += 2;  // correction value, looks like we need that
     
     int offset = BCN_WIDERANGE/2 - fidx;
+    
     static int old_offset = 0;
     if(okcnt > 4)  // if we found the beacon 4 times
     {
         if(offset < (old_offset-1) || offset > (old_offset+1))
         {
-            if(offset < 100)
+            if(abs(offset) < 100)
             {
                 // shift spectrum
                 printf("BCN found: %d fine correct offset:%d Hz\n",fidx,offset*10);
