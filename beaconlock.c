@@ -73,7 +73,7 @@ void bcnLock(double *vals)
     memcpy(&(valarr[arridx][0]), &(vals[BCN_WIDESTART]), BCN_ARRLEN);
     if(++arridx == ARRLEN) arridx=0;
     
-    // calc avarage values
+    // calc avarage values and min and max value
     memset(midarr,0,BCN_ARRLEN);
     for(int i=0; i<BCN_WIDERANGE; i++)
     {
@@ -82,28 +82,29 @@ void bcnLock(double *vals)
     }
     
     double max = 0;
+    double min = 1e12;
     for(int i=0; i<BCN_WIDERANGE; i++)
     {
         midarr[i] /= ARRLEN;
         if(midarr[i] > max) max = midarr[i];
+        if(midarr[i] < min) min = midarr[i];
     }
     
-    // null all values < 3/4 max
-    for(int i=0; i<BCN_WIDERANGE; i++)
-    {
-        if(midarr[i] < (max*3/4))
-            midarr[i] = 0;
-    }
+    // check for beacon only if max > mix*20, otherwise no antenna may be connected or no signal
+    if(max < (min*20)) return;
     
     // test if right maximum is 400 Hz higher then left maximum (range: 37 to 41)
+    // test only values with a significant level
     int fidx = 0;
+    double refval = max*3/4;
     static int okcnt = 0;
     for(int i=0; i<BCN_WIDERANGE; i++)
     {
-        if(midarr[i] > 0 && (midarr[i+38] > 0 ||
-                             midarr[i+39] > 0 ||
-                             midarr[i+40] > 0 ||
-                             midarr[i+41] > 0))
+        if(midarr[i] > refval && 
+           (midarr[i+38] > refval ||
+            midarr[i+39] > refval ||
+            midarr[i+40] > refval ||
+            midarr[i+41] > refval))
         {
             fidx = i;
             //printf("match %d: %d\n",okcnt,i);
@@ -117,7 +118,7 @@ void bcnLock(double *vals)
     
     int offset = BCN_WIDERANGE/2 - fidx;
     static int old_offset = 0;
-    if(okcnt > 4)  // if we found the beacon 10 times
+    if(okcnt > 4)  // if we found the beacon 4 times
     {
         if(offset < (old_offset-1) || offset > (old_offset+1))
         {
