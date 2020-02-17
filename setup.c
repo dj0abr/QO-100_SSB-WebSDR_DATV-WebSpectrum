@@ -293,7 +293,6 @@ static int32_t old_downmixer_outqrg = 0;
         old_downmixer_outqrg != downmixer_outqrg)
     {
         printf("new QRG settings, re-tune SDR\n");
-        offset_tuned = 0;   // retune beacon
         old_lnb_crystal = lnb_crystal;
         old_lnb_multiplier = lnb_multiplier;
         old_downmixer_outqrg = downmixer_outqrg;
@@ -423,7 +422,6 @@ static int32_t old_downmixer_outqrg = 0;
         old_lnb_multiplier != lnb_multiplier ||
         old_downmixer_outqrg != downmixer_outqrg)
     {
-        offset_tuned = 0;   // retune beacon
         old_lnb_crystal = lnb_crystal;
         old_lnb_multiplier = lnb_multiplier;
         old_downmixer_outqrg = downmixer_outqrg;

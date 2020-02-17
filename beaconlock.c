@@ -46,8 +46,6 @@
 
 int rflock = 0;
 int offqrg = 0;
-int offset_tuned = 0;   // 1...tuner has been retuned to correct an offset 
-int notfound = 0;
 
 // not used for WB Transponder
 #ifndef WIDEBAND
@@ -140,8 +138,6 @@ void bcnLock(double *vals)
                 {
                     #ifdef SDR_PLAY
                     setTunedQrgOffset(offset*10);
-                    offset_tuned = 1;
-                    notfound = 0;
                     #endif
                 }
                 
@@ -149,8 +145,6 @@ void bcnLock(double *vals)
                 {
                     #ifndef WIDEBAND
                     rtlsetTunedQrgOffset(offset*10);
-                    offset_tuned = 1;
-                    notfound = 0;
                     #endif
                 }
             }

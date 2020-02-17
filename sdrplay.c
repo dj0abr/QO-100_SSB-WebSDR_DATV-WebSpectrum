@@ -120,7 +120,6 @@ int init_SDRplay()
     grMode = mir_sdr_USE_RSP_SET_GR;
     if(devModel == 1) grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 
-    //double dqrg = (tuned_frequency * (1000000L))/1000000L;
     double dqrg = tuned_frequency;
     r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), dqrg/1e6,
         (mir_sdr_Bw_MHzT)bwkHz, (mir_sdr_If_kHzT)ifkHz, rspLNA, &gRdBsystem,
@@ -168,23 +167,27 @@ void remove_SDRplay()
     mir_sdr_Uninit();
 }
 
-void setTunedQrgOffset(unsigned int hz)
+double lastsdrqrg = 0;
+void setTunedQrgOffset(int hz)
 {
-    double dqrg = tuned_frequency - hz;
-    mir_sdr_SetRf(dqrg,1,0);
-    printf("set tuner : %.6f MHz\n",dqrg/1e6);
+    if(lastsdrqrg == 0) lastsdrqrg = tuned_frequency;
+    
+    double off = (double)hz;
+    lastsdrqrg = lastsdrqrg - off;
+    printf("set tuner: new:%f offset:%f\n",lastsdrqrg,off);
+    mir_sdr_SetRf(lastsdrqrg,1,0);
+    printf("set tuner : %.6f MHz\n",lastsdrqrg/1e6);
 }
 
 void reset_Qrg_SDRplay()
 {
     int gRdBsystem;
     mir_sdr_ErrT r;
-    double dqrg = tuned_frequency;
-    //mir_sdr_SetRf(dqrg,1,0);
+    lastsdrqrg = tuned_frequency;
     
-    printf("re-set tuner : %.6f MHz\n",dqrg/1e6);
+    printf("re-tune: %.6f MHz\n",lastsdrqrg/1e6);
     
-    r = mir_sdr_Reinit(&gainR, 0, dqrg/1e6, 0, 0, 0, 0,&gRdBsystem, 0, &samplesPerPacket,mir_sdr_CHANGE_RF_FREQ);
+    r = mir_sdr_Reinit(&gainR, 0, lastsdrqrg/1e6, 0, 0, 0, 0,&gRdBsystem, 0, &samplesPerPacket,mir_sdr_CHANGE_RF_FREQ);
 
 	if (r != mir_sdr_Success) {
 		printf("Failed to restart SDRplay RSP device: %d\n",r);

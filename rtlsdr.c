@@ -119,20 +119,25 @@ int init_rtlsdr()
     return 1;
 }
 
-void rtlsetTunedQrgOffset(unsigned int hz)
+double lastsdrqrg = 0;
+void rtlsetTunedQrgOffset(int hz)
 {
-    unsigned long qrg = tuned_frequency - hz;
-    int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
+    if(lastsdrqrg == 0) lastsdrqrg = tuned_frequency;
+    
+    double off = (double)hz;
+    lastsdrqrg = lastsdrqrg - off;
+    int retval = rtlsdr_set_center_freq(dev, (unsigned int)lastsdrqrg);
     if(retval != 0) printf("freqset= %d\n",retval);
-    printf("rtl rf setoffset: %d -> %ld Hz\n",hz,qrg);
+    printf("rtl rf setoffset: %d -> %.0f Hz\n",hz,lastsdrqrg);
 }
 
 void reset_Qrg_RTLsdr()
 {
-    unsigned long qrg = tuned_frequency;
-    int retval = rtlsdr_set_center_freq(dev, (unsigned int)qrg);
+    lastsdrqrg = tuned_frequency;
+    
+    int retval = rtlsdr_set_center_freq(dev, (unsigned int)lastsdrqrg);
     if(retval != 0) printf("freqset= %d\n",retval);
-    printf("rtl rf : %ld Hz\n",qrg);
+    printf("rtl rf : %.0f Hz\n",lastsdrqrg);
 }
 
 void rtlsdrCallback(unsigned char *buf, uint32_t len, void *ctx)
