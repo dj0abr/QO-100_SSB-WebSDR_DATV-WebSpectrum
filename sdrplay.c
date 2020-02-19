@@ -167,7 +167,7 @@ void remove_SDRplay()
     mir_sdr_Uninit();
 }
 
-double lastsdrqrg = 0;
+extern double lastsdrqrg;
 void setTunedQrgOffset(int hz)
 {
     if(lastsdrqrg == 0) lastsdrqrg = tuned_frequency;
