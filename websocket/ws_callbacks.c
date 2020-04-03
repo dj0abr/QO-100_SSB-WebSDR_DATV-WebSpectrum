@@ -137,18 +137,10 @@ USERMSG tx_usermsg;
         tx_usermsg.command = 0;
         
         // check if IP is authorized to control the SDRplay
-        // never allow CAT on/off via the internet, only local stations
-        if(memcmp(cli,myIP,strlen(myIP)) && useCAT)
-        {
-            access_blocked = 1;
-            printf("CAT active, BLOCKED user message: %s, from: %s/%d\n", msg, cli, fd);
-            return;
-        }
-        
         if(memcmp(cli,myIP,strlen(myIP)) && !allowRemoteAccess)
         {
             access_blocked = 1;
-            printf("BLOCK some user messages: %s, from: %s/%d\n", msg, cli, fd);
+            //printf("BLOCK some user messages: %s, from: %s/%d\n", msg, cli, fd);
         }
         else
             printf("user message: %s, from: %s/%d\n", msg, cli, fd);

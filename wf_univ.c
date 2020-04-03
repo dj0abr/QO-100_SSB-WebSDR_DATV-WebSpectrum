@@ -47,6 +47,7 @@
 #include "civ.h"
 #include "cat.h"
 #include "setup.h"
+#include "beaconlock.h"
 
 void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz, int res, int _tunedQRG, int client)
 {
@@ -120,7 +121,7 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
     
     wfdata[idx++] = get_useranz();  // number of users logged in
     wfdata[idx++] = isTrxAvailable();   // 1 if an TRX is connected via cat
-    wfdata[idx++] = 0;  // spare
+    wfdata[idx++] = old_drift+128;      // beacon lock drift in 10Hz steps +128 (to make it positive)
     wfdata[idx++] = 0;  // spare
 
     // draw pixel per pixel

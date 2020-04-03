@@ -1676,7 +1676,7 @@ canvas {
             diff += trnoisearr[i];
         diff /= trnoisesmoothing;
         
-        $("#transpondernoise").html("Transponder Noise:" + diff.toFixed(1) + "dB");
+        $("#transpondernoise").html("Transponder Noise: " + diff.toFixed(1) + "dB");
     }
     
     var bandplan = 1;
@@ -1685,6 +1685,7 @@ canvas {
     var endqrg   = 10490150000;
     var fusers = 0;
     var trxavail = 0;
+    var drift = 0;
     
     // process data received via the web socket
     function handle_type(type,arr,pos,len)
@@ -1712,7 +1713,7 @@ canvas {
             foffset = get32(arr.slice(idx+16));     // offset of the RX (lower WF) freq to the SDR tuned freq
             fusers = get8(arr.slice(idx+20));       // number of logged in users
             trxavail = get8(arr.slice(idx+21));     // 1 if TRX is connected via CAT
-            var fspare2 = get8(arr.slice(idx+22));
+            drift = get8(arr.slice(idx+22)) - 128;
             var fspare3 = get8(arr.slice(idx+23));
             rxpix  = arr.slice(idx+24);
             pixwidth = end / resolution;            // number of fft values in rxpix
@@ -1722,7 +1723,15 @@ canvas {
             var sd = "RX: " + fval.toFixed(6) + " MHz, TX: " + (fval-ftx/1000).toFixed(6) + " MHz";
             $("#tuneinfo").html(sd);
             
-            $("#loggedinusers").html("Users:" + fusers);
+            $("#loggedinusers").html("Users: " + fusers);
+            
+            // 1Hz drift = 0,10683e-9
+            var p_drift = (drift*10) * 0.10683;
+            if(drift != 0)
+                $("#drift").html("Freq-Drift: " + drift*10 + "Hz = " + p_drift.toFixed(1) + "*10<sup>-9</sup>");
+            else
+                $("#drift").html("Freq-Drift: 0Hz");
+            
             if(trxavail)
                 document.getElementById("alive_icon").src = "green.png";
             else
@@ -2269,7 +2278,7 @@ function closingCode()
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.81</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay RSP1a and RTL-SDR by DJ0ABR V2.82</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2450,6 +2459,7 @@ function closingCode()
                 <div id="mousepos" class="measurements"></div>
                 <div id="transpondernoise" class="measurements"></div>
                 <div id="loggedinusers" class="measurements"></div>
+                <div id="drift" class="measurements"></div>
                 <div class="rightrow_menuline">
                 </div>
             </div>

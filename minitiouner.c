@@ -88,6 +88,7 @@ char qrg[20];
 char bw[20];
 
     memcpy(qrg,msg,8);
+    qrg[8] = 0;
     char *hp = strchr(msg,',');
     if(hp)
     {

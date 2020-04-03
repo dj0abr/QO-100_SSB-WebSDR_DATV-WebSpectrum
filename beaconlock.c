@@ -62,9 +62,13 @@ int offqrg = 0;
 double valarr[ARRLEN][BCN_WIDERANGE];
 double midarr[BCN_WIDERANGE];
 int arridx = 0;
+int lockhyst = 1;
+int old_drift=0;    
 
 void bcnLock(double *vals)
 {
+static int old_offset = 0;
+
     // vals: RXed values, 90.000 values for 900kHz with a resolutioin of 10 Hz
     
     // add the new value to the circular buffer
@@ -116,10 +120,19 @@ void bcnLock(double *vals)
     
     int offset = BCN_WIDERANGE/2 - fidx;
     
-    static int old_offset = 0;
+    static int locked_offset = 0;
+	int drift = locked_offset - offset;
+    //printf("%d %d %d\n",drift, old_offset, locked_offset);
+	if(drift != old_drift && abs(drift) < 1000)
+	{
+		printf("drift:%d Hz\n",drift*10);
+		old_drift = drift;
+	}
+
     if(okcnt > 4)  // if we found the beacon 4 times
     {
-        if(offset < (old_offset-1) || offset > (old_offset+1))
+		
+        if(offset < (old_offset-lockhyst) || offset > (old_offset+lockhyst))
         {
             if(abs(offset) < 100)
             {
@@ -127,12 +140,17 @@ void bcnLock(double *vals)
                 printf("BCN found: %d fine correct offset:%d Hz\n",fidx,offset*10);
                 offqrg = offset;
                 rflock = 1;
+                // when the fine lock is done, set lockhyst to a higher value
+                // to avoid constantly re-syncing (jumping)
+                lockhyst = 6; // 6 ... +-60 Hz offset needed before re-syncing
+                locked_offset = offset;
             }
             else
             {
                 // re tune
                 printf("BCN found: %d re-tune correct offset:%d Hz\n",fidx,offset*10);
                 offqrg =  0;
+                lockhyst = 1;
                     
                 if(hwtype == 1)
                 {
@@ -151,15 +169,6 @@ void bcnLock(double *vals)
             old_offset = offset;
         }
     }
-    
-    /*
-    for(int i=(BCN_WIDERANGE/2-5); i<(BCN_WIDERANGE/2+90); i++)
-    {
-        if(midarr[i] > 0) printf("%d",i);
-        else printf("-");
-    }
-    printf("\n");
-    */
 }
 
 #endif //WIDEBAND
