@@ -345,7 +345,9 @@ void sendConfigToBrowser()
     insertCfg4(tx_correction);
     insertCfg4(icom_satmode);
     
+    printf("Send config string\n");
     ws_send_config(cfgdata, idx);
+    printf("DONE sending config string\n");
 }
 
 
