@@ -63,7 +63,7 @@ double valarr[ARRLEN][BCN_WIDERANGE];
 double midarr[BCN_WIDERANGE];
 int arridx = 0;
 int lockhyst = 1;
-int old_drift=0;    
+extern int old_drift;    
 
 void bcnLock(double *vals)
 {

@@ -5,3 +5,5 @@ enum _WATERFALL_IDs_ {
     WFID_SMALL,
     WFID_MAX
 };
+
+extern int old_drift;

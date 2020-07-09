@@ -49,6 +49,8 @@
 #include "setup.h"
 #include "beaconlock.h"
 
+int old_drift = 0;
+
 void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz, int res, int _tunedQRG, int client)
 {
     // 1 byte: ID counter

@@ -24,6 +24,9 @@
 * 
 */
 
+double lastsdrqrg = 0;
+
+
 #ifdef SDR_PLAY
 
 #include <stdio.h>
@@ -167,7 +170,6 @@ void remove_SDRplay()
     mir_sdr_Uninit();
 }
 
-extern double lastsdrqrg;
 void setTunedQrgOffset(int hz)
 {
     if(lastsdrqrg == 0) lastsdrqrg = tuned_frequency;

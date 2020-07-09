@@ -119,7 +119,7 @@ int init_rtlsdr()
     return 1;
 }
 
-double lastsdrqrg = 0;
+extern double lastsdrqrg;
 void rtlsetTunedQrgOffset(int hz)
 {
     if(lastsdrqrg == 0) lastsdrqrg = tuned_frequency;
