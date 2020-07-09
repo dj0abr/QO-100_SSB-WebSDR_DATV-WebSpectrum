@@ -75,7 +75,7 @@ char write_udppipe(unsigned char *data, int len)
 		struct sockaddr_in sin;
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons(minitiouner_port);
-		sin.sin_addr.s_addr = inet_addr(minitiouner_ip);
+		sin.sin_addr.s_addr = inet_addr(mtip);
 		sendto(mt_sock, (char *)data, len, 0, (struct sockaddr *)&sin, sizeof(struct sockaddr_in));
 	}
 	return 1;
@@ -87,18 +87,20 @@ char s[1000];
 char qrg[20];
 char bw[20];
 
+    printf("set Minitiouner:<%s>\n",msg);
+
     memcpy(qrg,msg,8);
     qrg[8] = 0;
+
     char *hp = strchr(msg,',');
     if(hp)
     {
+
         hp++;
         if(strlen(hp) > 1 && strlen(hp) < 6)
         {
             strcpy(bw,hp);
-            
-            sprintf(s,"echo \"[GlobalMsg],Freq=%8.8s,Offset=%d,Doppler=0,Srate=%s,DVBmode=Auto\n\" > /dev/udp/%s/%d",qrg,minitiouner_offset,bw,minitiouner_ip,minitiouner_port);
-            //printf("send to Minitiouner: <%s>\n\n",s);
+            sprintf(s,"echo \"[GlobalMsg],Freq=%8.8s,Offset=%d,Doppler=0,Srate=%s,DVBmode=Auto\n\" > /dev/udp/%s/%d",qrg,minitiouner_offset,bw,mtip,minitiouner_port);
             
             write_udppipe((unsigned char *)s, strlen(s)+1); // +1 because we need to send including the null terminator
         }

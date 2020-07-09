@@ -69,6 +69,7 @@ typedef struct {
     uint32_t command;
     uint32_t para;
     uint32_t client;
+    char spara[100];
 } USERMSG;
 
 int getHSaccept(char *wsKey, unsigned char **dest);

@@ -41,7 +41,6 @@
 #include <string.h>
 
 #include "websocketserver.h"
-#include "../minitiouner.h"
 #include "../setqrg.h"
 #include "../fifo.h"
 #include "../setup.h"
@@ -231,12 +230,20 @@ USERMSG tx_usermsg;
             if(minitiouner_local == 1)
             {
                 if(!access_blocked) 
-                    setMinitiouner((char *)msg+8);
+                {
+                    //setMinitiouner((char *)msg+8);
+                    tx_usermsg.command = 15;
+                    strcpy(tx_usermsg.spara,((char *)msg+8));
+                }
                 else
                     printf("remote access to minitiouner blocked\n");
             }
             else
-                setMinitiouner((char *)msg+8);
+            {
+                //setMinitiouner((char *)msg+8);
+                tx_usermsg.command = 15;
+                strcpy(tx_usermsg.spara,((char *)msg+8));
+            }
         }
         #endif
         

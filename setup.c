@@ -45,7 +45,7 @@ int32_t tuned_frequency = 0;
 int32_t lnb_multiplier = DEFAULT_LNB_MULTIPLIER;
 int32_t downmixer_outqrg = DEFAULT_DOWNMIXER_OUTQRG;
 int32_t minitiouner_offset = 0;
-char minitiouner_ip[20] = {"192.168.0.25"};
+char mtip[20] = {"192.168.0.25"};
 int minitiouner_port = 6789;
 int minitiouner_local = 1;
 int websock_port = DEFAULT_WEBSOCK_PORT;
@@ -126,7 +126,7 @@ int i;
         fprintf(fw,"lnb_crystal:%lld\n",(long long int)lnb_crystal);
         fprintf(fw,"lnb_multiplier:%lld\n",(long long int)lnb_multiplier);
         fprintf(fw,"downmixer_outqrg:%lld\n",(long long int)downmixer_outqrg);
-        fprintf(fw,"minitiouner_ip:%s\n",minitiouner_ip);
+        fprintf(fw,"minitiouner_ip:%s\n",mtip);
         fprintf(fw,"minitiouner_port:%lld\n",(long long int)minitiouner_port);
         fprintf(fw,"minitiouner_local:%lld\n",(long long int)minitiouner_local);
         fprintf(fw,"websock_port:%lld\n",(long long int)websock_port);
@@ -279,7 +279,13 @@ static int32_t old_downmixer_outqrg = 0;
     if(readnum(&num,"lnb_multiplier")) lnb_multiplier = num; else return 0;
     if(readnum(&num,"downmixer_outqrg")) downmixer_outqrg = num; else return 0;
     p = readstring("minitiouner_ip");
-    if(p != NULL) strcpy(minitiouner_ip,p); else return 0;
+    if(p != NULL) 
+    {
+        strncpy(mtip,p,19); 
+        mtip[19]=0;
+    }
+    else return 0;
+    
     if(readnum(&num,"minitiouner_port")) minitiouner_port = num; else return 0;
     if(readnum(&num,"minitiouner_local")) minitiouner_local = num; else return 0;
     if(readnum(&num,"websock_port")) websock_port = num; else return 0;
@@ -327,7 +333,6 @@ void sendConfigToBrowser()
     idx = 2;
     
     configrequest = 0;
-    printf("Build config string\n");
     
     insertCfgString(callsign);
     insertCfg4(websock_port);
@@ -338,16 +343,14 @@ void sendConfigToBrowser()
         insertCfg4(27);
     insertCfg4(lnb_crystal);
     insertCfg4(downmixer_outqrg);
-    insertCfgString(minitiouner_ip);
+    insertCfgString(mtip);
     insertCfg4(minitiouner_port);
     insertCfg4(minitiouner_local);
     insertCfg4(civ_adr);
     insertCfg4(tx_correction);
     insertCfg4(icom_satmode);
     
-    printf("Send config string\n");
     ws_send_config(cfgdata, idx);
-    printf("DONE sending config string\n");
 }
 
 
@@ -403,7 +406,9 @@ static int32_t old_downmixer_outqrg = 0;
     if(getNextElement(s) == 0) return;
     downmixer_outqrg = atoi(s);
     
-    if(getNextElement(minitiouner_ip) == 0) return;
+    if(getNextElement(s) == 0) return;
+    strncpy(mtip,s,19);
+    mtip[19] = 0;
 
     if(getNextElement(s) == 0) return;
     minitiouner_port = atoi(s);

@@ -29,6 +29,7 @@
 #include "sdrplay.h"
 #include "rtlsdr.h"
 #include "cat.h"
+#include "minitiouner.h"
 #include "websocket/websocketserver.h"
 #include "setqrg.h"
 #include "fifo.h"
@@ -64,7 +65,7 @@ static int last_setIcomQRG = 0;
     int len = read_pipe(FIFO_USERCMD, (unsigned char *)(&rx_usermsg), sizeof(USERMSG));
     if(len == 0) return;
     
-    //printf("user command:%d from client:%d parameter:%d\n",rx_usermsg.command,rx_usermsg.client,rx_usermsg.para);
+    printf("user command:%d from client:%d parameter:%d\n",rx_usermsg.command,rx_usermsg.client,rx_usermsg.para);
 
     switch (rx_usermsg.command)
     {
@@ -137,6 +138,9 @@ static int last_setIcomQRG = 0;
                 }
                 break;
         #endif
+        case 15:// send settings to minitiouner
+                setMinitiouner(rx_usermsg.spara);
+                break;
     }
     
     if(setrfoffset)
