@@ -138,9 +138,11 @@ static int last_setIcomQRG = 0;
                 }
                 break;
         #endif
+        #ifdef WIDEBAND
         case 15:// send settings to minitiouner
                 setMinitiouner(rx_usermsg.spara);
                 break;
+        #endif
     }
     
     if(setrfoffset)
