@@ -173,11 +173,6 @@ USERMSG tx_usermsg;
             tx_usermsg.command = 6;
             tx_usermsg.para = atoi((char *)msg+8);
         }
-        /*if(strstr((char *)msg,"autosyn:"))
-        {
-            tx_usermsg.command = 7;
-            tx_usermsg.para = atoi((char *)msg+8);
-        }*/
         if(strstr((char *)msg,"tunervl:"))
         {
             tx_usermsg.command = 8;

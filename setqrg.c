@@ -93,10 +93,6 @@ static int last_setIcomQRG = 0;
                 setrfoffset = 1;
                 break;
                 
-        /*case 7: autosync = rx_usermsg.para;
-                printf("auto beacon lock: %d\n",autosync);
-                break; */
-                
         case 8: // Browser sends a new tuner frequency
                 newrf = tuned_frequency - rx_usermsg.para;
                 printf("set tuner qrg: %d (%d)\n",newrf,tuned_frequency - newrf);
@@ -117,13 +113,12 @@ static int last_setIcomQRG = 0;
         case 10:// activate icom CAT interface (open/close serial port)
                 useCAT = rx_usermsg.para;
                 break;
+                
+        #ifndef WIDEBAND
         case 12:// audio decoder for this client on/off
-                #ifndef WIDEBAND
                 printf("switch audio %d for client %d\n",rx_usermsg.para,rx_usermsg.client);
                 audioon[rx_usermsg.client] = rx_usermsg.para;
-                #endif
                 break;
-        #ifndef WIDEBAND
         case 13:// set ICOM on double click
                 setIcomQRG = rx_usermsg.para;
                 last_setIcomQRG = setIcomQRG;

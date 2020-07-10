@@ -102,7 +102,20 @@ may also run on slower computers, not guaranteed, try it.
 
 3) copy this software in any empty directory. Keep the names and contents of the subfolders.
 
-4) there are three scripts that build the software automatically:
+4) optional: identify the serial port of an ICOM transceiver:
+
+    serial-USB devices my change their ttyUSB number randomly. For an exact identification do the following:
+    
+    1) connect your USBserial adapter
+    2) enter this command in a terminal:
+       ls  /dev/ttyUSB*
+       this shows the device number i.e.: /dev/ttyUSB0
+    3) enter this command in a terminal, replace ttyUSB0 with the correct number
+       udevadm info -a -p  $(udevadm info -q path -n /dev/ttyUSB0) | grep '{serial}' | cut -d \" -f2 | head -n 1
+       this prints the ID of the serial USB adapter
+    4) enter this ID into the file identifySerUSB.c in the line #define SERID "xxxxxx", where xxxxxx is the ID
+
+5) there are three scripts that build the software automatically:
 
 build_RTLSDR ... build the software for the NB-Transponder and for the RTLsdr ONLY
 

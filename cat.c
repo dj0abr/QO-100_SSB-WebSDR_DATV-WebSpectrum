@@ -27,6 +27,7 @@
 #include "cat.h"
 #include "civ.h"
 #include "setup.h"
+#include "identifySerUSB.h"
 
 void closeSerial();
 int activate_serial();
@@ -237,12 +238,24 @@ int activate_serial()
 {
 	struct termios tty;
     char serdevice[30];
-
-    sprintf(serdevice,"/dev/ttyUSB%d",ttynum);
+    
+    char *sdev = get_serial_device_name();
+    if(sdev == NULL)
+    {
+        // not automatically identified, use scanning
+        snprintf(serdevice,19,"/dev/ttyUSB%d",ttynum);
+        serdevice[19] = 0;
+    }
+    else
+    {
+        // found serial device
+        memset(serdevice,0,20);
+        strncpy(serdevice,sdev,19);
+    }
     
 	closeSerial();
     
-    printf("Open: /dev/ttyUSB%d\n",ttynum);
+    printf("Open: %s\n",serdevice);
     
 	fd_ser = open(serdevice, O_RDWR | O_NDELAY);
 	if (fd_ser < 0) {
@@ -287,7 +300,7 @@ int activate_serial()
     flags &= ~TIOCM_RTS;
     ioctl(fd_ser, TIOCMSET, &flags);
     
-    printf("/dev/ttyUSB%d opened sucessfully\n",ttynum);
+    printf("%s opened sucessfully\n",serdevice);
     
 	return 0;
 }

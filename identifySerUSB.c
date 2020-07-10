@@ -21,16 +21,17 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "identifySerUSB.h"
 
 void scan_serial_devices();
 void get_serial_IDs();
 
 // this is the serial-USB adapter id that this program should use
-#define SERID "AH01DI1L"
+#define SERID "IC-9700 13001397 A"
 
 #define MAXSERIALDEVICES    10
-#define SERDEVNAMELEN       20
-#define SERDEVIDLEN         20
+#define SERDEVNAMELEN       50
+#define SERDEVIDLEN         50
 char serdev_name[MAXSERIALDEVICES][SERDEVNAMELEN];
 char serdev_id[MAXSERIALDEVICES][SERDEVIDLEN];
 
@@ -45,7 +46,7 @@ char *get_serial_device_name()
         if(serdev_name[i][0] == 0)
             break;  // nothing found
             
-        if(!strcmp(serdev_id[i],SERID))
+        if(strstr(serdev_id[i],SERID))
         {
             printf("serial-USB adapter found: %s with id:%s\n",serdev_name[i],serdev_id[i]);
             return serdev_name[i];
