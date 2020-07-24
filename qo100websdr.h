@@ -49,28 +49,40 @@
 // "WIDEBAND" is defined in the Makefile
 
 #ifdef WIDEBAND
-    // SDRplay must be used in wideband mode (RTLsdr is too slow)
-	#ifndef	SDR_PLAY
-		#define SDR_PLAY				
-	#endif
-    
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)
-    #define DEFAULT_WEBSOCK_PORT    8090
+    #define DEFAULT_WEBSOCK_PORT    8091
     
-    // RX frequency of the left margin of the WF/spectrum picture in kHz
-    #define LEFT_MARGIN_QRG_KHZ  10491500  
-    
-	// 10 MHz sample rate, the maximum of the SDRplay hardware
-    #define SDR_SAMPLE_RATE 10000000    
-    
-    // rate = 8MHz, which is the max bandwidth of the RSP1a
-    // is a bit small, the left&right margins will be already clipped by the bandwidth,
-    // but it is the maximum the RSP can handle.
-    #define WF_RANGE_HZ 8000000     
-    
-    // width of the waterfall in pixels (must match the graphic width in the HTML file)
-    #define WF_WIDTH    1600 
+    #ifdef	SDR_PLAY
+        // RX frequency of the left margin of the WF/spectrum picture in kHz
+        #define LEFT_MARGIN_QRG_KHZ  10491500  
+        
+        // 10 MHz sample rate, the maximum of the SDRplay hardware
+        #define SDR_SAMPLE_RATE 10000000    
+        
+        // rate = 8MHz, which is the max bandwidth of the RSP1a
+        // is a bit small, the left&right margins will be already clipped by the bandwidth,
+        // but it is the maximum the RSP can handle.
+        #define WF_RANGE_HZ 8000000     
+        
+        // width of the waterfall in pixels (must match the graphic width in the HTML file)
+        #define WF_WIDTH    1600 
+	#endif
+	
+    #ifdef	PLUTO
+        // RX frequency of the left margin of the WF/spectrum picture in kHz
+        #define LEFT_MARGIN_QRG_KHZ  10491500  
+        
+        // 14 MHz sample rate, the Pluto has already drop outs at this rate
+        // but this does not matter for a Spectrum/WF display
+        #define SDR_SAMPLE_RATE 16000000    
+        
+        // BW= 8 MHz
+        #define WF_RANGE_HZ 8000000     
+        
+        // width of the waterfall in pixels (must match the graphic width in the HTML file)
+        #define WF_WIDTH    1600 
+	#endif
 #else  
 
     // =======================================================

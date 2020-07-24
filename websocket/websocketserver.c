@@ -70,7 +70,7 @@ void ws_init()
     int ret = pthread_create(&ws_pid,NULL,wsproc, NULL);
     if(ret)
     {
-        printf("wf_drawline: proc NOT started\n\r");
+        printf("wsproc: proc NOT started\n\r");
     }
 }
 

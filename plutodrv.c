@@ -6,6 +6,8 @@
 #include <signal.h>
 #include <pthread.h>
 #include "plutodrv.h"
+#include "qo100websdr.h"
+#include "wb_fft.h"
 #include "ssbfft.h"
 #include "setup.h"
 #include <iio.h>  // libiio-dev must be installed
@@ -101,7 +103,6 @@ void pluto_shutdown()
 
 	printf("* Destroying context\n");
 	if (ctx) { iio_context_destroy(ctx); }
-	exit(0);
 }
 
 /* check return value of attr_write function */
@@ -182,7 +183,7 @@ bool cfg_ad9361_streaming_ch(struct iio_context *ctx, struct stream_cfg *cfg, en
 	struct iio_channel *chn = NULL;
 
 	// Configure phy and lo channels
-	printf("* Acquiring AD9361 phy channel %d\n", chid);
+	//printf("* Acquiring AD9361 phy channel %d\n", chid);
 	if (!get_phy_chan(ctx, type, chid, &chn)) {	return false; }
 	wr_ch_str(chn, "rf_port_select",     cfg->rfport);
 	wr_ch_lli(chn, "rf_bandwidth",       cfg->bw_hz);
@@ -238,13 +239,19 @@ int setup_pluto()
 	// Stream configurations
 	struct stream_cfg rxcfg;
 
-	// RX stream config
-	rxcfg.bw_hz = 2000000; // 2 MHz rf bandwidth
-	rxcfg.fs_hz = 3600000; // 3.8 MS/s rx sample rate
+    #ifndef WIDEBAND
+        // NB Transponder RX stream config
+        rxcfg.bw_hz = 2000000; // 2 MHz rf bandwidth
+        rxcfg.fs_hz = NB_SAMPLE_RATE; // 3.6 MS/s rx sample rate
+    #else
+        // WB Transponder RX stream config
+        rxcfg.bw_hz = 20000000; // 20 MHz rf bandwidth
+        rxcfg.fs_hz = SDR_SAMPLE_RATE; // 10 MS/s rx sample rate
+    #endif
 	rxcfg.lo_hz = (long long)tuned_frequency;
 	rxcfg.rfport = "A_BALANCED"; // port A (select for rf freq.)
 
-	printf("* Acquiring pluto's IIO context\n");
+	//printf("* Acquiring pluto's IIO context\n");
     ctx = iio_create_context_from_uri(pluto_context_name);
     if(!ctx) 
     {
@@ -273,7 +280,7 @@ int setup_pluto()
         return 0;
     }
 
-	printf("* Initializing AD9361 IIO streaming channels\n");
+	//printf("* Initializing AD9361 IIO streaming channels\n");
     bret = get_ad9361_stream_ch(ctx, RX, rx, 0, &rx0_i);
 	if(!bret)
     {
@@ -332,12 +339,16 @@ short qbuf[PLUTO_RXBUFSIZE];
         
         // READ: Get pointers to RX buf and read IQ from RX buf port 0
         int dstlen = 0;
+        #ifndef WIDEBAND
         int bnum = 0;
+        #endif
 		p_inc = iio_buffer_step(rxbuf);
 		p_end = iio_buffer_end(rxbuf);
 		for (p_dat = (char *)iio_buffer_first(rxbuf, rx0_i); p_dat < p_end; p_dat += p_inc) 
         {
-            if(++bnum & 1)  // decimate by 2
+            #ifndef WIDEBAND
+            if(++bnum & 1)  // decimate by 2, only for NB transponder
+            #endif
             { 
                 int16_t i = ((int16_t*)p_dat)[0]; // Real (I)
                 int16_t q = ((int16_t*)p_dat)[1]; // Imag (Q)
@@ -347,7 +358,12 @@ short qbuf[PLUTO_RXBUFSIZE];
                 dstlen++;
             }
 		}
-		fssb_sample_processing(ibuf, qbuf, dstlen);
+        
+        #ifdef WIDEBAND
+            wb_sample_processing(ibuf, qbuf, dstlen);
+        #else
+            fssb_sample_processing(ibuf, qbuf, dstlen);
+        #endif
     }
     
     printf("exit pluto RX thread\n");

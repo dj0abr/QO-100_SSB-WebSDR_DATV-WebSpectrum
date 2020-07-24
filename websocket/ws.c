@@ -303,7 +303,7 @@ static void* ws_establishconnection(void *vsock)
 }
 
 /**
- * Main loop for the server,
+ * Main loop for the server, runs in a thread
  * @param evs  Events structure.
  * @param port Server port.
  */
@@ -317,8 +317,7 @@ int ws_socket(struct ws_events *evs, int port)
 
 	if (evs == NULL || port <= 0 || port >  65535)
 	{
-		printf("An error has ocurred, please review your events or the\n"
-			"desired port!");
+		printf("An error has ocurred, please review your events or the desired port!\n");
 	}
 
 	/* Copy events. */
@@ -336,6 +335,7 @@ int ws_socket(struct ws_events *evs, int port)
 	/* Prepare the sockaddr_in structure. */
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
+    printf("Websocket Server: listen to port:%d\n",port);
 	server.sin_port = htons(port);
 
 	/* Bind. */

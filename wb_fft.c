@@ -92,7 +92,14 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
             // CPU in the server and also in the browser
             // a value between 50 and 100 should be ok
             static int wftimes = 0;
-            if(++wftimes > 50)
+            
+            #ifdef SDR_PLAY
+                static int divider = 50;
+            #endif
+            #ifdef PLUTO
+                static int divider = 10;
+            #endif
+            if(++wftimes > divider)
             {
             
                 // the buffer is full, now lets execute the fft
@@ -104,8 +111,11 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                 int wfbins;
 
                 /*
+                 * SDRPLAY: (10 MHz Sample Rate)
+                 * =============================
                 * the FFT generates Fmid to Fmid+5MHz followed by Fmid-5MHz to Fmid
-                * so we get WB_FFT_LENGTH fft values (bins). In this case we get 10.000 values
+                * so we get WB_FFT_LENGTH fft values (bins). In this case we get 10.000
+                * values
                 * 
                 * the samplerate is 10MHz but the bandwidth is only 8MHz, so we can cut 1 MHz at the beginning and at the end
                 * this results in 8000 usable bins.
@@ -113,11 +123,45 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                 * 
                 * So we cut 1000 bins (1 MHz) at the beginning and 1000 (1 MHz)at the end.
                 * The total width of the waterfall is now 10MHz - 2*1MHz = 8,000 MHz.
-                * The base frequency Fmid should be on 10.495 GHz, so the range is 10.491 to 10.499 GHz
+                * The base frequency Fmid should be on 10.495.5 GHz, so the range is
+                * 10.491.5 (=LEFT_MARGIN_QRG_KHZ) to 10.499.5 GHz
+                * 
+                * PLUTO: (16 MHz Sample Rate)
+                * ===========================
+                * 
+                * the FFT generates Fmid to Fmid+8MHz followed by Fmid-8MHz to Fmid
+                * so we get WB_FFT_LENGTH fft values (bins). In this case we get 16.000
+                * values
+                * 
+                * the samplerate is 16MHz but the picture width is only 8MHz, so we can cut
+                * 4 MHz at the beginning and at the end
+                * this results in 8000 usable bins.
+                * Also we have to put this into the 1600 pixels, which is one pixel
+                * for 5 bins.
                 * 
                 */
                 
-                int minleft = WB_FFT_LENGTH/2+1000;
+                #ifdef SDR_PLAY
+                    static int cutoff = 1000;
+                #endif
+                #ifdef PLUTO
+                    static int cutoff = 4000;
+                #endif
+                    
+                // left half ob the picture
+                #ifdef PLUTO
+                // the Pluto has a peak at the Zero-Frequency, wipe this out
+                int midclean = 20;
+                int x=0;
+                for(wfbins=(WB_FFT_LENGTH-midclean); wfbins<(WB_FFT_LENGTH); wfbins++)
+                {
+                    wb_cpout[wfbins][0] = wb_cpout[WB_FFT_LENGTH-midclean-x][0];
+                    wb_cpout[wfbins][1] = wb_cpout[WB_FFT_LENGTH-midclean-x][1];
+                    x++;
+                }
+                #endif
+                    
+                int minleft = WB_FFT_LENGTH/2+cutoff;
                 for(wfbins=minleft; wfbins<(WB_FFT_LENGTH); wfbins+=picture_div)
                 {
                     if(idx >= WF_WIDTH) break; // all wf pixels are filled
@@ -131,6 +175,7 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                         if(v > maxv) maxv = v;
                     }
                     
+                    #ifdef SDR_PLAY
                     // the edges of the spectrum are in the SDRs filter range already
                     // compensate by raising the level at the edges
                     if(wfbins < (minleft+400))
@@ -140,6 +185,7 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                         maxv *= (210 + ap);
                         maxv /= 200;
                     }
+                    #endif
 
                     // level correction
                     maxv /= gaincorr;
@@ -149,7 +195,16 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                     idx++;
                 }
 
-                int maxright = WB_FFT_LENGTH/2-1000;
+                // right half ob the picture
+                #ifdef PLUTO
+                for(wfbins=0; wfbins<midclean; wfbins++)
+                {
+                    wb_cpout[wfbins][0] = wb_cpout[midclean+wfbins][0];
+                    wb_cpout[wfbins][1] = wb_cpout[midclean+wfbins][1];
+                }
+                #endif
+                
+                int maxright = WB_FFT_LENGTH/2-cutoff;
                 for(wfbins=0; wfbins<maxright; wfbins+=picture_div)
                 {
                     if(idx >= WF_WIDTH) break; // all wf pixels are filled
@@ -163,6 +218,7 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                         if(v > maxv) maxv = v;
                     }
                     
+                    #ifdef SDR_PLAY
                     // the edges of the spectrum are in the SDRs filter range already
                     // compensate by raising the level at the edges
                     if(wfbins > (maxright-400))
@@ -172,6 +228,7 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                         maxv *= (210 + ap);
                         maxv /= 200;
                     }
+                    #endif
 
                     // level correction
                     maxv /= gaincorr;

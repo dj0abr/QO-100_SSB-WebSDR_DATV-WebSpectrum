@@ -793,8 +793,8 @@ function draw_spec()
     var n_minval = 999999;
 
     // WB-Transponder, take minval only at specific frequencies                
-    var xm1 = cpos(10493810);
-    var xm2 = cpos(10493910);
+    var xm1 = cpos(10492450);
+    var xm2 = cpos(10492480);
 
     // storage for Y values
     // used to find rising and falling edges of a signal
@@ -926,18 +926,28 @@ function draw_spec()
             context.lineTo(x, y3db);
             context.stroke();
             
+            // center Frequency
+            var freq = ((x-redge)/2+redge)*5000 / 1000000;
+            freq = Number(freq) + tuneqrg/1000;
+            freq = Number(freq) - 10000;
+            context.fillText(freq.toFixed(2) + "0",(x-redge)/2+redge,y3db+15);
+            
             // description
             var bw = ((x-redge)*5000)/1000;
             if(bw > 1900) bw = 2000;
             else if(bw > 1400) bw = 1500;
             else if(bw > 900) bw = 1000;
             else if(bw > 450) bw = 500;
-            else if(bw > 310) bw = 333;
-            else if(bw > 220) bw = 250;
+            else if(bw > 280) bw = 333;
+            else if(bw > 200) bw = 250;
             else if(bw > 110) bw = 125;
             else if(bw > 50) bw = 66;
             else if(bw > 20) bw = 33;
             else bw = "?";
+            
+            if(freq < 492)
+                bw = 1500; // correct Beacon BW
+            
             context.fillText(bw,(x-redge)/2+redge,y3db-7);
             bwarr[arridx] = bw;
             
@@ -950,12 +960,6 @@ function draw_spec()
             endqrgarr[arridx] = endfreq*1000;
             
             arridx++;
-            
-            var freq = ((x-redge)/2+redge)*5000 / 1000000;
-            freq = Number(freq) + tuneqrg/1000;
-            freq = Number(freq) - 10000;
-            context.fillText(freq.toFixed(2) + "0",(x-redge)/2+redge,y3db+15);
-            
             
             redge = 0;
         }
@@ -1489,7 +1493,7 @@ function openWebSocket()
         }
     }
     var ya = y.split(":");
-    sockurl = "ws://" + ya[0] + ":8090"; 
+    sockurl = "ws://" + ya[0] + ":8091"; 
     //console.log("open websocket");
     console.log(sockurl);
     //$('#myinfo').html(sockurl);
@@ -1891,7 +1895,7 @@ function closingCode()
                         Gain:
                     </div>
                     <div class="rightcell_slider">
-                        <input id="specgain" type="range" min="-100" max="-50" value="-90" style="direction: rtl;">
+                        <input id="specgain" type="range" min="-110" max="-50" value="-90" style="direction: rtl;">
                     </div>
                     <div class="rightcell_label">
                         Level:

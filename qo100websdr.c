@@ -238,9 +238,16 @@ void calc_system_parameters()
 void start_SDR()
 {
 	#ifdef WIDEBAND
-		// only SDRplay can be used in wideband mode
+		#ifdef SDR_PLAY
 		if(init_SDRplay())
             hwtype = 1;
+        #endif
+        #ifdef PLUTO
+            if(init_pluto())
+            {
+                hwtype = 3;
+            }
+        #endif
 	#else
 		// for NB transponder try RTLsdr first
 		if(init_rtlsdr())

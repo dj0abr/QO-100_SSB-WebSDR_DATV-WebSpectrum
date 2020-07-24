@@ -5,7 +5,8 @@ uses any Browser in your network or Internet to view / listen your SDR data
 # Server made for LINUX, GUI on any browser on any system.
 
 Update V2.9:
-- Adalm-PLUTO supported
+- Adalm-PLUTO supported for NB Transponder
+- Adalm-PLUTO supported for WB Transponder
 Attention: run  ./prepare_ubuntu_pluto to install all required libraries
 
 Update V2.81:
@@ -129,26 +130,16 @@ build_PLUTO ... build the software for the NB-Transponder and for the Adalm-Plut
 
 build_SDRplay_WB ... build the software for the SDRplay and the Wideband (DATV) transponder
 
+build_PLUTO_WB ... build the software for the Pluto and the Wideband (DATV) transponder 
+
 simply run one of these scripts in a terminal i.e.:  ./build_RTLSDR
 when the script finishes without errors then the job is done and you can use the software.  
 
 # starting the server
 in the termimal enter:
-sudo  ./qo100websdr  -f  frequency
+sudo  ./qo100websdr
 
 ('sudo' is only required for the very first start since it has to configure your webserver. Then you can use it without sudo).
-
-frequency ... this is the frequency where the QO-100 signal is delivered by your LNB.
-
-NB-Transponder: an unmodified LNB will deliver the signal on 739525000 Hz. This frequency must be the frequency of the CW Beacon minus 25 kHz.
-
-WB-Transponder: an unmodified LNB will deliver the signal on 745000000 Hz. This frequency must be the middle of the transponder (10495 MHz).
-
-If you use a down-mixer or if you feed the LNB's LO with a different frequency, then calculate the frequency as follows:
-
-frequency (NB) = 10489525000 - LO of the LNB (Example: 10489525000 - 9750000000 = 739525000 Hz)
-
-frequency (WB) = 10495000000 - LO of the LNB (Example: 10495000000 - 9750000000 = 745000000 Hz)
 
 # secure start
 for any reason (i.e. hardware or power failure) the server software may exit or crash sometimes.
@@ -158,7 +149,7 @@ es ... start the NB narrow band SSB version
 
 wb ... start the WB wide band DATV version
 
-instead of starting the software with: ./qo100websdr  -f  frequency
+instead of starting the software with: ./qo100websdr
 
 you better start it with:  ./es   or  ./wb
 
@@ -175,9 +166,11 @@ or if you have compiled this software for the narrow band transponder, then ente
 your browser: 192.168.0.55/nb.html
 
 # access the website from outside (from the internet)
-in your internet router you need to open three TCP ports for external access:
+in your internet router you need to open two TCP ports for external access:
 1) the port to your webserver: 80
-2) the port to the websocket: 8090 and 8091
+2) the port to the websocket: 8091
+
+the websocket port can be changed in the Setup (see Browser Window top/right)
 
 # running the NB and WB version of this software simultaneously
 If you want to run the WB monitor with an SDRplay RSPx and also the NB monitor then you can do that simultaneously.
@@ -192,6 +185,8 @@ you can now start the WB version and the NB version simultaneously. Just be sure
 
 The CPU load is quite high if you run both, but is not a problem for a modern PC, and also an Odroid N2 can handle both.
 
+Also, use two different websocket ports for NB and WB !
+
 # Minitiouner Remote Control
 F6DZP has implemented an UDP interface into his excellent Minitiouner software. This QO-100 WebSDR supports this feature. Just click on a signal in the spectrum or waterfall and the Minitiouner will be tuned to this signal.
 
@@ -204,6 +199,9 @@ MINITIOUNER_LOCAL ... if you want to remote control Minitiouner via the internet
 an ICOM TRX can be connected via CIV (USB) to the computer running this software.
 When the ICOM checkbox is activated in the browser, the frequency of the Icom TRX will be read and the marker and lower waterfall will be set to this frequency every 100ms.
 To adapt the CIV address to your Icom Transceiver, open file: civ.c and change variable civ_adr to the address of the transceiver. Then rebuild the software.
+
+For automatic detection of you ICOM transceiver you may check the in file: identifySerUSB.c the definition:
+#define SERID "IC-9700 13001397 A"
 
 vy 73
 de DJ0ABR, Kurt Moraw

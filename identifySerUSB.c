@@ -12,10 +12,9 @@
  * grep ... checks for lines with serial
  * cut ... extracts the first line, which contains the ID
  * 
- * Result:
- * AH01DI1L
- * 
  * 3. compare this ID with an specified ID, if equal, we found the right serial port
+ * 
+ * 4. to get this working, execute above command and then enter the ID of your serial interface in #define SERID
  * 
  */
 
