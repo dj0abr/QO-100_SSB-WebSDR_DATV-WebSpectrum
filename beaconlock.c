@@ -43,6 +43,7 @@
 #include "rtlsdr.h"
 #include "setup.h"
 #include "beaconlock.h"
+#include "plutodrv.h"
 
 int rflock = 0;
 int offqrg = 0;
@@ -163,6 +164,13 @@ static int old_offset = 0;
                 {
                     #ifndef WIDEBAND
                     rtlsetTunedQrgOffset(offset*10);
+                    #endif
+                }
+                
+                if(hwtype == 3)
+                {
+                    #ifdef PLUTO
+                    Pluto_setTunedQrgOffset(offset*10);
                     #endif
                 }
             }

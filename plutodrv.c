@@ -73,6 +73,7 @@ int init_pluto()
                             return 1;
                         }
                     }
+                    printf("PLUTO found, but cannot evaluate: iio_info -s\n");
                     return 0;
                 }
             }
@@ -82,6 +83,7 @@ int init_pluto()
     else
         printf("ERROR: cannot execute ls command\n");
     
+    printf("no PLUTO found\n");
     return 0;
 }
 

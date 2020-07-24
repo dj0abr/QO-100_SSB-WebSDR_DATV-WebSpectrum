@@ -6,8 +6,7 @@ uses any Browser in your network or Internet to view / listen your SDR data
 
 Update V2.9:
 - Adalm-PLUTO supported
-Attention: this is working, but not finally tested ! Some additional libraries are needed. This will be finally completed during the next days.
-
+Attention: run  ./prepare_ubuntu_pluto to install all required libraries
 
 Update V2.81:
 - fixed: Raspberry + RTLsdr did not set correct frequency
@@ -100,7 +99,7 @@ may also run on slower computers, not guaranteed, try it.
 
 # Installation
 
-1) a couple of libraries are needed. These libraries are installed if you execute ./prepare_ubuntu in a terminal.
+1) a couple of libraries are needed. These libraries are installed if you execute ./prepare_ubuntu or ./prepare_ubuntu_pluto in a terminal.
 (php ... sometimes you need to replaced php with php5 or php7 depending on your linux distribution)
 
 2) for SDRplay only: the SDRplay driver from the SDRplay Webpage must be installed. Look for the driver that supports your computer.
@@ -125,6 +124,8 @@ may also run on slower computers, not guaranteed, try it.
 build_RTLSDR ... build the software for the NB-Transponder and for the RTLsdr ONLY
 
 build_SDRplay ... build the software for the NB-Transponder and the SDRplay and/or RTLsdr (requires the SDRplay libraries, see above)
+
+build_PLUTO ... build the software for the NB-Transponder and for the Adalm-Pluto and/or RTLsdr 
 
 build_SDRplay_WB ... build the software for the SDRplay and the Wideband (DATV) transponder
 
