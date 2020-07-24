@@ -943,12 +943,13 @@ function draw_spec()
             else if(bw > 110) bw = 125;
             else if(bw > 50) bw = 66;
             else if(bw > 20) bw = 33;
-            else bw = "?";
+            else bw = 0;
             
             if(freq < 492)
                 bw = 1500; // correct Beacon BW
             
-            context.fillText(bw,(x-redge)/2+redge,y3db-7);
+            if(bw > 0)
+                context.fillText(bw,(x-redge)/2+redge,y3db-7);
             bwarr[arridx] = bw;
             
             var startfreq = redge*5000 / 1000;
@@ -1493,7 +1494,7 @@ function openWebSocket()
         }
     }
     var ya = y.split(":");
-    sockurl = "ws://" + ya[0] + ":8091"; 
+    sockurl = "ws://" + ya[0] + ":8090"; 
     //console.log("open websocket");
     console.log(sockurl);
     //$('#myinfo').html(sockurl);

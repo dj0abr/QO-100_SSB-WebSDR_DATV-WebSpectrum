@@ -97,7 +97,7 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                 static int divider = 50;
             #endif
             #ifdef PLUTO
-                static int divider = 10;
+                static int divider = 50;
             #endif
             if(++wftimes > divider)
             {

@@ -51,7 +51,7 @@
 #ifdef WIDEBAND
     // this port must be opened in the router in order to use this software from the internet
     // (the usual web port 80 must also be open)
-    #define DEFAULT_WEBSOCK_PORT    8091
+    #define DEFAULT_WEBSOCK_PORT    8090
     
     #ifdef	SDR_PLAY
         // RX frequency of the left margin of the WF/spectrum picture in kHz
