@@ -8,6 +8,7 @@ Update V2.9:
 - Adalm-PLUTO supported
 Attention: this is working, but not finally tested ! Some additional libraries are needed. This will be finally completed during the next days.
 
+
 Update V2.81:
 - fixed: Raspberry + RTLsdr did not set correct frequency
 
