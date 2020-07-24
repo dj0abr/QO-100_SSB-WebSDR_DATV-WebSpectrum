@@ -43,6 +43,7 @@
 #include "cat.h"
 #include "minitiouner.h"
 #include "setup.h"
+#include "plutodrv.h"
 
 void stop_SDR();
 
@@ -59,6 +60,10 @@ void sighandler(int signum)
     
     #ifdef WIDEBAND
     remove_udp_minitiouner();
+    #endif
+    
+    #ifdef PLUTO
+    pluto_shutdown();
     #endif
     
     save_config();
@@ -238,12 +243,18 @@ void start_SDR()
             hwtype = 1;
 	#else
 		// for NB transponder try RTLsdr first
-		// and if not exists, try SDRplay
 		if(init_rtlsdr())
 		{
 		    hwtype = 2;
 		    samplesPerPacket = SAMPLES_PER_PASS;
 		}
+		
+        #ifdef PLUTO
+            if(init_pluto())
+            {
+                hwtype = 3;
+            }
+        #endif
 
 		#ifdef SDR_PLAY
 		    if(hwtype == 0)
@@ -342,9 +353,7 @@ int main(int argc, char *argv[])
             retune_setup = 0;
             
             save_config();
-            //stop_SDR();
             calc_system_parameters();
-            //start_SDR();
             re_set_freq();
         }
         

@@ -198,7 +198,6 @@ int ret;
                 dstlen++;
             }
             
-            //sample_processing(ibuf, qbuf, dstlen);
             fssb_sample_processing(ibuf, qbuf, dstlen);
         }
     }

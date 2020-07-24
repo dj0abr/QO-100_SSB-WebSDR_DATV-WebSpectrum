@@ -112,6 +112,8 @@
     //    WF_RANGE_HZ * 2 * SR_MULTIPLIER is a value between 900k and 2.4M
     #ifdef SDR_PLAY
         #define SR_MULTIPLIER   2   // default sample rate: 0.9 * 2 * 2 = 3.6M
+    #elif PLUTO
+        #define SR_MULTIPLIER   2   // default sample rate: 0.9 * 2 * 2 = 3.6M
     #else
         #define SR_MULTIPLIER   1   // default sample rate: 0.9 * 2 * 1 = 1.8M
     #endif
@@ -120,6 +122,10 @@
     #ifdef SDR_PLAY
         #if (((WF_RANGE_HZ * 2 * SR_MULTIPLIER)<2000000) || ((WF_RANGE_HZ * 2 * SR_MULTIPLIER)>10000000))
             #warning SDRplay: CHOOSE OTHER SR_MULTIPLIER
+        #endif
+    #elif PLUTO
+        #if (((WF_RANGE_HZ * 2 * SR_MULTIPLIER)<2000000) || ((WF_RANGE_HZ * 2 * SR_MULTIPLIER)>10000000))
+            #warning PLUTO: CHOOSE OTHER SR_MULTIPLIER
         #endif
     #else
         #if (((WF_RANGE_HZ * 2 * SR_MULTIPLIER)<900000) || ((WF_RANGE_HZ * 2 * SR_MULTIPLIER)>2400000))

@@ -36,6 +36,7 @@
 #include <fftw3.h>
 #include "ssbdemod.h"
 #include "setup.h"
+#include "plutodrv.h"
 
 int foffset[MAX_CLIENTS];    // audio offset to tuned frequency
 int ssbmode = 1;    // 0=LSB 1=USB
@@ -155,6 +156,14 @@ static int last_setIcomQRG = 0;
             rtlsetTunedQrgOffset(newrf);
             #endif
         }
+     
+        if(hwtype == 3)
+        {
+            #ifdef PLUTO
+            Pluto_setTunedQrgOffset(newrf);
+            #endif
+        }
+        
         setrfoffset = 0;
     }
 }
@@ -172,6 +181,13 @@ void re_set_freq()
     {
         #ifndef WIDEBAND
         reset_Qrg_RTLsdr();
+        #endif
+    }
+    
+    if(hwtype == 3)
+    {
+        #ifdef PLUTO
+        reset_Qrg_Pluto();
         #endif
     }
 }

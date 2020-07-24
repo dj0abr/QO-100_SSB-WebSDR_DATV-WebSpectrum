@@ -4,6 +4,10 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V2.9:
+- Adalm-PLUTO supported
+Attention: this is working, but not finally tested !
+
 Update V2.81:
 - fixed: Raspberry + RTLsdr did not set correct frequency
 
