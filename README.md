@@ -1,12 +1,12 @@
 # WebSDR Server for the QO-100 es'hail-2 Satellite
-a web based SDR program made for the SDRplay RSP1a and RTL-SDR
+a web based SDR program made for the Adalm-PLUTO, SDRplay RSP1a and RTL-SDR
 uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
 Update V2.9:
 - Adalm-PLUTO supported
-Attention: this is working, but not finally tested !
+Attention: this is working, but not finally tested ! Some additional libraries are needed. This will be finally completed during the next days.
 
 Update V2.81:
 - fixed: Raspberry + RTLsdr did not set correct frequency
