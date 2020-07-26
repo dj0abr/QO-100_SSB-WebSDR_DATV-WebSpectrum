@@ -65,53 +65,51 @@ int init_pluto()
                 return 1;
             }
         }
-        printf("PLUTO not found at IP: pluto_context_name\n");
-        return 0;
+        printf("PLUTO not found at IP: %s\n",pluto_context_name);
+        printf("try to find a PLUTO via USB\n");
     }
-    else
+    
+    // continue with USB
+    printf("search PLUTO at USB\n");
+    char s[500];
+    snprintf(s,499,"iio_info -s");
+    s[499] = 0;
+    FILE *fp = popen(s,"r");
+    if(fp)
     {
-        // continue with USB
-        printf("search PLUTO at USB\n");
-        char s[500];
-        snprintf(s,499,"iio_info -s");
-        s[499] = 0;
-        FILE *fp = popen(s,"r");
-        if(fp)
+        while (fgets(s, sizeof(s)-1, fp) != NULL) 
         {
-            while (fgets(s, sizeof(s)-1, fp) != NULL) 
+            char *hp = strstr(s,"[usb:");
+            if(hp)
             {
-                char *hp = strstr(s,"[usb:");
-                if(hp)
+                hp += 1;
+                char *he = strchr(hp,']');
+                if(he)
                 {
-                    hp += 1;
-                    char *he = strchr(hp,']');
-                    if(he)
+                    *he = 0;
+                    strncpy(pluto_context_name,hp,49);
+                    pluto_context_name[49] = 0;
+                    printf("PLUTO found: <%s>\n",pluto_context_name);
+                    if(setup_pluto() == 1)
                     {
-                        *he = 0;
-                        strncpy(pluto_context_name,hp,49);
-                        pluto_context_name[49] = 0;
-                        printf("PLUTO found: <%s>\n",pluto_context_name);
-                        if(setup_pluto() == 1)
+                        if(pluto_create_rxthread() == 1)
                         {
-                            if(pluto_create_rxthread() == 1)
-                            {
-                                printf("PLUTO initialized: OK\n");
-                                return 1;
-                            }
+                            printf("PLUTO initialized: OK\n");
+                            return 1;
                         }
-                        printf("PLUTO found, but cannot evaluate: iio_info -s\n");
-                        return 0;
                     }
+                    printf("PLUTO found, but cannot evaluate: iio_info -s\n");
+                    return 0;
                 }
             }
-            pclose(fp);
         }
-        else
-            printf("ERROR: cannot execute ls command\n");
-        
-        printf("no PLUTO found\n");
-        return 0;
+        pclose(fp);
     }
+    else
+        printf("ERROR: cannot execute ls command\n");
+    
+    printf("no PLUTO found\n");
+    return 0;
 }
 
 /* cleanup and exit */
@@ -215,7 +213,7 @@ bool cfg_ad9361_streaming_ch(struct iio_context *ctx, struct stream_cfg *cfg, en
 	wr_ch_lli(chn, "sampling_frequency", cfg->fs_hz);
 
 	// Configure LO channel
-	printf("* Acquiring AD9361 %s lo channel\n", type == TX ? "TX" : "RX");
+	//printf("* Acquiring AD9361 %s lo channel\n", type == TX ? "TX" : "RX");
 	if (!get_lo_chan(ctx, type, &chn)) { return false; }
 	wr_ch_lli(chn, "frequency", cfg->lo_hz);
 	return true;
