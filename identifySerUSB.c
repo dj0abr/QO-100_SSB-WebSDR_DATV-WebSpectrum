@@ -92,8 +92,8 @@ void get_serial_IDs()
             
         //printf("reading ID of %s\n",serdev_name[i]);
         
-        char s[150];
-        snprintf(s,149,"udevadm info -a -p  $(udevadm info -q path -n %s) | grep '{serial}' | cut -d \\\" -f2 | head -n 1",serdev_name[i]);
+        char s[650];
+        snprintf(s,649,"udevadm info -a -p  $(udevadm info -q path -n %s) | grep '{serial}' | cut -d \\\" -f2 | head -n 1",serdev_name[i]);
         //printf("<%s>\n",s);
         s[149] = 0;
         FILE *fp = popen(s,"r");
