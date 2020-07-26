@@ -265,7 +265,8 @@ int setup_pluto()
     #ifndef WIDEBAND
         // NB Transponder RX stream config
         rxcfg.bw_hz = 2000000; // 2 MHz rf bandwidth
-        rxcfg.fs_hz = NB_SAMPLE_RATE; // 3.6 MS/s rx sample rate
+        printf("set Pluto Sample Rate: %d\n",SDR_SAMPLE_RATE);
+        rxcfg.fs_hz = SDR_SAMPLE_RATE; // 3.6 MS/s rx sample rate
     #else
         // WB Transponder RX stream config
         rxcfg.bw_hz = 20000000; // 20 MHz rf bandwidth

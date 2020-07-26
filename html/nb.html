@@ -188,11 +188,39 @@ body {
 .tuneinfo
 {
     font: "Arial";
-    font-size:26px;
+    font-size:32px;
     font-weight: 600;
     color: blue;
-    width: 1500px;
+    width: 850px;
     text-align: center;
+    margin-top: 5px;
+}
+
+.clickinfo
+{
+    width: 350px;
+    font: "Arial";
+    font-size:12px;
+    font-weight: 100;
+}
+
+.userliste
+{
+    width:300px;
+    display: flex;
+}
+
+.userlabel
+{
+    margin-right: 5px;
+    margin-top: 6px;
+    font-size:12px;
+    height: 5px;
+}
+
+.activeips
+{
+    font-size:10px;
 }
 
 .selectbox {
@@ -1792,6 +1820,44 @@ canvas {
             extract_data(arr,idx);
             $('#setupbutton').show();
         }
+        
+        if(type == 4)
+        {
+            // active user data
+            show_users(String.fromCharCode.apply(String, arr.slice(pos+2)));
+        }
+    }
+    
+    function show_users(itext)
+    {
+        var text = itext.split(" ");
+        
+        var label = document.getElementById('userlabel');
+        var select = document.getElementById('activeips');
+
+        for (var i = select.length - 1; i >= 0; i--)
+            select.remove(i);
+
+        select.length = 0;
+
+        // text has all IPs with a fixed length of 16 chars
+        var users = 0;
+        for(var i=0; i<text.length; i++)
+        {
+            var ip = text[i].trim();
+            if(ip.length >= 7)
+            {
+                //console.log(ip);
+                
+                var opt = document.createElement('option');
+                opt.value = i;
+                opt.innerHTML = ip;
+                select.appendChild(opt);
+                users++;
+            }
+        }
+        
+        label.innerHTML = users + " users: ";
     }
     
     function showLock()
@@ -2269,7 +2335,8 @@ function setup()
 
 function closingCode()
 {
-    setupwindow.close();
+    if(setupwindow != null)
+        setupwindow.close();
     return null;
 }
 
@@ -2278,7 +2345,7 @@ function closingCode()
         
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 NB-Transponder SSB Live Stream</div>
-        <div class="header_subtitle" id="header_subtitle">for SDRplay, Pluto and RTL-SDR by DJ0ABR V3.0</div>
+        <div class="header_subtitle" id="header_subtitle">for SDRplay, Pluto and RTL-SDR by DJ0ABR V3.1</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -2465,7 +2532,17 @@ function closingCode()
             </div>
         </div>
         
-        <div id="tuneinfo" class="tuneinfo">Tuner</div>
+        <div class="myflex">
+            <div id="clickinfo" class="clickinfo">
+                left click: set SSB frequency (if ICOM disabled)<br>
+                right click: set Icom frequency (if enabled)
+            </div>
+            <div id="tuneinfo" class="tuneinfo"></div>
+            <div class="userliste">
+                <div id="userlabel" class="userlabel">current users</div>
+                <select id="activeips" class="activeips" size="4"></select>
+            </div>
+        </div>
         <br>
         
         <div style="position: relative;">

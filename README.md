@@ -4,6 +4,11 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V3.1:
+- fixed: pluto NB transponder frequency
+- DVB-S2 bitrate calculator
+- list of current users (IPs)
+
 Update V3.0:
 - Adalm-PLUTO supported via IP address and USB
 - Wideband: bitrate calculator implemented
