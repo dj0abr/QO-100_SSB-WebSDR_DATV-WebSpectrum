@@ -49,8 +49,10 @@
 #include "../ssbfft.h"
 #include "../setup.h"
 
+#define MAXIPLEN 16
+
 WS_SOCK actsock[MAX_CLIENTS];
-char clilist[MAX_CLIENTS][50];
+char clilist[MAX_CLIENTS][MAXIPLEN];
 
 void *wsproc(void *pdata);
 
@@ -170,6 +172,37 @@ void ws_send_config(unsigned char *cfgdata, int len)
     UNLOCK;
 }
 
+void ws_send_users()
+{
+    // no LOCK needed, this is already done in the calling function
+    
+    // collect active users
+    char cfgdata[MAX_CLIENTS * MAXIPLEN + 1];
+    *cfgdata = 0;
+    int len = 0;
+    printf("currently active users:\n");
+    for(int ips=0; ips<MAX_CLIENTS; ips++)
+    {
+        if(actsock[ips].socket != -1)
+        {
+            printf("IP: %s\n",clilist[ips]);
+            sprintf(cfgdata+strlen(cfgdata),"%16.16s",clilist[ips]);
+            len += 16;
+        }
+    }
+ 
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        // send to all connected clients
+        if(actsock[i].socket != -1)
+        {
+            memcpy(actsock[i].msg4, cfgdata, len);
+            actsock[i].msglen4 = len;
+            actsock[i].send4 = 1;
+        }
+    }
+}
+
 unsigned char *ws_build_txframe(int i, int *plength)
 {
     LOCK;
@@ -181,8 +214,11 @@ unsigned char *ws_build_txframe(int i, int *plength)
         int len = AUDIO_RATE*2;
         unsigned char *txdata = malloc(len+3);
         if(txdata == NULL)
+        {
+            UNLOCK;
             return NULL;
-        txdata[idx++] = 2;    // type of audio samples
+        }
+        txdata[idx++] = 2;    // type: audio samples
         txdata[idx++] = len >> 8;
         txdata[idx++] = len & 0xff;
         memcpy(txdata+idx,actsock[i].samples,len);
@@ -201,8 +237,11 @@ unsigned char *ws_build_txframe(int i, int *plength)
         int len = actsock[i].msglen3;
         unsigned char *txdata = malloc(len+3);
         if(txdata == NULL)
+        {
+            UNLOCK;
             return NULL;
-        txdata[idx++] = 3;    // type of config data
+        }
+        txdata[idx++] = 3;    // type: config data
         txdata[idx++] = len >> 8;
         txdata[idx++] = len & 0xff;
         memcpy(txdata+idx,actsock[i].msg3,len);
@@ -212,7 +251,29 @@ unsigned char *ws_build_txframe(int i, int *plength)
         UNLOCK;
         return txdata;
     }
-    
+
+    if(actsock[i].send4 == 1)
+    {
+        // send active users
+        int idx = 0;
+        int len = actsock[i].msglen4;
+        unsigned char *txdata = malloc(len+3);
+        if(txdata == NULL)
+        {
+            UNLOCK;
+            return NULL;
+        }
+        txdata[idx++] = 4;    // type: user data
+        txdata[idx++] = len >> 8;
+        txdata[idx++] = len & 0xff;
+        memcpy(txdata+idx,actsock[i].msg4,len);
+        idx += len;
+        actsock[i].send4 = 0;
+        *plength = idx;
+        UNLOCK;
+        return txdata;
+    }
+
     // calculate total length
     // add 3 for each element for the first byte which is the element type followed by the length
     int geslen = 0;
@@ -228,7 +289,10 @@ unsigned char *ws_build_txframe(int i, int *plength)
     // assign TX buffer
     unsigned char *txdata = malloc(geslen);
     if(txdata == NULL)
+    {
+        UNLOCK;
         return NULL;
+    }
     
     // copy data into TX buffer and set the type byte
     int idx = 0;
@@ -258,6 +322,7 @@ unsigned char *ws_build_txframe(int i, int *plength)
     return txdata;
 }
 
+
 // insert a socket into the socket-list
 void insert_socket(int fd, char *cli)
 {
@@ -269,9 +334,15 @@ void insert_socket(int fd, char *cli)
             actsock[i].socket = fd;
             actsock[i].send0 = 0;
             actsock[i].send1 = 0;
-            strcpy(clilist[i],cli);
+            strncpy(clilist[i],cli,MAXIPLEN);
+            clilist[i][MAXIPLEN-1] = 0;
             printf("accepted client %d %d\n",i,fd);
+            
+            // send active users
+            ws_send_users();
+            
             UNLOCK;
+            
             return;
         }
     }
@@ -291,6 +362,10 @@ void remove_socket(int fd)
             clilist[i][0] = 0;
         }
     }
+    
+    // send active users
+    ws_send_users();
+            
     UNLOCK;
 }
 

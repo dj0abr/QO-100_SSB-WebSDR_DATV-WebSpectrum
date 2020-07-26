@@ -23,6 +23,25 @@ body {
     display: flex;
 }
 
+.userliste
+{
+    width:300px;
+    display: flex;
+}
+
+.userlabel
+{
+    margin-right: 5px;
+    margin-top: 6px;
+    font-size:12px;
+    height: 5px;
+}
+
+.activeips
+{
+    font-size:10px;
+}
+
 .leftside
 {
     width: 620px;
@@ -1523,8 +1542,50 @@ function handle_type(type,arr,pos,len)
         extract_data(arr,idx);
         $('#setupbutton').show();
     }
+    
+    if(type == 4)
+    {
+        // active user data
+        show_users(String.fromCharCode.apply(String, arr.slice(pos+2)));
+    }
 }
 
+function show_users(itext)
+{
+    var text = itext.split(" ");
+    /*for(var i=0; i<text.length; i++)
+    {
+        var t = text[i].trim();
+        console.log(t);
+    }*/
+    
+    var label = document.getElementById('userlabel');
+    var select = document.getElementById('activeips');
+
+    for (var i = select.length - 1; i >= 0; i--)
+        select.remove(i);
+
+    select.length = 0;
+
+    // text has all IPs with a fixed length of 16 chars
+    var users = 0;
+    for(var i=0; i<text.length; i++)
+    {
+        var ip = text[i].trim();
+        if(ip.length >= 7)
+        {
+            //console.log(ip);
+            
+            var opt = document.createElement('option');
+            opt.value = i;
+            opt.innerHTML = ip;
+            select.appendChild(opt);
+            users++;
+        }
+    }
+    
+    label.innerHTML = users + " users: ";
+}
 
 var openintv;
 var openints = 0;
@@ -2087,6 +2148,10 @@ function CalcBitrate()
                 right click on signal: fill Symbol Rate into calculator
             </div>
             <div id="tuneinfo" class="tuneinfo"></div>
+            <div class="userliste">
+                <div id="userlabel" class="userlabel">current users</div>
+                <select id="activeips" class="activeips" size="4"></select>
+            </div>
         </div>
         <br>
         

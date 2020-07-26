@@ -39,12 +39,15 @@ typedef struct {
     unsigned char msg0[MESSAGE_LENGTH];  // big waterfall message to send to the browser
     unsigned char msg1[MESSAGE_LENGTH];  // small waterfall message to send to the browser
     unsigned char msg3[MESSAGE_LENGTH];  // configuration data
+    unsigned char msg4[MESSAGE_LENGTH];  // active users
     int msglen0;
     int msglen1;
     int msglen3;
+    int msglen4;
     int send0;       // 0=nothing to send, 1=send now
     int send1;
     int send3;
+    int send4;
     unsigned char samples[AUDIO_RATE*2];
     int sendaudio;
 } WS_SOCK;
