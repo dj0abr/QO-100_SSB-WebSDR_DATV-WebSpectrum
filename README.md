@@ -4,6 +4,10 @@ uses any Browser in your network or Internet to view / listen your SDR data
   
 # Server made for LINUX, GUI on any browser on any system.
 
+Update V3.0:
+- Adalm-PLUTO supported via IP address and USB
+- Wideband: bitrate calculator implemented
+
 Update V2.9:
 - Adalm-PLUTO supported for NB Transponder
 - Adalm-PLUTO supported for WB Transponder
@@ -75,10 +79,11 @@ Update V1.5:
 # WB (DATV) Transponder
 * Spectrum
 * waterfall showing the complete transponder (8MHz)
-* for SDRplay RSPx only (since we need 10MS/s sampling rate)
+* for SDRplay RSPx and PLUTO only (since we need 10MS/s sampling rate)
+* DVB-S2 bitrate calculator
 
 # required computer
-a PC (Intel/AMD) or
+a PC (Intel/AMD) running Linux or
 a fast SBC like the Odroid-N2, Odroid XU4 or Raspberry PI 4.
 
 may also run on slower computers, not guaranteed, try it.
@@ -170,7 +175,7 @@ in your internet router you need to open two TCP ports for external access:
 1) the port to your webserver: 80
 2) the port to the websocket: 8091
 
-the websocket port can be changed in the Setup (see Browser Window top/right)
+the websocket port can be changed in the Setup (see Browser Window "SETUP" button)
 
 # running the NB and WB version of this software simultaneously
 If you want to run the WB monitor with an SDRplay RSPx and also the NB monitor then you can do that simultaneously.

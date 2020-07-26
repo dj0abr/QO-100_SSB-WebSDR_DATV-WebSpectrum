@@ -145,6 +145,15 @@ body {
     text-align: center;
 }
 
+.clickinfo
+{
+    width: 350px;
+    font: "Arial";
+    font-size:12px;
+    font-weight: 100;
+    background: #f0f0f0;
+}
+
 .selectbox {
     width: 120px;
     padding:6px;
@@ -162,6 +171,12 @@ body {
     cursor:pointer;
     font-size: 16px;
     font-weight: 600;
+}
+
+.selectbox_small {
+    width: 120px;
+    margin-top: 4px;
+    font-size: 12px;
 }
 
 .mybutton {
@@ -186,6 +201,16 @@ body {
 
 .qrg {
 width:100px;
+}
+
+.symrate {
+width:87px;
+font-weight: 600;
+}
+
+.result {
+width:182px;
+font-weight: 600;
 }
 
 canvas {
@@ -239,9 +264,25 @@ function MouseMoveHandler(e)
     $("#tuneinfo").html(sd);
 }
 
+function myRightClick(e)
+{
+    var e = window.event || e; // old IE support
+    var frequency = mouseXtoQRG(e.pageX) * 1000000; // clicked qrg in Hz
+    frequency = Math.round(frequency);
+
+    for(var xx=0; xx<qrgarridx; xx++)
+    {
+        if(startqrgarr[xx] <= frequency && endqrgarr[xx] >= frequency)
+        {
+            // clicked signal's BW in bwarr[xx]
+            $("#symrate").val(bwarr[xx]);
+            CalcBitrate();
+        }
+    }
+}
+
 function MouseClickHandler(e)
 {
-    // get clicked frequency
     var e = window.event || e; // old IE support
     var frequency = mouseXtoQRG(e.pageX) * 1000000; // clicked qrg in Hz
     frequency = Math.round(frequency);
@@ -290,7 +331,32 @@ function filter36()
 
 function onstart()
 {
+    $("#symrate").val("333");
+    $("#fec").val(0.5);
+    CalcBitrate();
+
     setListboxes();
+    
+    $(document).ready(function() 
+    {
+    	//Define the handler
+        var handler = function(e) 
+        {
+            e.preventDefault();
+            switch(e.button) 
+            {
+                case 2:
+                    console.log('Right click');
+                    myRightClick(e);
+                    break;
+            }
+        };
+      
+        //For left and middle click
+        //$('#clickme').on('click', handler);
+    	//For right click
+        $('#spec').on('contextmenu', handler);
+    });
     
     // click into WF
     var myitem = document.getElementById("wf_overlay");
@@ -1804,11 +1870,63 @@ function closingCode()
     setupwindow.close();
     return null;
 }
+
+function getPS(p)
+{
+    if(p == 0) return 0;
+    if(p == "0") return 0;
+    
+    var pn = ((fec_frame_size / modulation / 90 - 1) / 16) * 36;
+    
+    // kein Pilot=0, sonst abgerundete Ganzzahl von ((fec_frame_size / modulation / 90 - 1) / 16) * 36
+    return pn;
+}
+
+function find_fec(a, b)
+{
+    if(Math.abs(a-b) <= (((Math.abs(a) > Math.abs(b))?Math.abs(a):Math.abs(b))/100.0)) return 1;
+    return 0;
+}
+
+function getcs(fecframe, fec)
+{
+    if (fecframe != 64800)
+        return 0xc0;
+    
+    if(find_fec(2.0/3.0, fec) || find_fec(5.0/6.0, fec)) 
+        return 0xa0;
+    
+    if(find_fec(8.0/9.0, fec) || find_fec(9.0/10.0, fec)) 
+        return 0x80;
+    
+    return 0xc0;
+}
+
+function CalcBitrate()
+{
+    var rolloff = $("#rolloff").val();
+    var modulation = $("#modulation").val();
+    var symbol_rate = $("#symrate").val();
+    var fec = $("#fec").val();
+    var fec_frame_size = $("#fecsize").val();
+    var pilot = 0;
+    if($("#pilot").val() == 1)
+    {
+        pilot = (fec_frame_size / modulation / 90 - 1) * 2.25;
+        console.log("pilot: " + pilot);
+    }
+    var channel_size_tmp = getcs(fec_frame_size,fec);
+    var nettoTSbitrate = Math.floor(symbol_rate/(fec_frame_size/modulation + 90 + pilot)*(fec_frame_size*fec - channel_size_tmp -80));
+    var usedBW = (1 + parseFloat(rolloff))*symbol_rate;
+    $("#nettoTSrate").val("netto TS rate: " + Math.floor(nettoTSbitrate) + " kbit/s");
+    $("#occrate").val("Bandwidth: " + Math.floor(usedBW) + " kbit/s");
+}
+
 </script>
 </head>
     <body>
         <div class="header_mytitle" id="header_mytitle">QO-100 on es'hail-2 Wideband DATV Live Spectrum</div>
-        <div class="header_subtitle" id="header_subtitle">SDRplay / Pluto by DJ0ABR V2.9</div>
+        <div class="header_subtitle" id="header_subtitle">SDRplay / Pluto by DJ0ABR V3.0</div>
         <div class="controls">
             <div class="leftside">
                 <select id="color" class="selectbox" name="color">
@@ -1849,6 +1967,7 @@ function closingCode()
                 <div class="controls_left">
                     <div class="controls_left_left">
                         <div>SDR-SERVER:</div>
+                        <button class="mybutton" id="setupbutton" onclick="setup()" style="display:none" align="right">SETUP</button>
                     </div>
                     <div class="controls_left_mid">
                         <div id="status">Status</div>
@@ -1924,16 +2043,51 @@ function closingCode()
             <div class="rl_space">
             </div>
             <div class="rightside">
-                <div>
-                    <button class="mybutton" id="setupbutton" onclick="setup()" style="display:none" align="right">SETUP</button>
-                </div>
-                <div class="cat_message">
-                    ! for local users only !<hr>
-                </div>
+                <input type="text" class="symrate" id="symrate" onkeyup="CalcBitrate()">kS/s
+                <select id="modulation" class="selectbox_small" name="modulation" onchange="CalcBitrate()">
+                    <option value="2">QPSK</option>
+                    <option value="3">8PSK</option>
+                    <option value="4">16PSK</option>
+                    <option value="5">32PSK</option>
+                </select>
+                <select id="fec" class="selectbox_small" name="fec" onchange="CalcBitrate()">
+                    <option value="0.25">FEC: 1/4</option>
+                    <option value="0.333">FEC: 1/3</option>
+                    <option value="0.4">FEC: 2/5</option>
+                    <option value="0.5">FEC: 1/2</option>
+                    <option value="0.6">FEC: 3/5</option>
+                    <option value="0.667">FEC: 2/3</option>
+                    <option value="0.75">FEC: 3/4</option>
+                    <option value="0.8">FEC: 4/5</option>
+                    <option value="0.8333">FEC: 5/6</option>
+                    <option value="0.8889">FEC: 8/9</option>
+                    <option value="0.9">FEC: 9/10</option>
+                </select>
+                <select id="fecsize" class="selectbox_small" name="fecsize" onchange="CalcBitrate()">
+                    <option value="64800">FEC: normal</option>
+                    <option value="16200">FEC: short</option>
+                </select>
+                <select id="rolloff" class="selectbox_small" name="rolloff" onchange="CalcBitrate()">
+                    <option value="0.35">Rolloff: 0.35</option>
+                    <option value="0.25">Rolloff: 0.25</option>
+                    <option value="0.2">Rolloff: 0.2</option>
+                </select>
+                <select id="pilot" class="selectbox_small" name="pilot" onchange="CalcBitrate()">
+                    <option value="0">Pilot: OFF</option>
+                    <option value="1">Pilot: ON</option>
+                </select>
+                <input type="text" class="result" id="nettoTSrate" readonly>
+                <input type="text" class="result" id="occrate" readonly>
             </div>
         </div>
         
-        <div id="tuneinfo" class="tuneinfo"></div>
+        <div class="myflex">
+            <div id="clickinfo" class="clickinfo">
+                left click on signal: set Minitiouner<br>
+                right click on signal: fill Symbol Rate into calculator
+            </div>
+            <div id="tuneinfo" class="tuneinfo"></div>
+        </div>
         <br>
         
         <div style="position: relative;">

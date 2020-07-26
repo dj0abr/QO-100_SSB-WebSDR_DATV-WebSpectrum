@@ -11,6 +11,7 @@ var config = {
     CIV_address:        0xa2,
     tx_correction:      0,
     icom_satmode:       0,
+    pluto_ip:           0,
 }
 
 var configname = 'config2'
@@ -68,6 +69,13 @@ function extract_data(arr, idx)
     
     config.icom_satmode = get32(arr.slice(idx+76));
     //console.log("icom_satmode:" + config.icom_satmode);
+
+    plip = String.fromCharCode.apply(String, arr.slice(idx+80,idx+80+20));
+    for(i=0; i<20; i++) plip = plip.replace('\0',' ');
+    config.pluto_ip = plip.trim();
+    //console.log("pluto_ip:<" + config.pluto_ip + ">");
+    
+    // next index at 100
     
     localStorage.setItem(configname,JSON.stringify(config));
 }
@@ -89,6 +97,7 @@ function getConfig()
     console.log("CIV_address:" + config.CIV_address);
     console.log("tx_correction:" + config.tx_correction);
     console.log("icom_satmode:" + config.icom_satmode);
+    console.log("pluto_ip:<" + config.pluto_ip + ">");
     */
 }
 
@@ -114,7 +123,8 @@ function sendSetup()
     config.minitiouner_local + ";" +
     config.CIV_address + ";" +
     config.tx_correction + ";" + 
-    config.icom_satmode + ";"
+    config.icom_satmode + ";" +
+    config.pluto_ip + ";"
     ; 
 
     //console.log(txstr);

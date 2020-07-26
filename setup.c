@@ -46,6 +46,7 @@ int32_t lnb_multiplier = DEFAULT_LNB_MULTIPLIER;
 int32_t downmixer_outqrg = DEFAULT_DOWNMIXER_OUTQRG;
 int32_t minitiouner_offset = 0;
 char mtip[20] = {"192.168.0.25"};
+char pluto_ip[20] = {"0"};
 int minitiouner_port = 6789;
 int minitiouner_local = 1;
 int websock_port = DEFAULT_WEBSOCK_PORT;
@@ -134,6 +135,7 @@ int i;
         fprintf(fw,"CIV_address:%lld\n",(long long int)civ_adr);
         fprintf(fw,"tx_correction:%lld\n",(long long int)tx_correction);
         fprintf(fw,"icom_satmode:%lld\n",(long long int)icom_satmode);
+        fprintf(fw,"pluto_ip:%s\n",pluto_ip);
         
 
         fclose(fw);
@@ -293,6 +295,13 @@ static int32_t old_downmixer_outqrg = 0;
     if(readnum(&num,"CIV_address")) civ_adr = num; else return 0;
     if(readnum(&num,"tx_correction")) tx_correction = num; else return 0;
     if(readnum(&num,"icom_satmode")) icom_satmode = num; else return 0;
+    p = readstring("pluto_ip");
+    if(p != NULL) 
+    {
+        strncpy(pluto_ip,p,19); 
+        pluto_ip[19]=0;
+    }
+    else return 0;
     
     if( old_lnb_crystal != lnb_crystal ||
         old_lnb_multiplier != lnb_multiplier ||
@@ -349,6 +358,7 @@ void sendConfigToBrowser()
     insertCfg4(civ_adr);
     insertCfg4(tx_correction);
     insertCfg4(icom_satmode);
+    insertCfgString(pluto_ip);
     
     ws_send_config(cfgdata, idx);
 }
@@ -424,6 +434,10 @@ static int32_t old_downmixer_outqrg = 0;
     
     if(getNextElement(s) == 0) return;
     icom_satmode = atoi(s);
+
+    if(getNextElement(s) == 0) return;
+    strncpy(pluto_ip,s,19);
+    pluto_ip[19] = 0;
     
     if( old_lnb_crystal != lnb_crystal ||
         old_lnb_multiplier != lnb_multiplier ||

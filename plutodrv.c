@@ -11,6 +11,7 @@
 #include "ssbfft.h"
 #include "setup.h"
 #include <iio.h>  // libiio-dev must be installed
+#include <arpa/inet.h>
 
 int setup_pluto();
 int pluto_create_rxthread();
@@ -47,46 +48,70 @@ char pluto_context_name[50];
 
 int init_pluto()
 {
-    // scan for a pluto USB device
-    char s[500];
-    snprintf(s,499,"iio_info -s");
-    s[499] = 0;
-    FILE *fp = popen(s,"r");
-    if(fp)
+    // check if pluto_ip contains a valid IP or not
+    struct sockaddr_in sa;
+    
+    int res = inet_pton(AF_INET,pluto_ip,&(sa.sin_addr));
+    if(res == 1)
     {
-        while (fgets(s, sizeof(s)-1, fp) != NULL) 
+        // we have a valid pluto IP continue using this IP
+        sprintf(pluto_context_name,"ip:%s",pluto_ip);
+        printf("search PLUTO at IP: <%s>\n",pluto_context_name);
+        if(setup_pluto() == 1)
         {
-            char *hp = strstr(s,"[usb:");
-            if(hp)
+            if(pluto_create_rxthread() == 1)
             {
-                hp += 1;
-                char *he = strchr(hp,']');
-                if(he)
-                {
-                    *he = 0;
-                    strncpy(pluto_context_name,hp,49);
-                    pluto_context_name[49] = 0;
-                    printf("PLUTO found: <%s>\n",pluto_context_name);
-                    if(setup_pluto() == 1)
-                    {
-                        if(pluto_create_rxthread() == 1)
-                        {
-                            printf("PLUTO initialized: OK\n");
-                            return 1;
-                        }
-                    }
-                    printf("PLUTO found, but cannot evaluate: iio_info -s\n");
-                    return 0;
-                }
+                printf("PLUTO initialized: OK\n");
+                return 1;
             }
         }
-        pclose(fp);
+        printf("PLUTO not found at IP: pluto_context_name\n");
+        return 0;
     }
     else
-        printf("ERROR: cannot execute ls command\n");
-    
-    printf("no PLUTO found\n");
-    return 0;
+    {
+        // continue with USB
+        printf("search PLUTO at USB\n");
+        char s[500];
+        snprintf(s,499,"iio_info -s");
+        s[499] = 0;
+        FILE *fp = popen(s,"r");
+        if(fp)
+        {
+            while (fgets(s, sizeof(s)-1, fp) != NULL) 
+            {
+                char *hp = strstr(s,"[usb:");
+                if(hp)
+                {
+                    hp += 1;
+                    char *he = strchr(hp,']');
+                    if(he)
+                    {
+                        *he = 0;
+                        strncpy(pluto_context_name,hp,49);
+                        pluto_context_name[49] = 0;
+                        printf("PLUTO found: <%s>\n",pluto_context_name);
+                        if(setup_pluto() == 1)
+                        {
+                            if(pluto_create_rxthread() == 1)
+                            {
+                                printf("PLUTO initialized: OK\n");
+                                return 1;
+                            }
+                        }
+                        printf("PLUTO found, but cannot evaluate: iio_info -s\n");
+                        return 0;
+                    }
+                }
+            }
+            pclose(fp);
+        }
+        else
+            printf("ERROR: cannot execute ls command\n");
+        
+        printf("no PLUTO found\n");
+        return 0;
+    }
 }
 
 /* cleanup and exit */

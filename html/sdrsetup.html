@@ -150,6 +150,9 @@ function onstart()
         $("#txt31a").text("AUS (INET Zugriff blockiert)");
         $("#txt32a").text("EIN (INET Zugriff erlaubt)");
         $("#txt33").text("Zugriffsbeschränkung für SETUP und andere Systemeinstellungen");
+        $("#txt34").text("Adalm-PLUTO (nur wenn ein Pluto angeschlossen ist)");
+        $("#txt35").text("IP-Adresse");
+        $("#txt36").text("wenn der Pluto über USB angeschlossen ist, dann dieses Feld LEER lassen !");
     }
     else
     {
@@ -189,6 +192,9 @@ function onstart()
         $("#txt31a").text("OFF (INET access blocked)");
         $("#txt32a").text("ON (INET access allowed)");
         $("#txt33").text("access restrictions for SETUP and other system related settings");
+        $("#txt34").text("Adalm-PLUTO (only if a Pluto is connected)");
+        $("#txt35").text("IP-address");
+        $("#txt36").text("if your Pluto is connected via USB cable, then leave this field EMPTY !");
     }
 
     // read config data from local storage
@@ -206,6 +212,7 @@ function onstart()
     document.getElementById('CIV_address').value = config.CIV_address.toString(16);
     document.getElementById('tx_correction').value = config.tx_correction;
     document.getElementById('icom_satmode').value = config.icom_satmode;
+    document.getElementById('plutoIP').value = config.pluto_ip;
 }
 
 function save()
@@ -222,6 +229,7 @@ function save()
     config.CIV_address = parseInt(document.getElementById('CIV_address').value.substring(0,2), 16);
     config.tx_correction = document.getElementById('tx_correction').value;
     config.icom_satmode = document.getElementById('icom_satmode').value;
+    config.pluto_ip = document.getElementById('plutoIP').value;
     
     saveConfig(); 
     
@@ -309,6 +317,7 @@ function save()
     <td></td>
     <td></td>
   </tr>
+  
   <tr>
     <td colspan="3" class="setup_title" id="txt14"></td>
   </tr>
@@ -335,6 +344,17 @@ function save()
     </select>
     </td>
     <td id="txt20"></td>
+  </tr>
+
+  <tr>
+    <td colspan="3" class="setup_title" id="txt34"></td>
+  </tr>
+  <tr>
+    <td id="txt35"></td>
+    <td>
+    <input type="text" name="plutoIP" id="plutoIP">
+    </td>
+    <td id="txt36"></td>
   </tr>
   
   <tr>
