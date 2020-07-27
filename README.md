@@ -31,7 +31,7 @@ Update V2.72:
 - choose transceiver (icom) type in the setup menu (Sat or TX only)
 - control the transceiver by right mouse click into one of the waterfalls
 
-Update V2.71:
+Update V2.71: 
 - SETUP menu: sometimes the contents was not loaded, this is fixed now.
 
 Update V2.7:
