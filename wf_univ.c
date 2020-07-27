@@ -86,7 +86,7 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
     
     // frequency where the SDR is tuned in Hz
     int tqrg = _tunedQRG;
-
+ 
     wfdata[idx++] = tqrg >> 24;
     wfdata[idx++] = tqrg >> 16;
     wfdata[idx++] = tqrg >> 8;

@@ -41,7 +41,7 @@ int read_config();
 char callsign[20] = "CALLSIGN";
 int64_t lnb_lo = 0;
 uint32_t lnb_crystal = DEFAULT_LNB_CRYSTAL;
-int32_t tuned_frequency = 0;
+int32_t tuned_frequency = 739500000;
 int32_t lnb_multiplier = DEFAULT_LNB_MULTIPLIER;
 int32_t downmixer_outqrg = DEFAULT_DOWNMIXER_OUTQRG;
 int32_t minitiouner_offset = 0;
@@ -449,6 +449,4 @@ static int32_t old_downmixer_outqrg = 0;
         
         retune_setup = 1;   // calc and install new tuner settings
     }
-    
-    
 }

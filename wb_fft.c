@@ -245,7 +245,8 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                             tuned_frequency,            // frequency of the SDR 
                             WF_RANGE_HZ,                // total width of the fft data in Hz (in this case 8.000.000)
                             WF_RANGE_HZ/WF_WIDTH,       // Hz/pixel
-                            LEFT_MARGIN_QRG_KHZ,client);   // frequency of the left margin of the waterfall
+                            LEFT_MARGIN_QRG_KHZ,        // frequency of the left margin of the waterfall
+                            client);                    // frequency of the left margin of the waterfall
                 }
                 
                 wftimes = 0;

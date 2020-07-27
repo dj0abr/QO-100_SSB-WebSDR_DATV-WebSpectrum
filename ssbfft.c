@@ -221,8 +221,8 @@ double real, imag;
                         realrf,            			// frequency of the SDR 
                         WF_RANGE_HZ,                // total width of the fft data in Hz (900.000)
                         NB_HZ_PER_PIXEL,            // Hz/pixel (100)
-                        LEFT_MARGIN_QRG_KHZ,   // frequency of the left margin of the waterfall
-                        client);                        // client ID, -1 ... to all clients
+                        LEFT_MARGIN_QRG_KHZ,        // frequency of the left margin of the waterfall
+                        client);                    // client ID, -1 ... to all clients
                 
                 // for the SMALL waterfall we need 1500 (WF_WIDTH) bins in a range of 15.000 Hz
                 
