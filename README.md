@@ -24,7 +24,7 @@ Update V2.81:
 Update V2.8:
 - beacon LOCK now working with the new bandplan
 
-Update V2.73:
+Update V2.73: 
 - adapted to new bandplan. Beaconlock temporarily deactivated. RTLsdr offset can be corrected in rtlsdr.c #define RTL_TUNER_CORRECTION. New beacon lock follows in the next update.
 
 Update V2.72:
