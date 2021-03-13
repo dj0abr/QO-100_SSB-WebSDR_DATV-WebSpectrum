@@ -238,6 +238,9 @@ void wb_sample_processing(short *xi, short *xq, int numSamples)
                     idx++;
                 }
                 
+                // wfsamp now has the absolute spectrum levels of one waterfall line
+                sendExtWB(wfsamp,WF_WIDTH);
+                
                 for(int client=0; client<MAX_CLIENTS; client++)
                 {
                     drawWF( WFID_BIG,                   // Waterfall ID

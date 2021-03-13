@@ -27,6 +27,7 @@
 #include <stdint.h>
 
 //#define SOUNDLOCAL    // activate to send the sound to the local sound card (and not to the browser)
+//#define AMSATBEACON     // activate to send the spectrum data via UDP to an HSmodem implementation, works for NB and WB
 
 // ====================================================
 // global definitions describing the LNB/Hardware/Mixer
@@ -187,6 +188,14 @@
 
 #endif
 
+// ====================================================
+// definitions for the AMSAT Beacon Mode
+// used if AMSATBEACON is defined, see top of this file
+// ====================================================
+#define BEACON_UDP_IP   "192.168.10.24" // IP address of the Computer running HSmodem
+#define BEACON_UDP_PORT 40135
+
+
 // for the RTLSDR only !
 // samples per callback
 #define SAMPLES_PER_PASS    512*8 // must be a multiple of 512
@@ -195,3 +204,6 @@ extern int hwtype;
 extern int samplesPerPacket;
 extern int TUNED_FREQUENCY;
 extern int stopped;
+
+void sendExt(uint16_t *wfsamp, int len);
+void sendExtWB(uint16_t *wfsamp, int len);

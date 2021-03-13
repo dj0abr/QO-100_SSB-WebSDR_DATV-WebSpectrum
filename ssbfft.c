@@ -137,8 +137,6 @@ double real, imag;
                 binline[i] = sqrt((real * real) + (imag * imag));
             }
             
-            // binline now has the absolute spectrum levels of one waterfall line with 10Hz resolution
-            
             // make a correction by retuning and/or shifting the spectrum
             bcnLock(binline);
             
@@ -211,6 +209,9 @@ double real, imag;
             
             // left-margin-frequency including clicked-frequency
             unsigned int realrf = tuned_frequency - newrf;
+            
+            // wfsamp now has the absolute spectrum levels of one waterfall line with 100Hz resolution
+            sendExt(wfsamp,DATASIZE);
             
             // loop through all clients for the waterfalls and the SSB decoder
             for(int client=0; client<MAX_CLIENTS; client++)
