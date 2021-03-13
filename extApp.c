@@ -65,6 +65,10 @@ void sendUDP(char *destIP, int destPort, uint8_t *pdata, int len);
 
 void sendExt(uint16_t *wfsamp, int len)
 {
+#ifndef AMSATBEACON
+    return;
+#endif
+    
 const int start = 2250;
 const int end = 7750;
 const int resolution = 10; // 100Hz*10 = 1kHz
@@ -115,7 +119,9 @@ uint8_t bval[2*fsize+5];
 // 10491.500 + 266*0.03 = 10499,480
 void sendExtWB(uint16_t *wfsamp, int len)
 {
-    printf("WBlen:%d\n",len);
+#ifndef AMSATBEACON
+    return;
+#endif
     
 const int start = 0;
 const int end = 1600;
