@@ -1606,18 +1606,14 @@ function openWebSocket()
 
     // get socket URL from actual browser-URL
     var x = location.href;
-    var a = x.split("/");
-    var y = "?";
-    for(var i=0; i<a.length; i++)
-    {
-        if(a[i].length > 6)
-        {
-            y = a[i];
-            break;
-        }
-    }
-    var ya = y.split(":");
-    sockurl = "ws://" + ya[0] + ":8090"; 
+    var num = x.search("://");
+    var ystr = x.substring(num+3);
+    var dp = ystr.search("/");
+    if(dp != -1) ystr = ystr.substring(0,dp+1);
+    ystr = ystr.substring(0,ystr.length-1);
+    //console.log(ystr);
+
+    sockurl = "ws://" + ystr + ":8090"; 
     //console.log("open websocket");
     console.log(sockurl);
     //$('#myinfo').html(sockurl);

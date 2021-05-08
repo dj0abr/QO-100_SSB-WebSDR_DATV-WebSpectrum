@@ -28,9 +28,13 @@ enum iodev { RX, TX };
 
 /* IIO structs required for streaming */
 static struct iio_context *ctx   = NULL;
+
 static struct iio_channel *rx0_i = NULL;
 static struct iio_channel *rx0_q = NULL;
 static struct iio_buffer  *rxbuf = NULL;
+
+// Streaming devices
+struct iio_device *rx;
 
 bool stop = false;
 char tmpstr[64];
@@ -44,7 +48,7 @@ pthread_t pluto_tid;
  * Pluto can only >2.5MS so we choose 3.8MS and decimate by 2
  */
 
-char pluto_context_name[50];
+char pluto_context_name[50] = {""};    // use this name, or leave empty to look for any available pluto
 
 int init_pluto()
 {
@@ -71,6 +75,23 @@ int init_pluto()
     
     // continue with USB
     printf("search PLUTO at USB\n");
+    
+    if(strlen(pluto_context_name) >= 7)
+    {
+        // use specific default pluto
+        printf("use default PLUTO: <%s>\n",pluto_context_name);
+        if(setup_pluto() == 1)
+        {
+            if(pluto_create_rxthread() == 1)
+            {
+                printf("PLUTO initialized: OK\n");
+                return 1;
+            }
+        }
+        printf("connot initialize this pluto\n");
+        return 0;
+    }
+    
     char s[500];
     snprintf(s,499,"iio_info -s");
     s[499] = 0;
@@ -145,10 +166,17 @@ static void wr_ch_str(struct iio_channel *chn, const char* what, const char* str
 	errchk(iio_channel_attr_write(chn, what, str), what);
 }
 
+/* write attribute: double */
+static void wr_ch_double(struct iio_channel *chn, const char* what, double str)
+{
+	errchk(iio_channel_attr_write_double(chn, what, str), what);
+}
+
 /* helper function generating channel names */
 static char* get_ch_name(const char* type, int id)
 {
 	snprintf(tmpstr, sizeof(tmpstr), "%s%d", type, id);
+    printf("name <%s>\n",tmpstr);
 	return tmpstr;
 }
 
@@ -173,6 +201,7 @@ static bool get_ad9361_stream_dev(struct iio_context *ctx, enum iodev d, struct 
 /* finds AD9361 streaming IIO channels */
 static bool get_ad9361_stream_ch(struct iio_context *ctx, enum iodev d, struct iio_device *dev, int chid, struct iio_channel **chn)
 {
+    printf("get_ad9361_stream_ch\n");
 	*chn = iio_device_find_channel(dev, get_ch_name("voltage", chid), d == TX);
 	if (!*chn)
 		*chn = iio_device_find_channel(dev, get_ch_name("altvoltage", chid), d == TX);
@@ -182,8 +211,11 @@ static bool get_ad9361_stream_ch(struct iio_context *ctx, enum iodev d, struct i
 /* finds AD9361 phy IIO configuration channel with id chid */
 static bool get_phy_chan(struct iio_context *ctx, enum iodev d, int chid, struct iio_channel **chn)
 {
+    printf("get_phy_chan\n");
 	switch (d) {
-	case RX: *chn = iio_device_find_channel(get_ad9361_phy(ctx), get_ch_name("voltage", chid), false); return *chn != NULL;
+	case RX:printf("RX <%s>\n",get_ch_name("voltage", chid));
+            *chn = iio_device_find_channel(get_ad9361_phy(ctx), get_ch_name("voltage", chid), false); 
+            return *chn != NULL;
 	case TX: *chn = iio_device_find_channel(get_ad9361_phy(ctx), get_ch_name("voltage", chid), true);  return *chn != NULL;
 	default:  return false;
 	}
@@ -203,6 +235,8 @@ static bool get_lo_chan(struct iio_context *ctx, enum iodev d, struct iio_channe
 /* applies streaming configuration through IIO */
 bool cfg_ad9361_streaming_ch(struct iio_context *ctx, struct stream_cfg *cfg, enum iodev type, int chid)
 {
+    printf("cfg_ad9361_streaming_ch type:%d chid:%d\n",type,chid);
+    
 	struct iio_channel *chn = NULL;
 
 	// Configure phy and lo channels
@@ -211,11 +245,22 @@ bool cfg_ad9361_streaming_ch(struct iio_context *ctx, struct stream_cfg *cfg, en
 	wr_ch_str(chn, "rf_port_select",     cfg->rfport);
 	wr_ch_lli(chn, "rf_bandwidth",       cfg->bw_hz);
 	wr_ch_lli(chn, "sampling_frequency", cfg->fs_hz);
-
+ 
 	// Configure LO channel
-	//printf("* Acquiring AD9361 %s lo channel\n", type == TX ? "TX" : "RX");
+	printf("* Acquiring AD9361 %s lo channel\n", type == TX ? "TX" : "RX");
 	if (!get_lo_chan(ctx, type, &chn)) { return false; }
 	wr_ch_lli(chn, "frequency", cfg->lo_hz);
+	return true;
+}
+
+#define REFTXPWR 10
+bool cfg_ad9361_streaming_ch_TXpower(struct iio_context *ctx, struct stream_cfg *cfg, enum iodev type, int chid)
+{
+	struct iio_channel *chn = NULL;
+
+	if (!get_phy_chan(ctx, type, chid, &chn)) {	return false; }
+    double dBm = 0; // output power
+    wr_ch_double(chn, "hardwaregain",dBm - REFTXPWR);
 	return true;
 }
 
@@ -256,22 +301,24 @@ void Pluto_setTunedQrgOffset(int hz)
 
 int setup_pluto()
 {
-    // Streaming devices
-	struct iio_device *rx;
-
 	// Stream configurations
 	struct stream_cfg rxcfg;
 
+    // === band width and set sample rate ===
+    // RX
     #ifndef WIDEBAND
         // NB Transponder RX stream config
         rxcfg.bw_hz = 2000000; // 2 MHz rf bandwidth
-        printf("set Pluto Sample Rate: %d\n",SDR_SAMPLE_RATE);
+        printf("set Pluto NB RX Sample Rate: %d\n",SDR_SAMPLE_RATE);
         rxcfg.fs_hz = SDR_SAMPLE_RATE; // 3.6 MS/s rx sample rate
     #else
         // WB Transponder RX stream config
         rxcfg.bw_hz = 20000000; // 20 MHz rf bandwidth
         rxcfg.fs_hz = SDR_SAMPLE_RATE; // 10 MS/s rx sample rate
     #endif
+
+    // === frequency and port ===
+    // RX
 	rxcfg.lo_hz = (long long)tuned_frequency;
 	rxcfg.rfport = "A_BALANCED"; // port A (select for rf freq.)
 
@@ -290,13 +337,19 @@ int setup_pluto()
         return 0;
     }    
 	
+    // === get AD9361 streaming devices ===
+    // RX
+    printf("get_ad9361_stream_dev RX\n");
     bool bret = get_ad9361_stream_dev(ctx, RX, &rx);
     if(!bret)
     {
         printf("FAILED: no rx dev found\n");
         return 0;
     }    
-    
+
+    // === configure AD9361 for streaming ===
+    // RX
+    printf("cfg_ad9361_streaming_ch RX 0\n");
     bret = cfg_ad9361_streaming_ch(ctx, &rxcfg, RX, 0);
 	if(!bret)
     {
@@ -304,14 +357,17 @@ int setup_pluto()
         return 0;
     }
 
-	//printf("* Initializing AD9361 IIO streaming channels\n");
+	// === Initializing AD9361 IIO streaming channels ===
+    // RX I
+    printf("get_ad9361_stream_ch RX 0\n");
     bret = get_ad9361_stream_ch(ctx, RX, rx, 0, &rx0_i);
 	if(!bret)
     {
         printf("FAILED: RX chan i not found\n");
         return 0;
     }
-    
+    // RX Q
+    printf("get_ad9361_stream_ch RX 1\n");
     bret = get_ad9361_stream_ch(ctx, RX, rx, 1, &rx0_q);
 	if(!bret)
     {
@@ -319,14 +375,19 @@ int setup_pluto()
         return 0;
     }
 
+    // === enable IIO streaming channels ===
+    // RX
 	iio_channel_enable(rx0_i);
 	iio_channel_enable(rx0_q);
 
-	rxbuf = iio_device_create_buffer(rx, PLUTO_RXBUFSIZE, false); // TODO, check best buffer size size
+    // === create IIO buffers ===
+    // RX
+	rxbuf = iio_device_create_buffer(rx, PLUTO_RXBUFSIZE, false); // TODO, check best buffer size
 	if (!rxbuf) {
 		printf("Could not create RX buffer\n");
 		return 0;
 	}
+
 	return 1;
 }
 
@@ -338,7 +399,7 @@ int pluto_create_rxthread()
     int ret = pthread_create(&pluto_tid,NULL,pluto_rxproc, NULL);
     if(ret)
     {
-        printf("pluto RX process NOT started\n");
+        printf("pluto process NOT started\n");
         return 0;
     }
     return 1;
@@ -353,9 +414,12 @@ short ibuf[PLUTO_RXBUFSIZE];
 short qbuf[PLUTO_RXBUFSIZE];
         
     pthread_detach(pthread_self());
+
+    printf("pluto process started\n");
     
     while(stop == false)
     {
+        // === RX from Pluto ===
         // Refill RX buffer
 		nbytes_rx = iio_buffer_refill(rxbuf);
 		if (nbytes_rx < 0) 
@@ -390,6 +454,6 @@ short qbuf[PLUTO_RXBUFSIZE];
         #endif
     }
     
-    printf("exit pluto RX thread\n");
+    printf("exit pluto thread\n");
     pthread_exit(NULL);
 }

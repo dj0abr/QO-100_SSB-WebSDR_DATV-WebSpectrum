@@ -51,8 +51,8 @@
 #include <arpa/inet.h>
 #include <pwd.h>
 #include <math.h>
+#include "udp/udp.h"
 
-void sendUDP(char *destIP, int destPort, uint8_t *pdata, int len);
 
 // NB Transponder
 // gets the FFT result for an external application
@@ -163,26 +163,3 @@ uint8_t bval[2*fsize+5];
     // and send via UDP to HSmodem
     sendUDP(BEACON_UDP_IP,BEACON_UDP_PORT,bval,idx);
 }
-
-// send UDP message
-void sendUDP(char *destIP, int destPort, uint8_t *pdata, int len)
-{
-    int sockfd; 
-    struct sockaddr_in     servaddr; 
-  
-    // Creating socket file descriptor 
-    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
-        printf("sendUDP: socket creation failed\n"); 
-        return; 
-    } 
-    memset(&servaddr, 0, sizeof(servaddr)); 
-    // Filling server information 
-    servaddr.sin_family = AF_INET; 
-    servaddr.sin_port = htons(destPort); 
-    //printf("Send to <%s><%d> Len:%d\n",destIP,destPort,len);
-    servaddr.sin_addr.s_addr=inet_addr(destIP);
-    sendto(sockfd, (char *)pdata, len, 0, (const struct sockaddr *) &servaddr, sizeof(servaddr)); 
-    close(sockfd);
-}
-
-

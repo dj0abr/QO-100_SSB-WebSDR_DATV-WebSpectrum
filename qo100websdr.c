@@ -237,56 +237,63 @@ void calc_system_parameters()
 
 void start_SDR()
 {
-	#ifdef WIDEBAND
-		#ifdef SDR_PLAY
-		if(init_SDRplay())
-            hwtype = 1;
-        #endif
-        #ifdef PLUTO
-            if(init_pluto())
+    #ifdef EXTUDP
+        hwtype = 0;
+        return;
+    #else
+        #ifdef WIDEBAND
+            #ifdef SDR_PLAY
+            if(init_SDRplay())
+                hwtype = 1;
+            #endif
+            #ifdef PLUTO
+                if(init_pluto())
+                {
+                    hwtype = 3;
+                }
+            #endif
+        #else
+            // for NB transponder try RTLsdr first
+            if(init_rtlsdr())
             {
-                hwtype = 3;
+                hwtype = 2;
+                samplesPerPacket = SAMPLES_PER_PASS;
             }
-        #endif
-	#else
-		// for NB transponder try RTLsdr first
-		if(init_rtlsdr())
-		{
-		    hwtype = 2;
-		    samplesPerPacket = SAMPLES_PER_PASS;
-		}
-		
-        #ifdef PLUTO
-            if(init_pluto())
-            {
-                hwtype = 3;
-            }
-        #endif
+            
+            #ifdef PLUTO
+                if(init_pluto())
+                {
+                    hwtype = 3;
+                }
+            #endif
 
-		#ifdef SDR_PLAY
-		    if(hwtype == 0)
-		    {
-		        if(init_SDRplay())
-                    hwtype = 1;
-		    }
-    	#endif
-	#endif
-       
+            #ifdef SDR_PLAY
+                if(hwtype == 0)
+                {
+                    if(init_SDRplay())
+                        hwtype = 1;
+                }
+            #endif
+        #endif
+        
 
-    if(hwtype == 0)
-    {
-        printf("no SDR hardware found.\n");
-        save_config();
-        exit(0);
-    }
+        if(hwtype == 0)
+        {
+            printf("no SDR hardware found.\n");
+            save_config();
+            exit(0);
+        }
+    #endif
 }
 
 void stop_SDR()
 {
+#ifndef EXTUDP
 #ifdef SDR_PLAY
     if(hwtype == 1) remove_SDRplay();
 #endif
     if(hwtype == 2) rtlsdr_close(0);
+#endif    
 }
 
 int main(int argc, char *argv[])
@@ -361,10 +368,13 @@ int main(int argc, char *argv[])
             
             save_config();
             calc_system_parameters();
+            #ifndef EXTUDP
             re_set_freq();
+            #endif
         }
-        
+        #ifndef EXTUDP
         set_frequency();
+        #endif
         if(configrequest)
             sendConfigToBrowser();
         usleep(1000);

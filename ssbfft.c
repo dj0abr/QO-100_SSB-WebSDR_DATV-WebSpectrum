@@ -45,6 +45,9 @@
 #include "rtlsdr.h"
 #include "setup.h"
 #include "beaconlock.h"
+#include "udp/udp.h"
+
+void fssb_sample_processing(int16_t *xi, int16_t *xq, int numSamples);
 
 // not used for WB Transponder
 #ifndef WIDEBAND
@@ -59,6 +62,35 @@ int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
 int audio_idx[MAX_CLIENTS];
 int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
 int b16idx[MAX_CLIENTS];
+
+#ifdef EXTUDP
+int sock;
+void udpsamples(uint8_t *psamp, int len , struct sockaddr_in* sender)
+{
+    int samps = len/4;
+    int16_t xi[samps];
+    int16_t xq[samps];
+    
+    int didx = 0;
+    for(int i=0; i<len; i+=4)
+    {
+        xi[didx] = psamp[i+1];
+        xi[didx] <<= 8;
+        xi[didx] += psamp[i];
+        
+        xq[didx] = psamp[i+3];
+        xq[didx] <<= 8;
+        xq[didx] += psamp[i+2];
+        
+        if(didx >= samps) printf("xi xq too small %d\n",didx);
+        didx++;
+    }
+    
+    //printf("process %d samples\n",samps);
+    
+    fssb_sample_processing(xi, xq, samps);
+}
+#endif
 
 void init_fssb()
 {
@@ -89,6 +121,10 @@ void init_fssb()
         audio_cnt[i] = 0;
         audio_idx[i] = 0;
     }
+    
+#ifdef EXTUDP
+    UdpRxInit(&sock, 40808, udpsamples , &stopped);
+#endif
 }
 
 // gain correction
@@ -137,8 +173,10 @@ double real, imag;
                 binline[i] = sqrt((real * real) + (imag * imag));
             }
             
+            #ifndef EXTUDP
             // make a correction by retuning and/or shifting the spectrum
             bcnLock(binline);
+            #endif
             
             // this fft has generated NB_FFT_LENGTH bins in cpout
             #define DATASIZE ((NB_FFT_LENGTH/2)/NB_OVERSAMPLING)    // (180.000/2)/10 = 9000 final values
@@ -158,7 +196,11 @@ double real, imag;
             // this must be corrected here by shifting the cpout
             // Resolution: 10 Hz, so every single shift means 10 Hz correction
             
+            #ifndef EXTUDP
             int corr = offqrg; // correction shift in 10Hz steps
+            #else
+            int corr = 0;
+            #endif
             int corr_start = corr;
             int corr_end = (NB_FFT_LENGTH/2) + corr;
             if(corr_start < 0) corr_start = -corr_start;
@@ -208,7 +250,11 @@ double real, imag;
             // here we have wfsamp filled with DATASIZE values
             
             // left-margin-frequency including clicked-frequency
+            #ifndef EXTUDP
             unsigned int realrf = tuned_frequency - newrf;
+            #else
+            unsigned int realrf = tuned_frequency;
+            #endif
             
             // wfsamp now has the absolute spectrum levels of one waterfall line with 100Hz resolution
             sendExt(wfsamp,DATASIZE);
@@ -224,7 +270,7 @@ double real, imag;
                         NB_HZ_PER_PIXEL,            // Hz/pixel (100)
                         LEFT_MARGIN_QRG_KHZ,        // frequency of the left margin of the waterfall
                         client);                    // client ID, -1 ... to all clients
-                
+                #ifndef EXTUDP                
                 // for the SMALL waterfall we need 1500 (WF_WIDTH) bins in a range of 15.000 Hz
                 
                 // starting at the current RX frequency - 15kHz/2 (so the RX qrg is in the middle)
@@ -232,6 +278,7 @@ double real, imag;
                 // so we need the bins from (foffset/10) - 750 to (foffset/10) + 750
                 int start = ((foffset[client])/10) - 750;
                 int end = ((foffset[client])/10) + 750;
+                
 
                 if(start < 0) start = 0;
                 if(end >= NB_FFT_LENGTH) end = NB_FFT_LENGTH-1;
@@ -263,10 +310,11 @@ double real, imag;
                         10,			                // Hz/pixel
                         LEFT_MARGIN_QRG_KHZ + (foffset[client])/1000, // frequency of the left margin of the waterfall
                         client);                    // logged in client index
-                
+                #endif
             }
-            
+            #ifndef EXTUDP                
             ssbdemod(cpout, corr_start);
+            #endif
         }
     }
 }

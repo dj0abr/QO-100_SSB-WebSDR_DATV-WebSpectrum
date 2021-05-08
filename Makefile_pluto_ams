@@ -1,4 +1,4 @@
-CFLAGS?=-O3 -Wall -I./websocket -std=gnu99 -DESHAIL2 -DPLUTO
+CFLAGS?=-O3 -Wall -I./websocket -std=gnu99 -DESHAIL2 -DPLUTO -DAMSATBEACON
 LDLIBS+= -lpthread -lm -lfftw3 -lfftw3_threads -lsndfile -lasound -liio -lrtlsdr
 CC?=gcc
 PROGNAME=qo100websdr

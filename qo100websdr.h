@@ -27,7 +27,6 @@
 #include <stdint.h>
 
 //#define SOUNDLOCAL    // activate to send the sound to the local sound card (and not to the browser)
-//#define AMSATBEACON     // activate to send the spectrum data via UDP to an HSmodem implementation, works for NB and WB
 
 // ====================================================
 // global definitions describing the LNB/Hardware/Mixer
@@ -74,7 +73,7 @@
         // RX frequency of the left margin of the WF/spectrum picture in kHz
         #define LEFT_MARGIN_QRG_KHZ  10491500  
         
-        // 14 MHz sample rate, the Pluto has already drop outs at this rate
+        // 16 MHz sample rate, the Pluto has already drop outs at this rate
         // but this does not matter for a Spectrum/WF display
         #define SDR_SAMPLE_RATE 16000000    
         
@@ -158,7 +157,7 @@
     
     // SDR_SAMPLE_RATE is the SDRs internal sample rate
     // the SDRplay divides it in the proprietary driver, while
-    // the RTLsdr divides it in rtlsdr.c
+    // the RTLsdr divides it in rtlsdr.c and pluto in the pluto driver getting the samples from iio
 	#define SDR_SAMPLE_RATE    (NB_SAMPLE_RATE * SR_MULTIPLIER)
     
     // number of input and output data of the FFT
@@ -192,7 +191,7 @@
 // definitions for the AMSAT Beacon Mode
 // used if AMSATBEACON is defined, see top of this file
 // ====================================================
-#define BEACON_UDP_IP   "192.168.10.24" // IP address of the Computer running HSmodem
+#define BEACON_UDP_IP   "192.168.20.99" // IP address of the Computer running HSmodem
 #define BEACON_UDP_PORT 40135
 
 

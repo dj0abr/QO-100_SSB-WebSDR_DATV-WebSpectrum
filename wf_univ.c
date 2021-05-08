@@ -106,6 +106,7 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
 		// if it is below 500kHz then it is the TX qrg, in this case add 500 kHz
         // tx_correction is a value which can be used to correct an offset of an external transmitter (ICOM)
         // which is used by CIV to read the frequency
+        #ifndef EXTUDP
         int corval = 500000 + tx_correction;
 		int tf = (tuned_frequency / 1000000) * 1000000;	// tf is the tunded qrg, only MHz
 		int kHz = civ_freq - ((civ_freq / 1000000) * 1000000); // only kHz
@@ -114,12 +115,19 @@ void drawWF(int id, unsigned short *fdata, unsigned int _realqrg, int picwidthHz
         // assign it to local users only
         if(isLocal(client))
             foffset[client] = offset;
+        #endif
     }
-    
+#ifdef EXTUDP
+    wfdata[idx++] = 0;
+    wfdata[idx++] = 0;
+    wfdata[idx++] = 0;
+    wfdata[idx++] = 0;
+#else
     wfdata[idx++] = foffset[client] >> 24;
     wfdata[idx++] = foffset[client] >> 16;
     wfdata[idx++] = foffset[client] >> 8;
     wfdata[idx++] = foffset[client];
+#endif
     
     wfdata[idx++] = get_useranz();  // number of users logged in
     wfdata[idx++] = isTrxAvailable();   // 1 if an TRX is connected via cat

@@ -303,7 +303,11 @@ unsigned char *ws_build_txframe(int i, int *plength)
         txdata[idx++] = actsock[i].msglen0 & 0xff;
         memcpy(txdata+idx,actsock[i].msg0,actsock[i].msglen0);
         // first WF byte is used as RF-lock indicator
+        #ifndef EXTUDP
         txdata[idx] = rflock;
+        #else
+        txdata[idx] = 1;
+        #endif
         idx += actsock[i].msglen0;
     }
     

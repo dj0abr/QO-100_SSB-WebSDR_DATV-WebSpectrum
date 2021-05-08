@@ -103,8 +103,13 @@ int ret = 0;
 
 // we need different config files for root and user
 // otherwise a user would not be able to write a cfg file created by root
+#ifdef WIDEBAND
 #define CFG_FILENAME        "wb.cfg"
 #define CFG_FILENAME_ROOT   "wb_admin.cfg"
+#else
+#define CFG_FILENAME        "nb.cfg"
+#define CFG_FILENAME_ROOT   "nb_admin.cfg"
+#endif
 
 // save config values in a readable format in file: wb.cfg
 void save_config()

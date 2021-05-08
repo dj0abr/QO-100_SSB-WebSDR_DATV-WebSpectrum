@@ -116,7 +116,11 @@ void *ssbdemod_thread(void *param)
         // fmin and fmax are the minimum and maximum audio frequencies of interest
         int fmin = 0;
         int fmax = 500;                     // 3,6 kHz max BW
+        #ifndef EXTUDP
         int ifqrg = foffset[client] / 10;   // offset choosen by the user
+        #else
+        int ifqrg = 0;
+        #endif
         ifqrg += ssbp[client].offset;       // and SDR correction offset
         for (int i = fmin; i < fmax; i++)
         {
