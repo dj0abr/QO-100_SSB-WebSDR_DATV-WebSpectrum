@@ -1,3 +1,6 @@
 cp Makefile_playsdr_WB Makefile
 make clean
 make -j 4
+echo =========================================================================
+echo !!! the SDRplay API V3.x must be installed. Download from SDRplay WebSite
+echo =========================================================================
