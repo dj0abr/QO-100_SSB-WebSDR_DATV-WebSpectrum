@@ -100,9 +100,9 @@ void *wsproc(void *pdata)
  * 
  * this function is thread safe by a LOCK
  */
-pthread_mutex_t crit_sec;
-#define LOCK	pthread_mutex_lock(&crit_sec)
-#define UNLOCK	pthread_mutex_unlock(&crit_sec)
+pthread_mutex_t ws_crit_sec;
+#define LOCK	pthread_mutex_lock(&ws_crit_sec)
+#define UNLOCK	pthread_mutex_unlock(&ws_crit_sec)
 
 void ws_send(unsigned char *pwfdata, int idx, int wf_id, int client)
 {

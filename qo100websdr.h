@@ -189,9 +189,15 @@
 
 // ====================================================
 // definitions for the AMSAT Beacon Mode
-// used if AMSATBEACON is defined, see top of this file
+// used if AMSATBEACON is defined
 // ====================================================
-#define BEACON_UDP_IP   "192.168.20.99" // IP address of the Computer running HSmodem
+
+// config file location
+// enter directory and name of the configuration file
+#define CONFIGFILE		"~/ams_config.txt"
+
+// default config, will be overwritten by values from CONFIGFILE (if exists)
+#define BEACON_UDP_IPADDR   "192.168.20.99" // IP address of the Computer running HSmodem
 #define BEACON_UDP_PORT 40135
 
 
@@ -203,6 +209,9 @@ extern int hwtype;
 extern int samplesPerPacket;
 extern int TUNED_FREQUENCY;
 extern int stopped;
+extern char pluto_serialnumber[100];
 
 void sendExt(uint16_t *wfsamp, int len);
 void sendExtWB(uint16_t *wfsamp, int len);
+void readAMSConfig();
+

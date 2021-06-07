@@ -175,11 +175,11 @@ void searchHTMLpath()
             if(strlen(cp)>3)
             {
                 strcpy(htmldir,cp);
-                printf("Webserver Path: %s",htmldir);
+                printf("Webserver Path: %s\n",htmldir);
             }
             else
             {
-                printf("Path to apache webserver files not found");
+                printf("Path to apache webserver files not found\n");
                 exit(0);
             }
             
@@ -187,7 +187,7 @@ void searchHTMLpath()
         }
         else
         {
-            printf("Path to apache webserver files not found");
+            printf("Path to apache webserver files not found\n");
             exit(0);
         }
     }
@@ -200,7 +200,7 @@ void installHTMLfiles()
     int i;
     if ((i=getuid()))
     {
-        printf("\nYou are not root, HTML files are not automatically copied into the Apache folder!\n");
+        printf("\nYou are not root, HTML files are not automatically copied into the Apache folder! Start this program ONCE with root privileges\n");
         return;
     }
     
@@ -223,6 +223,9 @@ void calc_system_parameters()
 {
     // calculate settings
     calc_setup();
+
+    // load external configuration (if used)
+    readAMSConfig();
     
     printf("\nSDR parameters:\n\n");
     printf("SDR base QRG:    %d Hz\n",tuned_frequency);
@@ -363,12 +366,14 @@ int main(int argc, char *argv[])
     {
         if(retune_setup)
         {
+            
             // setup requested new settings of the tuner
             retune_setup = 0;
             
             save_config();
             calc_system_parameters();
             #ifndef EXTUDP
+            printf("set pluto freq\n");
             re_set_freq();
             #endif
         }

@@ -53,6 +53,7 @@
 #include <math.h>
 #include "udp/udp.h"
 
+char beacon_udp_ip[20] = {0}; // IP address where the HSmodem beacon is running
 
 // NB Transponder
 // gets the FFT result for an external application
@@ -107,7 +108,7 @@ uint8_t bval[2*fsize+5];
     bval[4] = 1;    // ID for NB spectrum data
     
     // and send via UDP to HSmodem
-    sendUDP(BEACON_UDP_IP,BEACON_UDP_PORT,bval,idx);
+    sendUDP(beacon_udp_ip,BEACON_UDP_PORT,bval,idx);
 }
 
 // WB Transponder
@@ -127,7 +128,7 @@ const int start = 0;
 const int end = 1600;
 const int resolution = 6; // 5kHz * 6 = 30kHz
 const int fsize = (end-start)/resolution;
-uint32_t val[fsize]; // size: 266
+uint32_t val[fsize+1]; // size: 266
 uint8_t bval[2*fsize+5];
 
     int idx=0;
@@ -161,5 +162,160 @@ uint8_t bval[2*fsize+5];
     bval[4] = 3;    // ID for WB spectrum data
     
     // and send via UDP to HSmodem
-    sendUDP(BEACON_UDP_IP,BEACON_UDP_PORT,bval,idx);
+    sendUDP(beacon_udp_ip,BEACON_UDP_PORT,bval,idx);
+}
+
+// ============= read Beacon Config file ===================
+
+char* cleanStr(char* s)
+{
+    if (s[0] > ' ')
+    {
+        // remove trailing crlf
+        for (size_t j = 0; j < strlen(s); j++)
+            if (s[j] == '\n' || s[j] == '\r') s[j] = 0;
+        return s;    // nothing to do
+    }
+
+    for (size_t i = 0; i < strlen(s); i++)
+    {
+        if (s[i] >= '0')
+        {
+            // i is on first character
+            memmove(s, s + i, strlen(s) - i);
+            s[strlen(s) - i] = 0;
+            // remove trailing crlf
+            for (size_t j = 0; j < strlen(s); j++)
+                if (s[j] == 'n' || s[j] == '\r') s[j] = 0;
+            return s;
+        }
+    }
+    return NULL;   // no text found in string
+}
+
+char* getword(char* s, int idx)
+{
+    if (idx == 0)
+    {
+        for (size_t i = 0; i < strlen(s); i++)
+        {
+            if (s[i] < '0')
+            {
+                s[i] = 0;
+                return s;
+            }
+        }
+        return NULL;
+    }
+
+    for (size_t j = 0; j < strlen(s); j++)
+    {
+        if (s[j] > ' ')
+        {
+            char* start = s + j;
+            for (size_t k = 0; k < strlen(start); k++)
+            {
+                if (start[k] == ' ' || start[k] == '\r' || start[k] == '\n')
+                {
+                    start[k] = 0;
+                    return start;
+                }
+            }
+            return start;
+        }
+    }
+
+    return NULL;
+}
+
+// read the value of an element from the config file
+// Format:
+// # ... comment
+// ElementName-space-ElementValue
+// the returned value is a static string and must be copied somewhere else
+// before this function can be called again
+char* getConfigElement(char* elemname)
+{
+    static char s[501];
+    int found = 0;
+    char fn[1024];
+    
+    if(strlen(CONFIGFILE) > 512)
+    {
+        printf("config file path+name too long: %s\n",CONFIGFILE);
+        exit(0);
+    }
+    strcpy(fn,CONFIGFILE);
+    
+    if(fn[0] == '~')
+    {
+        struct passwd *pw = getpwuid(getuid());
+        const char *homedir = pw->pw_dir;
+        sprintf(fn,"%s%s",homedir,CONFIGFILE+1);
+    }
+
+    printf("read Configuration file %s\n",fn);
+    FILE *fr = fopen(fn,"rb");
+    if(!fr) 
+    {
+        printf("!!! Configuration file %s not found !!!\n",fn);
+        exit(0);
+    }
+
+    while (1)
+    {
+        if (fgets(s, 500, fr) == NULL) break;
+        // remove leading SPC or TAB
+        if (cleanStr(s) == 0) continue;
+        // check if its a comment
+        if (s[0] == '#') continue;
+        // get word on index
+        char* p = getword(s, 0);
+        if (!p) break;
+        if (strcmp(p, elemname) == 0)
+        {
+            char val[500];
+            if (*(s + strlen(p) + 1) == 0) continue;
+            p = getword(s + strlen(p) + 1, 1);
+            if (!p) break;
+            // replace , with .
+            char* pkomma = strchr(p, ',');
+            if (pkomma) *pkomma = '.';
+            strcpy(val, p);
+            strcpy(s, val);
+            found = 1;
+            break;
+        }
+
+    }
+
+    fclose(fr);
+    printf("Element: <%s> ", elemname);
+    if (found == 0) 
+    {
+        printf("not found\n");
+        return NULL;
+    }
+    printf(":<%s>\n",s);
+    return s;
+}
+
+void readAMSConfig()
+{
+#ifndef AMSATBEACON
+    return;
+#endif
+
+    // set defaults from #define
+    memset(beacon_udp_ip,0,sizeof(beacon_udp_ip));
+    strncpy(beacon_udp_ip, BEACON_UDP_IPADDR, sizeof(beacon_udp_ip)-1);
+
+    // read IP address of the HSmodem beacon
+    char *hp = getConfigElement("UDP_IPADDRESS");
+    if(hp) strncpy(beacon_udp_ip, hp, sizeof(beacon_udp_ip)-1);
+
+    // read serial number of pluto (for WB only, because NB is handled by the NB pluto-driver)
+    memset(pluto_serialnumber,0,sizeof(pluto_serialnumber));
+    hp = getConfigElement("PLUTO_WIDEBAND");
+    if(hp) strncpy(pluto_serialnumber,hp, sizeof(pluto_serialnumber)-1);
 }

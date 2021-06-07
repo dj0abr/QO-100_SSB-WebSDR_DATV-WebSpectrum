@@ -60,8 +60,6 @@ int din_idx = 0;
 int audio_cnt[MAX_CLIENTS];
 int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
 int audio_idx[MAX_CLIENTS];
-int16_t b16samples[MAX_CLIENTS][AUDIO_RATE];
-int b16idx[MAX_CLIENTS];
 
 #ifdef EXTUDP
 int sock;

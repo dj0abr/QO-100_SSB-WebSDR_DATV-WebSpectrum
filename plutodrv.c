@@ -48,7 +48,9 @@ pthread_t pluto_tid;
  * Pluto can only >2.5MS so we choose 3.8MS and decimate by 2
  */
 
-char pluto_context_name[50] = {""};    // use this name, or leave empty to look for any available pluto
+char pluto_serialnumber[100] = {0};
+// leave context name empty if serial number is used !
+char pluto_context_name[50] = {""}; 
 
 int init_pluto()
 {
@@ -75,7 +77,7 @@ int init_pluto()
     
     // continue with USB
     printf("search PLUTO at USB\n");
-    
+    /*
     if(strlen(pluto_context_name) >= 7)
     {
         // use specific default pluto
@@ -91,15 +93,19 @@ int init_pluto()
         printf("connot initialize this pluto\n");
         return 0;
     }
-    
+    */
     char s[500];
-    snprintf(s,499,"iio_info -s");
+    snprintf(s,499,"iio_info -s 2>/dev/null");
     s[499] = 0;
     FILE *fp = popen(s,"r");
     if(fp)
     {
         while (fgets(s, sizeof(s)-1, fp) != NULL) 
         {
+            // get the USB id
+            char usbid[50];
+            char usbsn[100];
+
             char *hp = strstr(s,"[usb:");
             if(hp)
             {
@@ -108,26 +114,48 @@ int init_pluto()
                 if(he)
                 {
                     *he = 0;
-                    strncpy(pluto_context_name,hp,49);
-                    pluto_context_name[49] = 0;
-                    printf("PLUTO found: <%s>\n",pluto_context_name);
-                    if(setup_pluto() == 1)
-                    {
-                        if(pluto_create_rxthread() == 1)
+                    strncpy(usbid,hp,49);
+                    usbid[sizeof(usbid)-1] = 0;
+
+                    // read serial number
+                    char *psn = strstr(s,"serial=");
+                    if(psn)
+                    { 
+                        psn+=7;
+                        char *spn = strchr(psn,' ');
+                        if(spn)
                         {
-                            printf("PLUTO initialized: OK\n");
-                            return 1;
+                            *spn = 0;
+                            strncpy(usbsn,psn,99);
+                            usbsn[sizeof(usbsn)-1] = 0;
+                            printf("PLUTO found, SN:%s ID:%s\n",usbsn,usbid);
+
+                            // if no special pluto requested, then use the first found pluto
+                            // or search for a specific SN
+                            if(*pluto_serialnumber == 0 || !strcmp(pluto_serialnumber, usbsn))
+                            {
+                                strcpy(pluto_context_name, usbid);
+                                printf("use PLUTO: <%s>\n",pluto_context_name);
+                                if(setup_pluto() == 1)
+                                {
+                                    if(pluto_create_rxthread() == 1)
+                                    {
+                                        printf("PLUTO initialized: OK\n");
+                                        return 1;
+                                    }
+                                }
+                                printf("connot initialize this pluto\n");
+                                return 0;
+                            }
                         }
                     }
-                    printf("PLUTO found, but cannot evaluate: iio_info -s\n");
-                    return 0;
                 }
             }
         }
         pclose(fp);
     }
     else
-        printf("ERROR: cannot execute ls command\n");
+        printf("cannot execute iio_info command\n");
     
     printf("no PLUTO found\n");
     return 0;
